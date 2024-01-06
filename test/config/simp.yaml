@@ -1,0 +1,14 @@
+server:
+  name: SimpServer
+  port: 8080
+  type: main
+  staticPath: static # 静态资源
+  storage:  mysql@3306...... # 存储
+  proxy:
+    - server:
+        type: fass # 选择Fass时默认代表本地，并且！，冷启动！，不能包含定时器等玩意，
+        name: FassServer
+    - server:
+        type: http
+        port: 9091
+        name: StudentServer
