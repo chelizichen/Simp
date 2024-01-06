@@ -22,8 +22,7 @@ type SimpFassHandler struct {
 	isOpen bool
 }
 
-func NewIoHandler(conf config.SimpConfig) (SimpFassHandler, error) {
-	handler := SimpFassHandler{}
+func NewIoHandler(conf config.SimpConfig) (handler *SimpFassHandler, errs error) {
 	var wd, err = os.Getwd()
 	child := wd + conf.Server.Name
 	fmt.Println("standard log | start fass server", child)
@@ -53,7 +52,7 @@ func NewIoHandler(conf config.SimpConfig) (SimpFassHandler, error) {
 	time.Sleep(2 * time.Second)
 	handler.isOpen = true
 	handler.pid = cmd.Process.Pid
-	FassServants[conf.Server.Name] = &handler
+	FassServants[conf.Server.Name] = handler
 	return handler, nil
 }
 
@@ -61,7 +60,7 @@ func (i *SimpFassHandler) Write(data string) (int, error) {
 	return i.WRITER.Write([]byte(data))
 }
 
-func (i *SimpFassHandler) Read(data string) {
+func (i *SimpFassHandler) Read() {
 	scanner := bufio.NewScanner(i.READER)
 	for scanner.Scan() {
 		outputLine := scanner.Text()
@@ -73,7 +72,7 @@ func (i *SimpFassHandler) Read(data string) {
 	}
 }
 
-func (i SimpFassHandler) ReadStatu() (pid int, isOpen bool) {
+func (i *SimpFassHandler) ReadStatus() (pid int, isOpen bool) {
 	if i.pid != 0 && i.isOpen == true {
 		return i.pid, true
 	} else {
