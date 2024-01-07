@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"os"
+	"path/filepath"
 )
 
 type SimpConfig struct {
@@ -24,7 +25,7 @@ type SimpConfig struct {
 
 func NewConfig(path string) (conf SimpConfig, err error) {
 	wd, _ := os.Getwd()
-	configPath := wd + path
+	configPath := filepath.Join(wd, path)
 	// 读取 YAML 文件
 	yamlFile, err := os.ReadFile(configPath)
 	if err != nil {
