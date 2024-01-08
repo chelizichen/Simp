@@ -13,11 +13,9 @@ import (
 	"time"
 )
 
-const PublishPath = "static/publish"
-
 func Registry(ctx *handlers.SimpHttpServerCtx) {
 	G := ctx.Engine
-	G.POST("/upload", func(c *gin.Context) {
+	G.POST("/uploadServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		expectedHash := c.PostForm("hash") // 假设客户端提供了文件的哈希值
 		cwd, err := os.Getwd()
@@ -25,7 +23,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		F, err := c.FormFile("file")
-		storagePath := filepath.Join(cwd, PublishPath, serverName, F.Filename)
+		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, F.Filename)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "接受文件失败", nil))
 			return
@@ -58,16 +56,16 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "上传成功", nil))
 	})
 
-	G.POST("/restart", func(c *gin.Context) {
+	G.POST("/restartServer", func(c *gin.Context) {
 		fileName := c.PostForm("fileName")
 		serverName := c.PostForm("serverName")
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
-		storagePath := filepath.Join(cwd, PublishPath, serverName, fileName)
-		storageExEPath := filepath.Join(cwd, PublishPath, serverName, fileName, "server")
-		dest := filepath.Join(cwd, PublishPath, serverName)
+		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, fileName)
+		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, fileName, "server")
+		dest := filepath.Join(cwd, utils.PublishPath, serverName)
 		err = utils.Unzip(storagePath, dest)
 		if err != nil {
 			fmt.Println("Error To Unzip", err.Error())
@@ -85,7 +83,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
-		filePath := filepath.Join(cwd, PublishPath, "SimpTestServer/childservice")
+		filePath := filepath.Join(cwd, utils.PublishPath, "SimpTestServer/childservice")
 		cmd := exec.Command(filePath)
 		stdoutPipe, err := cmd.StdoutPipe()
 		err = cmd.Start()
@@ -103,17 +101,53 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
-	G.POST("/servers", func(c *gin.Context) {
+	G.POST("/getServers", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
-		serverPath := filepath.Join(cwd, "publish")
+		serverPath := filepath.Join(cwd, utils.PublishPath)
+		fmt.Println("serverPath", serverPath)
 		subdirectories, err := utils.GetSubdirectories(serverPath)
 		if err != nil {
 			fmt.Println("Error To GetSubdirectories")
 		}
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", subdirectories))
+	})
+
+	G.POST("/createServer", func(c *gin.Context) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "Error To GetWd", nil))
+			return
+		}
+		value := c.PostForm("serverName")
+		serverPath := filepath.Join(cwd, "publish", value)
+		err = os.Mkdir(serverPath, 512)
+		if err != nil {
+			fmt.Println("Error To Mkdir", err.Error())
+			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "Error To Mkdir", nil))
+			return
+		}
+		c.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
+	})
+
+	G.POST("/getServerPackageList", func(c *gin.Context) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "Error To GetWd", nil))
+			return
+		}
+		value := c.PostForm("serverName")
+		serverPath := filepath.Join(cwd, utils.PublishPath, value)
+		var packages []string
+		err = filepath.Walk(serverPath, utils.VisitTgzS(&packages))
+		if err != nil {
+			fmt.Printf("error walking the path %v: %v\n", serverPath, err)
+		}
+		c.JSON(http.StatusOK, handlers.Resp(0, "ok", packages))
 	})
 
 }

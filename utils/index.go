@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func CalculateFileHash(filePath string) (string, error) {
@@ -100,10 +101,32 @@ func GetSubdirectories(directoryPath string) ([]string, error) {
 		}
 		// 排除当前目录
 		if path != directoryPath && info.IsDir() {
-			subdirectories = append(subdirectories, path)
+			paths := strings.SplitAfter(path, PublishPath)
+			subdirectories = append(subdirectories, paths[1])
 		}
 		return nil
 	})
 
 	return subdirectories, err
+}
+
+func VisitTgzS(archiveFiles *[]string) filepath.WalkFunc {
+	return func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Println(err) // can't walk here,
+			return nil       // but continue walking elsewhere
+		}
+		if f.IsDir() {
+			return nil // not a file, ignore.
+		}
+		fmt.Println(path)
+
+		// Check if the file has a .tar.gz extension
+		if strings.HasSuffix(path, ".tar.gz") {
+			path := strings.SplitAfter(path, PublishPath)
+
+			*archiveFiles = append(*archiveFiles, path[1])
+		}
+		return nil
+	}
 }

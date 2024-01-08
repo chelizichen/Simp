@@ -13,3 +13,16 @@
 验证打包后文件的执行。添加Web界面，添加调试接口。
 
 备注：先从HTTP形式的微服务开始。
+
+## 2024.1.8
+
+命令行打包
+
+````shell
+# 构建
+go build -o service
+# 压缩
+tar -cvf SimpTestServer.tar.gz ./simp.yaml ./service
+````
+
+获取包列表、服务列表、创建服务。
