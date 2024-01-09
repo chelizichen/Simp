@@ -20,9 +20,9 @@
 
 ````shell
 # 构建
-go build -o service
+go build -o service_go
 # 压缩
-tar -cvf SimpTestServer.tar.gz ./simp.yaml ./service
+tar -cvf SimpTestServer.tar.gz ./simp.yaml ./service_go
 ````
 
 获取包列表、服务列表、创建服务。
@@ -30,3 +30,4 @@ tar -cvf SimpTestServer.tar.gz ./simp.yaml ./service
 ## 2024.1.9
 
 界面优化 完善重启、状态接口
+构建命令可能将 service目录覆盖 ，所以采用 service_go 为二进制文件名

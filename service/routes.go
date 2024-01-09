@@ -68,7 +68,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, fileName)
-		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, "service")
+		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, "service_go")
 		storageYmlEPath := filepath.Join(cwd, utils.PublishPath, serverName, "simp.yaml")
 
 		err = utils.IFExistThenRemove(storageExEPath)

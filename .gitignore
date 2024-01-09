@@ -6,3 +6,5 @@
 /test/childservice/service
 
 /static/source/*
+
+service_go
