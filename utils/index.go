@@ -130,3 +130,14 @@ func VisitTgzS(archiveFiles *[]string) filepath.WalkFunc {
 		return nil
 	}
 }
+
+func AddHashToPackageName(packageName *string, hash string) {
+	s := strings.Split(*packageName, ".tar.gz")
+	*packageName = s[0] + "_" + hash + s[1]
+}
+
+// serverName SimpTestServer
+// fileName SimpTestServer_asdh213njonasd.tar.gz
+func ConfirmFileName(serverName string, fileName string) bool {
+	return strings.HasPrefix(fileName, serverName)
+}

@@ -5,19 +5,20 @@ import (
 	"Simp/utils"
 	"bufio"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func Registry(ctx *handlers.SimpHttpServerCtx) {
 	G := ctx.Engine
 	G.POST("/uploadServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
-		expectedHash := c.PostForm("hash") // 假设客户端提供了文件的哈希值
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
@@ -36,14 +37,9 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		}
 		// 校验文件完整性（这里使用MD5哈希值作为示例）
 		actualHash, err := utils.CalculateFileHash(tempPath)
+		utils.AddHashToPackageName(&storagePath, actualHash)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, handlers.Resp(-1, "计算哈希值失败", nil))
-			return
-		}
-		fmt.Println("计算HASH", actualHash)
-		// 比较哈希值
-		if actualHash != expectedHash && false {
-			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "比较哈希值失败", nil))
 			return
 		}
 		// 移动文件到目标目录
@@ -56,15 +52,22 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "上传成功", nil))
 	})
 
+	// serverName SimpTestServer
+	// fileName SimpTestServer_asdh213njonasd.tar.gz
 	G.POST("/restartServer", func(c *gin.Context) {
 		fileName := c.PostForm("fileName")
 		serverName := c.PostForm("serverName")
+		isSame := utils.ConfirmFileName(serverName, fileName)
+		packageName := strings.Split(fileName, ".tar.gz")[0]
+		if !isSame {
+			fmt.Println("Error File!", fileName, "  | ", serverName)
+		}
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, fileName)
-		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, fileName, "server")
+		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, packageName, "service")
 		dest := filepath.Join(cwd, utils.PublishPath, serverName)
 		err = utils.Unzip(storagePath, dest)
 		if err != nil {

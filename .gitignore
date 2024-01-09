@@ -1,5 +1,6 @@
 /static/publish/SimpTestServer/childservice
 
-/static/publish/SimpTestServer/SimpTestSercer.tar.gz
+
+/static/publish/SimpTestServer/*
 
 /test/childservice/service
