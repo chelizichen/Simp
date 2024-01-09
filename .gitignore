@@ -3,7 +3,7 @@
 
 /static/publish/SimpTestServer/*
 
-/test/childservice/service
+/test/childservice/*
 
 /static/source/*
 

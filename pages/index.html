@@ -217,19 +217,21 @@
                     const vm = this;
                     axios.post('/getServerPackageList', formData)
                         .then(response => {
-                            vm.packageList = response.data.Data;
-                            axios.post('/checkServer', formData)
-                                .then(response => {
-                                    const data = response.data.Data
-                                    vm.status = {
-                                        status: data.status ? 'online' : 'offline',
-                                        pid: data.pid
-                                    }
-                                    console.log(vm.status);
-                                })
-                                .catch(error => {
-                                    console.error(error);
-                                });
+                            vm.packageList = response.data.Data || [];
+                            if(vm.packageList.length){
+                                axios.post('/checkServer', formData)
+                                    .then(response => {
+                                        const data = response.data.Data
+                                        vm.status = {
+                                            status: data.status ? 'online' : 'offline',
+                                            pid: data.pid
+                                        }
+                                        console.log(vm.status);
+                                    })
+                                    .catch(error => {
+                                        console.error(error);
+                                    });
+                            }
                         })
                         .catch(error => {
                             console.error(error);
