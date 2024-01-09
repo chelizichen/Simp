@@ -1,124 +1,268 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Management</title>
-    <link rel="stylesheet" href="https://cdn.staticfile.org/element-ui/2.15.14/theme-chalk/index.min.css">
+    <link rel="stylesheet" href="/static/source/element.css">
     <title>Log Query App</title>
     <!-- 引入 Vue 2 的 CDN -->
-    <script src="https://cdn.staticfile.org/vue/2.2.2/vue.min.js"></script>
+    <script src="/static/source/vue.min.js"></script>
     <!-- 引入 Md5 的 CDN -->
-    <script src="https://cdn.staticfile.org/blueimp-md5/2.12.0/js/md5.min.js"></script>
+    <script src="/static/source/md5.min.js"></script>
     <!-- 引入 AXIOS 的 CDN -->
-    <script src="https://cdn.staticfile.org/axios/1.6.2/axios.js"></script>
+    <script src="/static/source/axios.js"></script>
     <!-- 引入组件库 -->
-    <script src="https://cdn.staticfile.org/element-ui/2.15.14/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/spark-md5@3"></script>
+    <script src="/static/source/element.js"></script>
+    <style>
+        .like {
+            cursor: pointer;
+            font-size: 25px;
+            display: inline-block;
+        }
 
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        .flex-item {
+            text-align: center;
+            padding: 10px;
+        }
+        .el-button--primary{
+            background-color: #4740ff;
+            border-color: #4740ff;
+        }
+        .el-button--text{
+            color:#4740ff
+        }
+    </style>
 </head>
+
 <body>
-<div id="app">
-    <h1>File Management</h1>
+    <div id="app">
+        <el-col :span="4">
+            <h1 style="color: blue;text-align: center;">simp</h1>
+            <el-menu default-active="2" class="el-menu-vertical-demo" @open="handleOpen" @close="handleClose">
+                <el-submenu v-for="(item,index) in serverList " :index="item" :key="index">
+                    <template slot="title">
+                        <span>{{item}}</span>
+                    </template>
+                </el-submenu>
+            </el-menu>
+        </el-col>
+        <el-col :span="18">
+            <el-card shadow="hover">
+                <div style="height: 70px;display: flex;align-items: center;justify-content: space-around;">
+                    <div class="flex-item">
+                        <div>ServerCounts</div>
+                        <div>{{serverList.length}}</div>
+                    </div>
+                    <div class="flex-item">
+                        <div>PackageCount</div>
+                        <div>{{packageList.length}}</div>
+                    </div>
+                    <div class="flex-item">
+                        <div>ServerName</div>
+                        <div> {{serverName || '--'}}</div>
+                    </div>
+                    <div class="flex-item">
+                        <div>Upload</div>
+                        <div @click="uploadVisible = true" style="color: blue;cursor: pointer;">click</div>
+                    </div>
+                </div>
+            </el-card>
+            <br />
+            <br />
+            <div>
+                <el-col :span="24">
+                    <el-card shadow="hover">
+                        <div v-for="pkg in packageList">
+                            <div style="display: flex;align-items: center;justify-content: space-between;">
+                                <span style="font-size: 12px;">{{pkg}}</span>
+                                <div>{{status.pid || '--'}}</div>
+                                <div>{{status.status || '--'}}</div>
+                                <el-button type="text" @click="showConfig()">PreviewConfig</el-button>
+                                <el-button type="text" @click="restartServer(pkg)">RestartServer</el-button>
+                            </div>
+                        </div>
+                    </el-card>
+                </el-col>
+            </div>
+            <!-- 文件上传表单 -->
+            <el-dialog append-to-body :visible="uploadVisible" width="50%" title="Release">
+                <el-form :model="uploadForm" label-width="150px">
+                    <el-form-item label="Server Name" required>
+                        <el-input v-model="uploadForm.serverName" disabled></el-input>
+                    </el-form-item>
+                    <el-form-item label="File" required>
+                        <el-upload :show-file-list="true" :on-change="handleFileChange" :auto-upload="false"
+                            action="/upload">
+                            <el-button slot="trigger" size="small">Choose File</el-button>
+                        </el-upload>
+                    </el-form-item>
+                </el-form>
+                <span slot="footer">
+                    <div style="display: flex;align-items: center;justify-content: center;">
+                        <el-button type="success" @click="uploadFile">Upload</el-button>
+                        <el-button type="primary" @click="uploadVisible=false">Close</el-button>
+                    </div>
+                </span>
+            </el-dialog>
+            <el-dialog append-to-body :visible="configVisible" title="Server Configuration" width="60%">
+                <el-form :model="config" label-width="100px">
+                    <el-form-item label="Name">
+                      <el-input v-model="config.Name" disabled></el-input>
+                    </el-form-item>
+                    <el-form-item label="Port">
+                      <el-input v-model="config.Port" disabled></el-input>
+                    </el-form-item>
+                    <el-form-item label="Type">
+                      <el-input v-model="config.Type" disabled></el-input>
+                    </el-form-item>
+                    <el-form-item label="Static Path">
+                      <el-input v-model="config.StaticPath" disabled></el-input>
+                    </el-form-item>
+                    <el-form-item label="Storage">
+                      <el-input v-model="config.Storage" disabled></el-input>
+                    </el-form-item>
+                  </el-form>
+                  <span slot="footer">
+                    <div style="display: flex;align-items: center;justify-content: center;">
+                        <el-button type="primary" @click="configVisible=false">Close</el-button>
+                    </div>
+                </span>
+            </el-dialog>
+        </el-col>
+    </div>
 
-    <!-- 文件上传表单 -->
-    <el-form :model="uploadForm" label-width="80px" @submit.native.prevent="uploadFile">
-        <el-form-item label="Server Name" required>
-            <el-input v-model="uploadForm.serverName"></el-input>
-        </el-form-item>
-        <el-form-item label="File Hash" required>
-            <el-input v-model="uploadForm.hash"></el-input>
-        </el-form-item>
-        <el-form-item label="File" required>
-            <el-upload
-                    :show-file-list="true"
-                    :on-change="handleFileChange"
-                    :auto-upload="false"
-                    action="/upload"
-            >
-                <el-button slot="trigger" size="small">Choose File</el-button>
-            </el-upload>
-        </el-form-item>
-        <el-form-item>
-            <el-button type="primary" native-type="submit">Upload</el-button>
-        </el-form-item>
-    </el-form>
-
-    <!-- 服务器列表 -->
-    <ul>
-        <li v-for="server in serverList" :key="server">
-            {{ server }}
-            <el-button type="danger" @click="restartServer(server)">Restart</el-button>
-        </li>
-    </ul>
-
-    <el-button type="danger" @click="restartServer('SimpTestServer')">Restart</el-button>
-
-</div>
-
-<script>
-    new Vue({
-        el: '#app',
-        data: {
-            uploadForm: {
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                uploadForm: {
+                    serverName: '',
+                    file: null,
+                },
+                serverList: [],
+                packageList: [],
                 serverName: '',
-                hash: '',
-                file: null,
+                uploadVisible: false,
+                status: {
+                    pid: 0,
+                    status: false,
+                },
+                configVisible: false,
+                config: {
+                    Name: "",
+                    Port: 0,
+                    Type: "",
+                    StaticPath: "",
+                    Storage: "",
+                    Proxy: null,
+                }
             },
-            serverList: [],
-        },
-        methods: {
-            handleFileChange(file) {
-                this.uploadForm.file = file.raw;
-            },
-            uploadFile() {
-                const formData = new FormData();
-                formData.append('serverName', this.uploadForm.serverName);
-                formData.append('hash', this.uploadForm.hash);
-                formData.append('file', this.uploadForm.file);
+            methods: {
+                handleFileChange(file) {
+                    this.uploadForm.file = file.raw;
+                },
+                uploadFile() {
+                    const formData = new FormData();
+                    formData.append('serverName', this.uploadForm.serverName);
+                    formData.append('file', this.uploadForm.file);
 
-                axios.post('/upload', formData)
-                    .then(response => {
-                        console.log(response.data);
-                        this.uploadForm = {
-                            serverName: '',
-                            hash: '',
-                            file: null,
-                        };
-                    })
-                    .catch(error => {
-                        console.error(error);
-                    });
-            },
-            restartServer(serverName) {
-                const data = {
-                    fileName: 'childservice', // replace with actual file name
-                    serverName: serverName,
-                };
+                    axios.post('/uploadServer', formData)
+                        .then(response => {
+                            console.log(response.data);
+                            this.uploadForm.file = null;
+                            this.$notify({
+                                title: 'Release Success',
+                            });
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                restartServer(packageName) {
+                    const formData = new FormData();
+                    formData.append('fileName', packageName);
+                    formData.append('serverName', this.serverName);
 
-                axios.post('/test/restart', data)
-                    .then(response => {
-                        console.log(response.data);
-                    })
-                    .catch(error => {
-                        console.error(error);
-                    });
+                    axios.post('/restartServer', formData)
+                        .then(response => {
+                            const data = response.data.Data;
+                            this.status = {
+                                status: data.status ? 'online' : 'offline',
+                                pid: data.pid
+                            }
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                fetchServerList() {
+                    axios.post('/getServers')
+                        .then(response => {
+                            this.serverList = response.data.Data;
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                getServerPackageList(serverName) {
+                    const formData = new FormData();
+                    formData.append('serverName', serverName);
+                    const vm = this;
+                    axios.post('/getServerPackageList', formData)
+                        .then(response => {
+                            vm.packageList = response.data.Data;
+                            axios.post('/checkServer', formData)
+                                .then(response => {
+                                    const data = response.data.Data
+                                    vm.status = {
+                                        status: data.status ? 'online' : 'offline',
+                                        pid: data.pid
+                                    }
+                                    console.log(vm.status);
+                                })
+                                .catch(error => {
+                                    console.error(error);
+                                });
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                handleOpen(serverName, keyPath) {
+                    this.serverName = serverName;
+                    this.getServerPackageList(serverName)
+                    this.uploadForm.serverName = serverName;
+                },
+                handleClose(key, keyPath) {
+                    console.log(key, keyPath);
+                },
+                showConfig() {
+                    // checkConfig
+                    const formData = new FormData();
+                    formData.append('serverName', this.serverName);
+                    axios.post('/checkConfig', formData)
+                        .then(response => {
+                            this.config = response.data.Data.Server
+                            this.configVisible = true
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                }
             },
-            fetchServerList() {
-                axios.post('/servers')
-                    .then(response => {
-                        this.serverList = response.data.data;
-                    })
-                    .catch(error => {
-                        console.error(error);
-                    });
+            mounted() {
+                // Fetch initial server list
+                this.fetchServerList();
             },
-        },
-        mounted() {
-            // Fetch initial server list
-            this.fetchServerList();
-        },
-    });
-</script>
+        });
+    </script>
 </body>
+
 </html>

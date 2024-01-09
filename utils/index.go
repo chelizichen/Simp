@@ -1,13 +1,14 @@
 package utils
 
 import (
-	"archive/zip"
+	"archive/tar"
 	"crypto/md5"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 func CalculateFileHash(filePath string) (string, error) {
@@ -40,41 +41,44 @@ func CalculateFileHash(filePath string) (string, error) {
 //		fmt.Println("Unzip successful.")
 //	}
 func Unzip(src, dest string) error {
-	reader, err := zip.OpenReader(src)
+	file, err := os.Open(src)
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer file.Close()
 
-	for _, file := range reader.File {
-		filePath := filepath.Join(dest, file.Name)
+	tarReader := tar.NewReader(file)
 
-		if file.FileInfo().IsDir() {
-			// 如果是目录，创建目录
-			os.MkdirAll(filePath, os.ModePerm)
-			continue
+	for {
+		header, err := tarReader.Next()
+
+		if err == io.EOF {
+			break
 		}
 
-		// 如果是文件，创建文件并写入内容
-		if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
-			return err
-		}
-
-		extractedFile, err := os.Create(filePath)
 		if err != nil {
 			return err
 		}
-		defer extractedFile.Close()
 
-		sourceFile, err := file.Open()
-		if err != nil {
-			return err
-		}
-		defer sourceFile.Close()
+		target := filepath.Join(dest, header.Name)
 
-		// 将文件内容复制到目标文件
-		if _, err := io.Copy(extractedFile, sourceFile); err != nil {
-			return err
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			file, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+
+			if _, err := io.Copy(file, tarReader); err != nil {
+				return err
+			}
+			file.Close()
+		default:
+			return fmt.Errorf("Unknown type: %v in %s", header.Typeflag, header.Name)
 		}
 	}
 
@@ -95,22 +99,21 @@ func Unzip(src, dest string) error {
 func GetSubdirectories(directoryPath string) ([]string, error) {
 	var subdirectories []string
 
-	err := filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		// 排除当前目录
-		if path != directoryPath && info.IsDir() {
-			paths := strings.SplitAfter(path, PublishPath)
-			subdirectories = append(subdirectories, paths[1])
-		}
-		return nil
-	})
+	entries, err := os.ReadDir(directoryPath)
+	if err != nil {
+		return nil, err
+	}
 
-	return subdirectories, err
+	for _, entry := range entries {
+		if entry.IsDir() {
+			subdirectories = append(subdirectories, entry.Name())
+		}
+	}
+
+	return subdirectories, nil
 }
 
-func VisitTgzS(archiveFiles *[]string) filepath.WalkFunc {
+func VisitTgzS(archiveFiles *[]string, serverName string) filepath.WalkFunc {
 	return func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Println(err) // can't walk here,
@@ -119,11 +122,13 @@ func VisitTgzS(archiveFiles *[]string) filepath.WalkFunc {
 		if f.IsDir() {
 			return nil // not a file, ignore.
 		}
-		fmt.Println(path)
 
 		// Check if the file has a .tar.gz extension
 		if strings.HasSuffix(path, ".tar.gz") {
-			path := strings.SplitAfter(path, PublishPath)
+			s := filepath.Join(PublishPath, serverName)
+			fmt.Println("s ", s)
+			path := strings.SplitAfter(path, s+"/")
+			fmt.Println("path1 ", path[1])
 
 			*archiveFiles = append(*archiveFiles, path[1])
 		}
@@ -133,11 +138,53 @@ func VisitTgzS(archiveFiles *[]string) filepath.WalkFunc {
 
 func AddHashToPackageName(packageName *string, hash string) {
 	s := strings.Split(*packageName, ".tar.gz")
-	*packageName = s[0] + "_" + hash + s[1]
+	*packageName = s[0] + "_" + hash + ".tar.gz"
 }
 
 // serverName SimpTestServer
 // fileName SimpTestServer_asdh213njonasd.tar.gz
 func ConfirmFileName(serverName string, fileName string) bool {
 	return strings.HasPrefix(fileName, serverName)
+}
+
+func IFExistThenRemove(path string) error {
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		fmt.Printf("Path %s does not exist.\n", path)
+		return nil
+	}
+
+	err = os.Remove(path)
+	if err != nil {
+		fmt.Printf("Error removing path %s: %v\n", path, err)
+		return err
+	}
+
+	fmt.Printf("Path %s removed successfully.\n", path)
+	return nil
+}
+
+func IsPidAlive(pid int, serverName string) bool {
+
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		fmt.Printf("Error finding process: %v\n", err)
+		return false
+	}
+
+	err = process.Signal(syscall.Signal(0))
+	if err == nil {
+		pid1 := ServantAlives[serverName]
+		// 判断是否为同一个服务
+		if pid1 == pid1 {
+			return true // 进程存在
+		}
+	}
+
+	if os.IsNotExist(err) || err == os.ErrProcessDone {
+		return false // 进程不存在
+	}
+
+	fmt.Printf("Error signaling process: %v\n", err)
+	return false
 }

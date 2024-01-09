@@ -1,6 +1,7 @@
 package service
 
 import (
+	"Simp/config"
 	handlers "Simp/handlers/http"
 	"Simp/utils"
 	"bufio"
@@ -9,7 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -57,8 +58,8 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 	G.POST("/restartServer", func(c *gin.Context) {
 		fileName := c.PostForm("fileName")
 		serverName := c.PostForm("serverName")
+
 		isSame := utils.ConfirmFileName(serverName, fileName)
-		packageName := strings.Split(fileName, ".tar.gz")[0]
 		if !isSame {
 			fmt.Println("Error File!", fileName, "  | ", serverName)
 		}
@@ -67,7 +68,17 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, fileName)
-		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, packageName, "service")
+		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, "service")
+		storageYmlEPath := filepath.Join(cwd, utils.PublishPath, serverName, "simp.yaml")
+
+		err = utils.IFExistThenRemove(storageExEPath)
+		if err != nil {
+			fmt.Println("remote File Error "+storageExEPath, err.Error())
+		}
+		err = utils.IFExistThenRemove(storageYmlEPath)
+		if err != nil {
+			fmt.Println("remote File Error "+storageYmlEPath, err.Error())
+		}
 		dest := filepath.Join(cwd, utils.PublishPath, serverName)
 		err = utils.Unzip(storagePath, dest)
 		if err != nil {
@@ -78,7 +89,13 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		if err != nil {
 			fmt.Println("Error To Err", err.Error())
 		}
-		c.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
+		v := make(map[string]interface{}, 10)
+
+		v["pid"] = cmd.Process.Pid
+		v["status"] = true
+		utils.ServantAlives[serverName] = cmd.Process.Pid
+
+		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
 	})
 
 	G.POST("/test/restart", func(c *gin.Context) {
@@ -143,14 +160,57 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "Error To GetWd", nil))
 			return
 		}
-		value := c.PostForm("serverName")
-		serverPath := filepath.Join(cwd, utils.PublishPath, value)
+		serverName := c.PostForm("serverName")
+		serverPath := filepath.Join(cwd, utils.PublishPath, serverName)
 		var packages []string
-		err = filepath.Walk(serverPath, utils.VisitTgzS(&packages))
+		err = filepath.Walk(serverPath, utils.VisitTgzS(&packages, serverName))
 		if err != nil {
 			fmt.Printf("error walking the path %v: %v\n", serverPath, err)
 		}
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", packages))
+	})
+
+	G.POST("/deleteServer", func(c *gin.Context) {
+		serverName := c.PostForm("serverName")
+		F := c.PostForm("fileName")
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+		}
+		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, F)
+		err = os.Remove(storagePath)
+		if err != nil {
+			fmt.Println("Error To RemoveFile", err.Error())
+			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "Error To RemoveFile", nil))
+		}
+		c.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
+	})
+
+	G.POST("/checkServer", func(c *gin.Context) {
+		serverName := c.PostForm("serverName")
+		pid := c.DefaultPostForm("pid", fmt.Sprint(utils.ServantAlives[serverName]))
+		P, err := strconv.Atoi(pid)
+		if err != nil {
+			fmt.Println("Error to Atoi", err.Error())
+		}
+		b := utils.IsPidAlive(P, serverName)
+		v := make(map[string]interface{}, 10)
+		v["status"] = false
+		if b == true {
+			v["pid"] = pid
+			v["status"] = true
+		}
+		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
+	})
+
+	G.POST("/checkConfig", func(c *gin.Context) {
+		serverName := c.PostForm("serverName")
+		configPath := filepath.Join(utils.PublishPath, serverName, "simp.yaml")
+		sc, err := config.NewConfig(configPath)
+		if err != nil {
+			fmt.Println("Error To Get NewConfig", err.Error())
+		}
+		c.JSON(200, handlers.Resp(0, "ok", sc))
 	})
 
 }

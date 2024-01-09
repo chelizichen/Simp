@@ -26,3 +26,7 @@ tar -cvf SimpTestServer.tar.gz ./simp.yaml ./service
 ````
 
 获取包列表、服务列表、创建服务。
+
+## 2024.1.9
+
+界面优化 完善重启、状态接口
