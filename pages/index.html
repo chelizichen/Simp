@@ -4,9 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Management</title>
+    <title>Simp</title>
     <link rel="stylesheet" href="/static/source/element.css">
-    <title>Log Query App</title>
     <!-- 引入 Vue 2 的 CDN -->
     <script src="/static/source/vue.min.js"></script>
     <!-- 引入 Md5 的 CDN -->
@@ -31,12 +30,18 @@
             text-align: center;
             padding: 10px;
         }
-        .el-button--primary{
+
+        .el-button--primary {
             background-color: #4740ff;
             border-color: #4740ff;
         }
-        .el-button--text{
-            color:#4740ff
+
+        .el-button--text {
+            color: #4740ff
+        }
+        .el-button--primary:focus, .el-button--primary:hover{
+            background-color: #4740ff;
+            border-color: #4740ff; 
         }
     </style>
 </head>
@@ -57,6 +62,12 @@
             <el-card shadow="hover">
                 <div style="height: 70px;display: flex;align-items: center;justify-content: space-around;">
                     <div class="flex-item">
+                        <div @click="createServerVisible = true" style="color: blue;cursor: pointer;">CreateServer</div>
+                    </div>
+                    <div class="flex-item">
+                        <div>|</div>
+                    </div>
+                    <div class="flex-item">
                         <div>ServerCounts</div>
                         <div>{{serverList.length}}</div>
                     </div>
@@ -69,8 +80,10 @@
                         <div> {{serverName || '--'}}</div>
                     </div>
                     <div class="flex-item">
-                        <div>Upload</div>
-                        <div @click="uploadVisible = true" style="color: blue;cursor: pointer;">click</div>
+                        <div @click="uploadVisible = true" style="color: blue;cursor: pointer;">Upload</div>
+                    </div>
+                    <div class="flex-item">
+                        <div @click="DeleteAllPackages()" style="color: red;cursor: pointer;">Remove</div>
                     </div>
                 </div>
             </el-card>
@@ -114,31 +127,105 @@
             <el-dialog append-to-body :visible="configVisible" title="Server Configuration" width="60%">
                 <el-form :model="config" label-width="100px">
                     <el-form-item label="Name">
-                      <el-input v-model="config.Name" disabled></el-input>
+                        <el-input v-model="config.Name" disabled></el-input>
                     </el-form-item>
                     <el-form-item label="Port">
-                      <el-input v-model="config.Port" disabled></el-input>
+                        <el-input v-model="config.Port" disabled></el-input>
                     </el-form-item>
                     <el-form-item label="Type">
-                      <el-input v-model="config.Type" disabled></el-input>
+                        <el-input v-model="config.Type" disabled></el-input>
                     </el-form-item>
                     <el-form-item label="Static Path">
-                      <el-input v-model="config.StaticPath" disabled></el-input>
+                        <el-input v-model="config.StaticPath" disabled></el-input>
                     </el-form-item>
                     <el-form-item label="Storage">
-                      <el-input v-model="config.Storage" disabled></el-input>
+                        <el-input v-model="config.Storage" disabled></el-input>
                     </el-form-item>
-                  </el-form>
-                  <span slot="footer">
+                </el-form>
+                <span slot="footer">
                     <div style="display: flex;align-items: center;justify-content: center;">
                         <el-button type="primary" @click="configVisible=false">Close</el-button>
                     </div>
                 </span>
             </el-dialog>
+
+            <el-dialog append-to-body :visible="createServerVisible" title="Create Server" width="60%">
+                <el-form :model="config" label-width="100px">
+                    <el-form-item label="Name">
+                        <el-input v-model="createServerName"></el-input>
+                    </el-form-item>
+                </el-form>
+                <span slot="footer">
+                    <div style="display: flex;align-items: center;justify-content: center;">
+                        <el-button type="primary" @click="createServerVisible=false">Close</el-button>
+                        <el-button type="success" @click="createServer()">Create</el-button>
+                    </div>
+                </span>
+            </el-dialog>
+
         </el-col>
     </div>
 
     <script>
+        const HttpReq = axios.create({
+            // baseURL, // api的base_url
+            timeout: 15000, // 请求超时时间,
+            method: "post",
+        });
+        HttpReq.interceptors.response.use(resp => {
+            if(resp.data.Code != 0 ){
+                console.log('resp.data.Message |',resp.data.Message);
+                // this.$message.error(resp.data.Message)
+            }
+            return resp.data;
+        })
+
+        const API = {
+            UploadServer:function(data,url="/uploadServer"){
+                return HttpReq({
+                    url,data
+                })
+            },
+            RestartServer:function(data,url="/restartServer"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
+            GetServerList:function(url="/getServers"){
+                return HttpReq({
+                    url,
+                })
+            },
+            GetServerPackageList:function(data,url="/getServerPackageList"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
+            CheckServer:function(data,url="/checkServer"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
+            CreateServer:function(data,url="/createServer"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
+            CheckConfig:function(data,url="/checkConfig"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
+            DeleteAllPackages:function(data,url="/deleteAllPackage"){
+
+            }
+
+        }
         new Vue({
             el: '#app',
             data: {
@@ -162,102 +249,114 @@
                     StaticPath: "",
                     Storage: "",
                     Proxy: null,
-                }
+                },
+                createServerVisible:false,
+                createServerName:'',
             },
             methods: {
                 handleFileChange(file) {
                     this.uploadForm.file = file.raw;
                 },
-                uploadFile() {
+                async uploadFile() {
                     const formData = new FormData();
                     formData.append('serverName', this.uploadForm.serverName);
                     formData.append('file', this.uploadForm.file);
+                    const data = await API.UploadServer(formData)
+                    this.uploadForm.file = null;
+                    this.$notify({
+                        title: 'Release Success',
+                    });
 
-                    axios.post('/uploadServer', formData)
-                        .then(response => {
-                            console.log(response.data);
-                            this.uploadForm.file = null;
-                            this.$notify({
-                                title: 'Release Success',
-                            });
-                        })
-                        .catch(error => {
-                            console.error(error);
-                        });
                 },
-                restartServer(packageName) {
-                    const formData = new FormData();
-                    formData.append('fileName', packageName);
-                    formData.append('serverName', this.serverName);
-
-                    axios.post('/restartServer', formData)
-                        .then(response => {
-                            const data = response.data.Data;
-                            this.status = {
-                                status: data.status ? 'online' : 'offline',
-                                pid: data.pid
-                            }
-                        })
-                        .catch(error => {
-                            console.error(error);
-                        });
+                async restartServer(packageName) {
+                    const loading = this.$loading({
+                        lock: true,
+                        text: 'Loading',
+                        spinner: 'el-icon-loading',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    const data = {
+                        fileName    :   packageName,
+                        serverName  :   this.serverName
+                    }
+                    const resp = await API.RestartServer(data)
+                    this.status = {
+                        status: resp.data.status ? 'online' : 'offline',
+                        pid: resp.data.pid
+                    }
+                    loading.close()
                 },
-                fetchServerList() {
-                    axios.post('/getServers')
-                        .then(response => {
-                            this.serverList = response.data.Data;
-                        })
-                        .catch(error => {
-                            console.error(error);
-                        });
+                async fetchServerList() {
+                    const resp = await API.GetServerList();
+                    this.serverList = resp.Data || [];
                 },
-                getServerPackageList(serverName) {
+                async getServerPackageList(serverName) {
                     const formData = new FormData();
                     formData.append('serverName', serverName);
                     const vm = this;
-                    axios.post('/getServerPackageList', formData)
-                        .then(response => {
-                            vm.packageList = response.data.Data || [];
-                            if(vm.packageList.length){
-                                axios.post('/checkServer', formData)
-                                    .then(response => {
-                                        const data = response.data.Data
-                                        vm.status = {
-                                            status: data.status ? 'online' : 'offline',
-                                            pid: data.pid
-                                        }
-                                        console.log(vm.status);
-                                    })
-                                    .catch(error => {
-                                        console.error(error);
-                                    });
-                            }
-                        })
-                        .catch(error => {
-                            console.error(error);
-                        });
+                    const data  = {
+                        serverName
+                    }
+                    const resp = await API.GetServerPackageList(data)
+                    vm.packageList = resp.Data || [];
+                    if (vm.packageList.length) {
+                        const resp = await API.CheckServer(data)
+                        const ret = resp.Data;
+                        vm.status = {
+                            status: ret.status ? 'online' : 'offline',
+                            pid: ret.pid
+                        }
+                    }
                 },
-                handleOpen(serverName, keyPath) {
+                async handleOpen(serverName, keyPath) {
                     this.serverName = serverName;
-                    this.getServerPackageList(serverName)
+                    this.packageList = []
+                    await this.getServerPackageList(serverName)
                     this.uploadForm.serverName = serverName;
                 },
                 handleClose(key, keyPath) {
                     console.log(key, keyPath);
                 },
-                showConfig() {
+                async showConfig() {
                     // checkConfig
-                    const formData = new FormData();
-                    formData.append('serverName', this.serverName);
-                    axios.post('/checkConfig', formData)
-                        .then(response => {
-                            this.config = response.data.Data.Server
-                            this.configVisible = true
-                        })
-                        .catch(error => {
-                            console.error(error);
+                    const resp = await API.CheckConfig({serverName:this.serverName})
+                    this.config = resp.Data.Server
+                    this.configVisible = true
+                },
+                DeleteAllPackages() {
+                    if(!this.serverName){
+                        this.$message.error("请先选择服务")
+                        return
+                    }
+                    this.$confirm('此操作将永久删除所有目录, 是否继续?', '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(async () => {
+                        const formData = new FormData();
+                        formData.append('serverName', this.serverName);
+                        const data = await API.DeleteAllPackages({serverName:this.serverName})
+                        this.$message({
+                            type: 'success',
+                            message: '删除成功!'
                         });
+                    }).catch(() => {
+                        this.$message({
+                            type: 'info',
+                            message: '已取消删除'
+                        });
+                    });
+                },
+                async createServer(){
+                    const formData = new FormData();
+                    formData.append('serverName', this.createServerName);
+                    const data = await API.CreateServer(formData)
+                    this.$message({
+                        type: 'success',
+                        message: '添加成功!'
+                    });
                 }
+
             },
             mounted() {
                 // Fetch initial server list

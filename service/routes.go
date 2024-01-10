@@ -46,7 +46,8 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		// 移动文件到目标目录
 		fmt.Println("tempPath", tempPath)
 		fmt.Println("storagePath", storagePath)
-		if err := os.Rename(tempPath, storagePath); err != nil {
+		if err := utils.MoveAndRemove(tempPath, storagePath); err != nil {
+			fmt.Println("Error To Rename", err.Error())
 			c.JSON(http.StatusInternalServerError, handlers.Resp(-1, "移动文件失败", nil))
 			return
 		}
@@ -85,7 +86,23 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			fmt.Println("Error To Unzip", err.Error())
 		}
 		cmd := exec.Command(storageExEPath)
+		stdoutPipe, err := cmd.StdoutPipe()
+		// 设置环境变量
+		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_CONFIG_PATH="+storageYmlEPath)
 		err = cmd.Start()
+		// 启动一个协程，用于读取并打印命令的输出
+		go func() {
+			for {
+				// 读取输出
+				buf := make([]byte, 1024)
+				n, err := stdoutPipe.Read(buf)
+				if err != nil {
+					break
+				}
+				// 打印输出
+				fmt.Print("ServerName ", serverName, " || ", string(buf[:n]))
+			}
+		}()
 		if err != nil {
 			fmt.Println("Error To Err", err.Error())
 		}
@@ -143,8 +160,9 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			return
 		}
 		value := c.PostForm("serverName")
-		serverPath := filepath.Join(cwd, "publish", value)
-		err = os.Mkdir(serverPath, 512)
+		fmt.Println("createServer | serverName ", value)
+		serverPath := filepath.Join(cwd, utils.PublishPath, value)
+		err = os.Mkdir(serverPath, os.ModePerm)
 		if err != nil {
 			fmt.Println("Error To Mkdir", err.Error())
 			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "Error To Mkdir", nil))
@@ -162,6 +180,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		}
 		serverName := c.PostForm("serverName")
 		serverPath := filepath.Join(cwd, utils.PublishPath, serverName)
+		fmt.Println("serverParh", serverPath)
 		var packages []string
 		err = filepath.Walk(serverPath, utils.VisitTgzS(&packages, serverName))
 		if err != nil {
@@ -170,7 +189,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", packages))
 	})
 
-	G.POST("/deleteServer", func(c *gin.Context) {
+	G.POST("/deletePackage", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		F := c.PostForm("fileName")
 		cwd, err := os.Getwd()
@@ -213,4 +232,41 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		c.JSON(200, handlers.Resp(0, "ok", sc))
 	})
 
+	G.POST("/coverConfig", func(c *gin.Context) {
+		serverName := c.PostForm("serverName")
+		uploadConfig := c.PostForm("uploadConfig")
+		conf, err := config.ParseConfig(uploadConfig)
+		if err != nil {
+			fmt.Println("Error To Get NewConfig", err.Error())
+			c.JSON(200, handlers.Resp(-1, "Error To ParseConfig", nil))
+			return
+		}
+		configPath := filepath.Join(utils.PublishPath, serverName, "simp.yaml")
+		config.CoverConfig(conf, configPath)
+		c.JSON(200, handlers.Resp(0, "ok", nil))
+	})
+
+	G.POST("/deleteAllPackage", func(c *gin.Context) {
+		serverName := c.PostForm("serverName")
+		ErrorToRemoveAll := "Error To Remove All"
+		ErrorToMakeAServer := "Error To Make A Sever"
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+		}
+		serverPath := filepath.Join(cwd, utils.PublishPath, serverName)
+		err = os.RemoveAll(serverPath)
+		if err != nil {
+			fmt.Println(ErrorToRemoveAll, err.Error())
+			c.JSON(200, handlers.Resp(-1, ErrorToRemoveAll, nil))
+			return
+		}
+		err = os.Mkdir(serverPath, os.ModePerm)
+		if err != nil {
+			fmt.Println(ErrorToMakeAServer, err.Error())
+			c.JSON(200, handlers.Resp(-1, ErrorToMakeAServer, nil))
+			return
+		}
+		c.JSON(200, handlers.Resp(0, "ok", nil))
+	})
 }

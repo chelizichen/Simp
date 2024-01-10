@@ -1,10 +1,12 @@
 package config
 
 import (
+	"Simp/utils"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v2"
 )
 
 type SimpConfig struct {
@@ -25,9 +27,19 @@ type SimpConfig struct {
 
 func NewConfig(path string) (conf SimpConfig, err error) {
 	wd, _ := os.Getwd()
-	configPath := filepath.Join(wd, path)
+	SIMP_PRODUCTION := os.Getenv("SIMP_PRODUCTION")
+	fmt.Println("SIMP_PRODUCTION", SIMP_PRODUCTION)
+	var configPath string
+	if SIMP_PRODUCTION == "Yes" {
+		SIMP_CONFIG_PATH := os.Getenv("SIMP_CONFIG_PATH")
+		fmt.Println("SIMP_CONFIG_PATH", SIMP_CONFIG_PATH)
+		configPath = SIMP_CONFIG_PATH
+	} else {
+		configPath = filepath.Join(wd, path)
+	}
 	// 读取 YAML 文件
 	yamlFile, err := os.ReadFile(configPath)
+	fmt.Println("Get FilePath from ", configPath)
 	if err != nil {
 		fmt.Println("Error reading YAML file:", err)
 		return conf, err
@@ -52,4 +64,32 @@ func ResetConfig(yamlContent string, filePath string) error {
 		return fmt.Errorf("error writing YAML to file: %v", err)
 	}
 	return nil
+}
+
+func CoverConfig(config SimpConfig, filePath string) error {
+	// 删除
+	utils.IFExistThenRemove(filePath)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := yaml.NewEncoder(file)
+	defer encoder.Close()
+
+	if err := encoder.Encode(config); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ParseConfig(yamlString string) (SimpConfig, error) {
+	var config SimpConfig
+	err := yaml.Unmarshal([]byte(yamlString), &config)
+	if err != nil {
+		return SimpConfig{}, err
+	}
+	return config, nil
 }

@@ -1,10 +1,14 @@
 /static/publish/SimpTestServer/childservice
 
 
-/static/publish/SimpTestServer/*
+# 测试发布
+/static/publish/*
 
+# 测试子任务
 /test/childservice/*
 
+# 静态资源
 /static/source/*
 
+# 二进制
 service_go

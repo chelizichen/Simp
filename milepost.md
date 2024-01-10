@@ -19,6 +19,8 @@
 命令行打包
 
 ````shell
+# 运行
+go run main.go
 # 构建
 go build -o service_go
 # 压缩
@@ -31,3 +33,7 @@ tar -cvf SimpTestServer.tar.gz ./simp.yaml ./service_go
 
 界面优化 完善重启、状态接口
 构建命令可能将 service目录覆盖 ，所以采用 service_go 为二进制文件名
+
+## 2024.1.10
+
+优化接口、前端代码，后端修复文件上传权限问题。

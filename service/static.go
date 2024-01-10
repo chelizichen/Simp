@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/gin-gonic/gin"
 )
 
 func Static(ctx *handlers.SimpHttpServerCtx) {
@@ -17,4 +19,7 @@ func Static(ctx *handlers.SimpHttpServerCtx) {
 	webRoot := filepath.Join(wd, "pages")
 	G.Static("/static", staticRoot)
 	G.Static("/web", webRoot)
+	G.GET("/", func(ctx *gin.Context) {
+		ctx.Redirect(304, "/web")
+	})
 }
