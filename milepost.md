@@ -37,3 +37,9 @@ tar -cvf SimpTestServer.tar.gz ./simp.yaml ./service_go
 ## 2024.1.10
 
 优化接口、前端代码，后端修复文件上传权限问题。
+
+## 2024.1.11
+
+优化前端界面、更改颜色、引入静态文件。修复接口问题。
+添加下拉框。
+添加ShutdownAPI。

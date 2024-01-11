@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simp</title>
-    <link rel="stylesheet" href="/static/source/element.css">
+    <title>simp</title>
     <!-- 引入 Vue 2 的 CDN -->
     <script src="/static/source/vue.min.js"></script>
     <!-- 引入 Md5 的 CDN -->
@@ -14,6 +13,7 @@
     <script src="/static/source/axios.js"></script>
     <!-- 引入组件库 -->
     <script src="/static/source/element.js"></script>
+    <link rel="stylesheet" href="/static/source/element.css">
     <style>
         .like {
             cursor: pointer;
@@ -49,61 +49,60 @@
 <body>
     <div id="app">
         <el-col :span="4">
-            <h1 style="color: blue;text-align: center;">simp</h1>
-            <el-menu default-active="2" class="el-menu-vertical-demo" @open="handleOpen" @close="handleClose">
-                <el-submenu v-for="(item,index) in serverList " :index="item" :key="index">
-                    <template slot="title">
-                        <span>{{item}}</span>
-                    </template>
-                </el-submenu>
+            <h1 style="color: rgb(207, 15, 124);text-align: center;">
+                <i class="el-icon-cherry" style="color: rgb(207, 15, 124);font-size: 36px;"></i>Simp
+            </h1>
+            <el-menu class="el-menu-vertical-demo"  active-text-color="rgb(207, 15, 124)">
+                <el-menu-item v-for="(item,index) in serverList " :index="item" :key="index" @click="handleOpen(item)">
+                    <i class="el-icon-menu"></i>
+                    <span slot="title">{{item}}</span>    
+                </el-menu-item>
             </el-menu>
         </el-col>
-        <el-col :span="18">
+        <el-col :span="20">
             <el-card shadow="hover">
                 <div style="height: 70px;display: flex;align-items: center;justify-content: space-around;">
                     <div class="flex-item">
-                        <div @click="createServerVisible = true" style="color: blue;cursor: pointer;">CreateServer</div>
+                        <div @click="createServerVisible = true" style="color: rgb(207, 15, 124);cursor: pointer;">CreateServer</div>
                     </div>
                     <div class="flex-item">
-                        <div>|</div>
-                    </div>
-                    <div class="flex-item">
-                        <div>ServerCounts</div>
-                        <div>{{serverList.length}}</div>
-                    </div>
-                    <div class="flex-item">
-                        <div>PackageCount</div>
-                        <div>{{packageList.length}}</div>
-                    </div>
-                    <div class="flex-item">
-                        <div>ServerName</div>
-                        <div> {{serverName || '--'}}</div>
-                    </div>
-                    <div class="flex-item">
-                        <div @click="uploadVisible = true" style="color: blue;cursor: pointer;">Upload</div>
-                    </div>
-                    <div class="flex-item">
-                        <div @click="DeleteAllPackages()" style="color: red;cursor: pointer;">Remove</div>
+                        <div style="font-weight: 900;">ServerCounts</div>
+                        <div style="color: rgb(207, 15, 124);">{{serverList.length}}</div>
                     </div>
                 </div>
             </el-card>
-            <br />
-            <br />
-            <div>
-                <el-col :span="24">
-                    <el-card shadow="hover">
-                        <div v-for="pkg in packageList">
-                            <div style="display: flex;align-items: center;justify-content: space-between;">
-                                <span style="font-size: 12px;">{{pkg}}</span>
-                                <div>{{status.pid || '--'}}</div>
-                                <div>{{status.status || '--'}}</div>
-                                <el-button type="text" @click="showConfig()">PreviewConfig</el-button>
-                                <el-button type="text" @click="restartServer(pkg)">RestartServer</el-button>
-                            </div>
-                        </div>
-                    </el-card>
-                </el-col>
-            </div>
+            <el-card shadow="hover">
+                <div style="height: 70px;display: flex;align-items: center;justify-content: space-around;">
+                  
+                    <div class="flex-item">
+                        <div style="font-weight: 900;">PackageCounts</div>
+                        <div style="color: rgb(207, 15, 124);">{{packageList.length}}</div>
+                    </div>
+                    <div class="flex-item">
+                        <div style="font-weight: 900;">ServerName</div>
+                        <div style="color: rgb(207, 15, 124);">{{serverName || '--'}}</div>
+                    </div>
+                    <div class="flex-item">
+                        <div style="font-weight: 900;">Pid</div>
+                        <div style="color: rgb(207, 15, 124);">{{status.pid || '--'}}</div>
+                    </div>
+                    <div class="flex-item">
+                        <div style="font-weight: 900;">Status</div>
+                        <div style="color: rgb(207, 15, 124);">{{status.status || '--'}}</div>
+                    </div>
+                    <div class="flex-item">
+                        <div @click="uploadVisible = true" style="color: rgb(207, 15, 124);cursor: pointer;">Upload</div>
+                    </div>
+                    <div class="flex-item">
+                        <div @click="DeleteAllPackages()" style="color: rgb(207, 15, 124);cursor: pointer;">Remove</div>
+                    </div>
+
+                    <div class="flex-item">
+                        <div @click="releaseVisible=true" style="color: rgb(207, 15, 124);cursor: pointer;">Release</div>
+                    </div>
+
+                </div>
+            </el-card>
             <!-- 文件上传表单 -->
             <el-dialog append-to-body :visible="uploadVisible" width="50%" title="Release">
                 <el-form :model="uploadForm" label-width="150px">
@@ -161,6 +160,26 @@
                         <el-button type="success" @click="createServer()">Create</el-button>
                     </div>
                 </span>
+            </el-dialog>
+
+            <el-dialog append-to-body :visible="releaseVisible" title="Release Server" width="60%">
+                <el-select v-model="selectRelease" placeholder="请选择" style="width: 100%;">
+                    <el-option
+                      v-for="item in packageList"
+                      :key="item"
+                      :label="item"
+                      :value="item">
+                      <span style="float: left">{{ serverName }}</span>
+                      <span style="float: right; color: #8492a6; font-size: 13px">{{ GetHash(item) }}</span>
+                    </el-option>
+                  </el-select>
+                <span slot="footer">
+                    <div style="display: flex;align-items: center;justify-content: center;">
+                       <el-button type="primary" @click="releaseVisible=false">Close</el-button>
+                        <el-button type="success" @click="restartServer()">Release</el-button>
+                    </div>
+                </span>
+                  
             </el-dialog>
 
         </el-col>
@@ -222,9 +241,17 @@
                 })
             },
             DeleteAllPackages:function(data,url="/deleteAllPackage"){
-
-            }
-
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
+            ShutDownServer:function(data,url="/shutdownServer"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
         }
         new Vue({
             el: '#app',
@@ -252,6 +279,8 @@
                 },
                 createServerVisible:false,
                 createServerName:'',
+                releaseVisible:false,
+                selectRelease:'',
             },
             methods: {
                 handleFileChange(file) {
@@ -268,21 +297,21 @@
                     });
 
                 },
-                async restartServer(packageName) {
+                async restartServer() {
                     const loading = this.$loading({
                         lock: true,
                         text: 'Loading',
                         spinner: 'el-icon-loading',
                         background: 'rgba(0, 0, 0, 0.7)'
                     });
-                    const data = {
-                        fileName    :   packageName,
-                        serverName  :   this.serverName
-                    }
-                    const resp = await API.RestartServer(data)
+                    const formData = new FormData();
+                    formData.append('fileName', this.selectRelease);
+                    formData.append('serverName', this.serverName);
+
+                    const resp = await API.RestartServer(formData)
                     this.status = {
-                        status: resp.data.status ? 'online' : 'offline',
-                        pid: resp.data.pid
+                        status: resp.Data.status ? 'online' : 'offline',
+                        pid: resp.Data.pid
                     }
                     loading.close()
                 },
@@ -294,13 +323,10 @@
                     const formData = new FormData();
                     formData.append('serverName', serverName);
                     const vm = this;
-                    const data  = {
-                        serverName
-                    }
-                    const resp = await API.GetServerPackageList(data)
+                    const resp = await API.GetServerPackageList(formData)
                     vm.packageList = resp.Data || [];
                     if (vm.packageList.length) {
-                        const resp = await API.CheckServer(data)
+                        const resp = await API.CheckServer(formData)
                         const ret = resp.Data;
                         vm.status = {
                             status: ret.status ? 'online' : 'offline',
@@ -318,8 +344,9 @@
                     console.log(key, keyPath);
                 },
                 async showConfig() {
-                    // checkConfig
-                    const resp = await API.CheckConfig({serverName:this.serverName})
+                    const formData = new FormData();
+                    formData.append('serverName', this.serverName);
+                    const resp = await API.CheckConfig(formData)
                     this.config = resp.Data.Server
                     this.configVisible = true
                 },
@@ -335,7 +362,7 @@
                     }).then(async () => {
                         const formData = new FormData();
                         formData.append('serverName', this.serverName);
-                        const data = await API.DeleteAllPackages({serverName:this.serverName})
+                        const data = await API.DeleteAllPackages(formData)
                         this.$message({
                             type: 'success',
                             message: '删除成功!'
@@ -355,6 +382,12 @@
                         type: 'success',
                         message: '添加成功!'
                     });
+                },
+                ReleasePackage(){
+
+                },
+                GetHash(hash){
+                    return hash.split("_")[1].split(".tar.gz")[0]
                 }
 
             },

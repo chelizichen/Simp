@@ -269,4 +269,16 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		}
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
+	G.POST("/shutdownServer", func(c *gin.Context) {
+		serverName := c.PostForm("serverName")
+		pid := utils.ServantAlives[serverName]
+		cmd := exec.Command("kill", "-9", strconv.Itoa(pid))
+		// 执行命令
+		err := cmd.Run()
+		if err != nil {
+			fmt.Println("Error killing process:", err)
+			return
+		}
+		c.JSON(200, handlers.Resp(0, "ok", nil))
+	})
 }
