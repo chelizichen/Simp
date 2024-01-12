@@ -181,7 +181,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		serverName := c.PostForm("serverName")
 		serverPath := filepath.Join(cwd, utils.PublishPath, serverName)
 		fmt.Println("serverParh", serverPath)
-		var packages []string
+		var packages []utils.ReleasePackageVo
 		err = filepath.Walk(serverPath, utils.VisitTgzS(&packages, serverName))
 		if err != nil {
 			fmt.Printf("error walking the path %v: %v\n", serverPath, err)
@@ -269,6 +269,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		}
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
+
 	G.POST("/shutdownServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		pid := utils.ServantAlives[serverName]

@@ -166,11 +166,11 @@
                 <el-select v-model="selectRelease" placeholder="请选择" style="width: 100%;">
                     <el-option
                       v-for="item in packageList"
-                      :key="item"
-                      :label="item"
-                      :value="item">
+                      :key="item.Hash"
+                      :label="serverName + '_' + item.Hash + '.tar.gz'"
+                      :value="serverName + '_' + item.Hash + '.tar.gz'">
                       <span style="float: left">{{ serverName }}</span>
-                      <span style="float: right; color: #8492a6; font-size: 13px">{{ GetHash(item) }}</span>
+                      <span style="float: right; color: #8492a6; font-size: 13px">{{ item.Hash }}</span>
                     </el-option>
                   </el-select>
                 <span slot="footer">

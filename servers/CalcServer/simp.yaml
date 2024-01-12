@@ -1,0 +1,6 @@
+server:
+  name: CalcServer
+  port: 8511
+  type: main
+  staticPath: static # 静态资源
+  storage:  mysql@3306...... # 存储

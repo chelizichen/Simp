@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 )
@@ -113,7 +114,12 @@ func GetSubdirectories(directoryPath string) ([]string, error) {
 	return subdirectories, nil
 }
 
-func VisitTgzS(archiveFiles *[]string, serverName string) filepath.WalkFunc {
+type ReleasePackageVo struct {
+	Hash        string
+	PackageName string
+}
+
+func VisitTgzS(archiveFiles *[]ReleasePackageVo, serverName string) filepath.WalkFunc {
 	return func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Println(err) // can't walk here,
@@ -123,14 +129,23 @@ func VisitTgzS(archiveFiles *[]string, serverName string) filepath.WalkFunc {
 			return nil // not a file, ignore.
 		}
 
+		// 定义正则表达式，匹配文件名中的哈希值
+		re := regexp.MustCompile(`(?i)_([a-f0-9]{32})\.tar\.gz$`)
 		// Check if the file has a .tar.gz extension
 		if strings.HasSuffix(path, ".tar.gz") {
-			s := filepath.Join(PublishPath, serverName)
-			fmt.Println("s ", s)
-			path := strings.SplitAfter(path, s+"/")
-			fmt.Println("path1 ", path[1])
+			// 使用正则表达式查找匹配项
+			matches := re.FindStringSubmatch(path)
+			// 输出匹配的哈希值
+			if len(matches) == 2 {
+				a := ReleasePackageVo{
+					PackageName: serverName,
+					Hash:        matches[1],
+				}
+				*archiveFiles = append(*archiveFiles, a)
+			} else {
+				fmt.Println("No hash found in the file path.")
+			}
 
-			*archiveFiles = append(*archiveFiles, path[1])
 		}
 		return nil
 	}
