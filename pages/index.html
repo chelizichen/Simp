@@ -24,10 +24,12 @@
         * {
             margin: 0;
             padding: 0;
+            font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
         }
 
         .flex-item {
             text-align: center;
+            width: 15%;
             padding: 10px;
         }
 
@@ -48,11 +50,11 @@
 
 <body>
     <div id="app">
-        <el-col :span="4">
-            <h1 style="color: rgb(207, 15, 124);text-align: center;">
-                <i class="el-icon-cherry" style="color: rgb(207, 15, 124);font-size: 36px;"></i>Simp
+        <el-col :span="4" style="height: 100vh;box-sizing: border-box;border-right: 1px solid #EBEEF5">
+            <h1 style="color: rgb(207, 15, 124);text-align: center;font-family: fantasy;">
+                <i class="el-icon-help" style="color: rgb(207, 90, 124);font-size: 36px;"></i>Simp
             </h1>
-            <el-menu class="el-menu-vertical-demo"  active-text-color="rgb(207, 15, 124)">
+            <el-menu class="el-menu-vertical-demo"  active-text-color="rgb(207, 15, 124)" style="border: none">
                 <el-menu-item v-for="(item,index) in serverList " :index="item" :key="index" @click="handleOpen(item)">
                     <i class="el-icon-menu"></i>
                     <span slot="title">{{item}}</span>    
@@ -66,36 +68,36 @@
                         <div @click="createServerVisible = true" style="color: rgb(207, 15, 124);cursor: pointer;">CreateServer</div>
                     </div>
                     <div class="flex-item">
-                        <div style="font-weight: 900;">ServerCounts</div>
+                        <div style="font-weight: 700;">ServerCounts</div>
                         <div style="color: rgb(207, 15, 124);">{{serverList.length}}</div>
                     </div>
                 </div>
             </el-card>
-            <el-card shadow="hover">
+            <el-card shadow="hover" v-if="serverName">
                 <div style="height: 70px;display: flex;align-items: center;justify-content: space-around;">
                   
                     <div class="flex-item">
-                        <div style="font-weight: 900;">PackageCounts</div>
+                        <div style="font-weight: 700;">PackageCounts</div>
                         <div style="color: rgb(207, 15, 124);">{{packageList.length}}</div>
                     </div>
                     <div class="flex-item">
-                        <div style="font-weight: 900;">ServerName</div>
+                        <div style="font-weight: 700;">ServerName</div>
                         <div style="color: rgb(207, 15, 124);">{{serverName || '--'}}</div>
                     </div>
                     <div class="flex-item">
-                        <div style="font-weight: 900;">Pid</div>
+                        <div style="font-weight: 700;">Pid</div>
                         <div style="color: rgb(207, 15, 124);">{{status.pid || '--'}}</div>
                     </div>
                     <div class="flex-item">
-                        <div style="font-weight: 900;">Status</div>
+                        <div style="font-weight: 700;">Status</div>
                         <div style="color: rgb(207, 15, 124);">{{status.status || '--'}}</div>
                     </div>
                     <div class="flex-item">
                         <div @click="uploadVisible = true" style="color: rgb(207, 15, 124);cursor: pointer;">Upload</div>
                     </div>
-                    <div class="flex-item">
-                        <div @click="DeleteAllPackages()" style="color: rgb(207, 15, 124);cursor: pointer;">Remove</div>
-                    </div>
+<!--                    <div class="flex-item">-->
+<!--                        <div @click="DeleteAllPackages()" style="color: rgb(207, 15, 124);cursor: pointer;">Remove</div>-->
+<!--                    </div>-->
 
                     <div class="flex-item">
                         <div @click="releaseVisible=true" style="color: rgb(207, 15, 124);cursor: pointer;">Release</div>
@@ -108,6 +110,9 @@
                 <el-form :model="uploadForm" label-width="150px">
                     <el-form-item label="Server Name" required>
                         <el-input v-model="uploadForm.serverName" disabled></el-input>
+                    </el-form-item>
+                    <el-form-item label="Document" required>
+                        <el-input v-model="uploadForm.doc" type="textarea" row="5"></el-input>
                     </el-form-item>
                     <el-form-item label="File" required>
                         <el-upload :show-file-list="true" :on-change="handleFileChange" :auto-upload="false"
@@ -259,6 +264,7 @@
                 uploadForm: {
                     serverName: '',
                     file: null,
+                    doc:''
                 },
                 serverList: [],
                 packageList: [],
@@ -287,15 +293,31 @@
                     this.uploadForm.file = file.raw;
                 },
                 async uploadFile() {
+                    const loading = this.$loading({
+                        lock: true,
+                        text: 'Loading',
+                        spinner: 'el-icon-loading',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
                     const formData = new FormData();
                     formData.append('serverName', this.uploadForm.serverName);
                     formData.append('file', this.uploadForm.file);
+                    formData.append('doc', this.uploadForm.doc);
                     const data = await API.UploadServer(formData)
                     this.uploadForm.file = null;
-                    this.$notify({
-                        title: 'Release Success',
-                    });
-
+                    if(data.Code){
+                        this.$message({
+                            type: 'error',
+                            message: '上传失败' + resp.Message
+                        });
+                    }else {
+                        this.$message({
+                            type: 'success',
+                            message: '上传成功'
+                        });
+                        this.uploadVisible = false
+                    }
+                    loading.close()
                 },
                 async restartServer() {
                     const loading = this.$loading({
@@ -312,6 +334,18 @@
                     this.status = {
                         status: resp.Data.status ? 'online' : 'offline',
                         pid: resp.Data.pid
+                    }
+                    if(resp.Code){
+                        this.$message({
+                            type: 'error',
+                            message: '发布失败' + resp.Message
+                        });
+                    }else {
+                        this.$message({
+                            type: 'success',
+                            message: '发布成功'
+                        });
+                        this.releaseVisible = false
                     }
                     loading.close()
                 },

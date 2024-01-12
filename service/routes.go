@@ -46,11 +46,14 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		// 移动文件到目标目录
 		fmt.Println("tempPath", tempPath)
 		fmt.Println("storagePath", storagePath)
+
 		if err := utils.MoveAndRemove(tempPath, storagePath); err != nil {
 			fmt.Println("Error To Rename", err.Error())
 			c.JSON(http.StatusInternalServerError, handlers.Resp(-1, "移动文件失败", nil))
 			return
 		}
+		releaseDoc := c.PostForm("doc")
+		utils.AppendDocToTgz(storagePath, releaseDoc)
 		c.JSON(http.StatusOK, handlers.Resp(0, "上传成功", nil))
 	})
 
@@ -71,16 +74,22 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, fileName)
 		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, "service_go")
 		storageYmlEPath := filepath.Join(cwd, utils.PublishPath, serverName, "simp.yaml")
+		storageDocPath := filepath.Join(cwd, utils.PublishPath, serverName, "doc.txt")
 
 		err = utils.IFExistThenRemove(storageExEPath)
 		if err != nil {
-			fmt.Println("remote File Error "+storageExEPath, err.Error())
+			fmt.Println("remove File Error "+storageExEPath, err.Error())
 		}
 		err = utils.IFExistThenRemove(storageYmlEPath)
 		if err != nil {
-			fmt.Println("remote File Error "+storageYmlEPath, err.Error())
+			fmt.Println("remove File Error "+storageYmlEPath, err.Error())
+		}
+		err = utils.IFExistThenRemove(storageDocPath)
+		if err != nil {
+			fmt.Println("remove File Error "+storageDocPath, err.Error())
 		}
 		dest := filepath.Join(cwd, utils.PublishPath, serverName)
+
 		err = utils.Unzip(storagePath, dest)
 		if err != nil {
 			fmt.Println("Error To Unzip", err.Error())
@@ -107,7 +116,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			fmt.Println("Error To Err", err.Error())
 		}
 		v := make(map[string]interface{}, 10)
-
+		fmt.Println("v", v)
 		v["pid"] = cmd.Process.Pid
 		v["status"] = true
 		utils.ServantAlives[serverName] = cmd.Process.Pid
@@ -180,7 +189,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		}
 		serverName := c.PostForm("serverName")
 		serverPath := filepath.Join(cwd, utils.PublishPath, serverName)
-		fmt.Println("serverParh", serverPath)
+		fmt.Println("serverPath", serverPath)
 		var packages []utils.ReleasePackageVo
 		err = filepath.Walk(serverPath, utils.VisitTgzS(&packages, serverName))
 		if err != nil {

@@ -24,7 +24,7 @@ go run main.go
 # 构建
 go build -o service_go
 # 压缩
-tar -cvf SimpTestServer.tar.gz ./simp.yaml ./service_go
+tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
 ````
 
 获取包列表、服务列表、创建服务。
@@ -43,3 +43,7 @@ tar -cvf SimpTestServer.tar.gz ./simp.yaml ./service_go
 优化前端界面、更改颜色、引入静态文件。修复接口问题。
 添加下拉框。
 添加ShutdownAPI。
+
+## 2024.1.12
+
+发包时可追加备注、修改Logo、调整样式。
