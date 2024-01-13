@@ -34,16 +34,27 @@
         }
 
         .el-button--primary {
-            background-color: #4740ff;
-            border-color: #4740ff;
+            background-color: rgb(207, 15, 124);
+            border-color: rgb(207, 15, 124);
         }
 
         .el-button--text {
-            color: #4740ff
+            color: rgb(207, 15, 124)
         }
         .el-button--primary:focus, .el-button--primary:hover{
-            background-color: #4740ff;
-            border-color: #4740ff; 
+            background-color: rgb(110, 14, 69);
+            border-color: rgb(110, 14, 69); 
+            transition: 0.5s;
+        }
+        .el-button--success {
+            background-color: #075916;
+            border-color: #075916;
+        }
+
+        .el-button--success:focus, .el-button--success:hover {
+            background-color: #19b836;
+            border-color: #19b836;
+            transition: 0.5s;
         }
     </style>
 </head>
@@ -105,6 +116,20 @@
 
                 </div>
             </el-card>
+            <el-card shadow="hover" v-if="serverName" style="padding: 0;">
+                <div style="display: flex;height: 700px;">
+                    <div style="width: 8%;margin-right: 2%;">
+                        <el-input v-model="pattern"></el-input>
+                        <br/>
+                        <br/>
+                        <el-button @click="GetServerLogger()" type="primary">Search</el-button>
+                    </div>
+                    <div class="resu" style="background-color: black;height: 700px;padding: 5px 10px;width: 90%;">
+                        <div style="color: aliceblue;">SimpLogServer :: {{ serverName }} :: created By leeks</div>
+                        <div style="color: aliceblue;margin: 2px;" v-for="item in logger">{{ item }}</div>
+                    </div>
+                </div>
+            </el-card>
             <!-- 文件上传表单 -->
             <el-dialog append-to-body :visible="uploadVisible" width="50%" title="Release">
                 <el-form :model="uploadForm" label-width="150px">
@@ -123,8 +148,8 @@
                 </el-form>
                 <span slot="footer">
                     <div style="display: flex;align-items: center;justify-content: center;">
-                        <el-button type="success" @click="uploadFile">Upload</el-button>
-                        <el-button type="primary" @click="uploadVisible=false">Close</el-button>
+                        <el-button type="primary" @click="uploadFile">Upload</el-button>
+                        <el-button type="success" @click="uploadVisible=false">Close</el-button>
                     </div>
                 </span>
             </el-dialog>
@@ -257,6 +282,12 @@
                     data
                 })
             },
+            GetLogger:function(data,url="/getServerLog"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
         }
         new Vue({
             el: '#app',
@@ -287,6 +318,8 @@
                 createServerName:'',
                 releaseVisible:false,
                 selectRelease:'',
+                logger:'',
+                pattern:'',
             },
             methods: {
                 handleFileChange(file) {
@@ -372,6 +405,7 @@
                 async handleOpen(serverName, keyPath) {
                     this.serverName = serverName;
                     this.packageList = []
+                    this.logger = ''
                     await this.getServerPackageList(serverName)
                     this.uploadForm.serverName = serverName;
                 },
@@ -421,8 +455,12 @@
                 ReleasePackage(){
 
                 },
-                GetHash(hash){
-                    return hash.split("_")[1].split(".tar.gz")[0]
+                async GetServerLogger(){
+                    const formData = new FormData();
+                    formData.append('serverName', this.serverName);
+                    formData.append('pattern', this.pattern);
+                    const rest = await API.GetLogger(formData)
+                    this.logger = rest.Data.split("\n");
                 }
 
             },

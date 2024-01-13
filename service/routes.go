@@ -98,6 +98,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		stdoutPipe, err := cmd.StdoutPipe()
 		// 设置环境变量
 		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_CONFIG_PATH="+storageYmlEPath)
+		sm, err := utils.NewSimpMonitor(serverName, "")
 		err = cmd.Start()
 		// 启动一个协程，用于读取并打印命令的输出
 		go func() {
@@ -109,7 +110,8 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 					break
 				}
 				// 打印输出
-				fmt.Print("ServerName ", serverName, " || ", string(buf[:n]))
+				content := "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+				sm.AppendLogger(content)
 			}
 		}()
 		if err != nil {
@@ -171,6 +173,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		value := c.PostForm("serverName")
 		fmt.Println("createServer | serverName ", value)
 		serverPath := filepath.Join(cwd, utils.PublishPath, value)
+		utils.AutoCreateLoggerFile(value)
 		err = os.Mkdir(serverPath, os.ModePerm)
 		if err != nil {
 			fmt.Println("Error To Mkdir", err.Error())
@@ -290,5 +293,20 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			return
 		}
 		c.JSON(200, handlers.Resp(0, "ok", nil))
+	})
+
+	G.POST("/getServerLog", func(c *gin.Context) {
+		serverName := c.PostForm("serverName")
+		date := c.DefaultPostForm("date", "")
+		pattern := c.DefaultPostForm("pattern", "")
+		sm, err := utils.NewSimpMonitor(serverName, date)
+		if err != nil {
+			fmt.Println("Error To New SimMonitor", err.Error())
+		}
+		s, err := sm.GetLogger(pattern)
+		if err != nil {
+			fmt.Println("Error To GetLogger", err.Error())
+		}
+		c.JSON(200, handlers.Resp(0, "ok", s))
 	})
 }
