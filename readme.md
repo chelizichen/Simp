@@ -28,3 +28,51 @@ server:
         port: 9091
         name: StudentServer
 ````
+
+## START
+
+````shell
+# Step 1
+# 拉取主控服务 
+git clone https://github.com/chelizichen/Simp.git;
+# 直接启动
+go run main.go
+
+# Step2
+# 定位到 Simp/servers
+cd servers
+# 创建服务
+mkdir TestServer
+# 创建配置文件
+# server:
+#   name: TestServer
+#   port: 8511
+#   type: main
+#   staticPath: static # 静态资源
+#   storage:  mysql@3306...... # 存储
+touch simp.yaml
+
+# 创建入口文件
+# 开发人员手动补全 service.Test 
+# package main
+# import (
+# 	h "Simp/handlers/http"
+# 	"Simp/servers/TestServer/service"
+# )
+# func main() {
+# 	ctx := h.NewSimpHttpCtx("simp.yaml")
+# 	// ctx.Use(service.Test)
+# 	h.NewSimpHttpServer(ctx)
+# }
+touch main.go
+
+# 构建
+go build -o service_go
+# 压缩 
+# 注意！ 包名需要和 simp.yaml - server - name 相同
+tar -cvf TestServer.tar.gz ./simp.yaml ./service_go
+
+# 进入 localhost:8080/web/
+# 发布创建服务、上传服务包、发布服务！
+
+````
