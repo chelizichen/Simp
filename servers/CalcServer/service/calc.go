@@ -2,6 +2,7 @@ package service
 
 import (
 	handlers "Simp/handlers/http"
+	"Simp/servers/CalcServer/types"
 	"Simp/servers/CalcServer/utils"
 	"net/http"
 
@@ -11,7 +12,7 @@ import (
 func Calc(ctx *handlers.SimpHttpServerCtx) {
 	G := ctx.Engine
 	G.POST("/calc/FixeIncome", func(ctx *gin.Context) {
-		var requestBody utils.CalculateFutureValueDTO
+		var requestBody types.CalculateFutureValueDTO
 		if err := ctx.BindJSON(&requestBody); err != nil {
 			ctx.JSON(http.StatusOK, handlers.Resp(0, "-1", err.Error()))
 			return
@@ -23,7 +24,7 @@ func Calc(ctx *handlers.SimpHttpServerCtx) {
 			requestBody.AnnualInterestRate,
 		)
 
-		responseBody := utils.CalculateFutureValueVo{
+		responseBody := types.CalculateFutureValueVo{
 			TotalAmount: futureValue,
 		}
 
@@ -33,7 +34,7 @@ func Calc(ctx *handlers.SimpHttpServerCtx) {
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", responseBody))
 	})
 	G.POST("/calc/CalculateFutureValue", func(ctx *gin.Context) {
-		var requestBody utils.CalculateFutureValueDTO
+		var requestBody types.CalculateFutureValueDTO
 		if err := ctx.BindJSON(&requestBody); err != nil {
 			ctx.JSON(http.StatusOK, handlers.Resp(0, "-1", err.Error()))
 			return
@@ -46,7 +47,7 @@ func Calc(ctx *handlers.SimpHttpServerCtx) {
 			requestBody.Months,
 		)
 
-		responseBody := utils.CalculateFutureValueVo{
+		responseBody := types.CalculateFutureValueVo{
 			TotalAmount: futureValue,
 		}
 

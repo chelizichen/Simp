@@ -8,13 +8,17 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 )
 
 type SimpHttpServerCtx struct {
-	port   string
-	name   string
-	Engine *gin.Engine
-	isMain bool
+	port        string
+	name        string
+	Engine      *gin.Engine
+	Storage     *sqlx.DB
+	isMain      bool
+	storagePath string
 }
 
 func Resp(code int, message string, data interface{}) *gin.H {
@@ -48,9 +52,10 @@ func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
 		fmt.Println("get Config Error :", err.Error())
 	}
 	ctx = &SimpHttpServerCtx{
-		name:   conf.Server.Name,
-		port:   ":" + strconv.Itoa(conf.Server.Port),
-		Engine: G,
+		name:        conf.Server.Name,
+		port:        ":" + strconv.Itoa(conf.Server.Port),
+		Engine:      G,
+		storagePath: conf.Server.Storage,
 	}
 	return ctx
 }
@@ -63,6 +68,19 @@ func NewSimpHttpServer(ctx *SimpHttpServerCtx) {
 		fmt.Println("CreateAPIFile |", ctx.name)
 		utils.CreateAPIFile(ctx.Engine, ctx.name)
 	}
+	// database, err := sqlx.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/stockpool")
+	// 主控不提供数据库存储服务，存储服务由子服务提供
+	// 子服务生产时数据库链接不上将会panic
+	if !ctx.isMain {
+		database, err := sqlx.Open("mysql", ctx.storagePath)
+		if err != nil && SIMP_PRODUCTION == "Yes" {
+			panic("init db error" + err.Error())
+		} else {
+			fmt.Println("init db error", err.Error())
+		}
+		ctx.Storage = database
+	}
+
 	err := ctx.Engine.Run(ctx.port)
 	if err != nil {
 		return

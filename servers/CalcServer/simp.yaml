@@ -1,3 +1,9 @@
+# 运行
+# go run main.go
+# 构建
+# go build -o service_go
+# 压缩
+# tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
 server:
   name: CalcServer
   port: 8511

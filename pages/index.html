@@ -410,6 +410,13 @@
                     loading.close()
                 },
                 async restartServer() {
+                    if(!this.selectRelease || !this.serverName){
+                        this.$message({
+                            type: 'info',
+                            message: '发布失败！请选择指定的服务和发布包'
+                        });
+                        return 
+                    }
                     const loading = this.$loading({
                         lock: true,
                         text: 'Loading',

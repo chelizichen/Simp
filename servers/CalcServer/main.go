@@ -8,5 +8,6 @@ import (
 func main() {
 	ctx := h.NewSimpHttpCtx("simp.yaml")
 	ctx.Use(service.Calc)
+	ctx.Use(service.Plan)
 	h.NewSimpHttpServer(ctx)
 }
