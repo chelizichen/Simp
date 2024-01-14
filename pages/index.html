@@ -56,6 +56,12 @@
             border-color: #19b836;
             transition: 0.5s;
         }
+        .el-tabs__item.is-active{
+            color:rgb(207, 15, 124)
+        }
+        .el-tabs__active-bar{
+            background-color:rgb(207, 15, 124)
+        }
     </style>
 </head>
 
@@ -117,18 +123,44 @@
                 </div>
             </el-card>
             <el-card shadow="hover" v-if="serverName" style="padding: 0;">
-                <div style="display: flex;height: 700px;">
-                    <div style="width: 8%;margin-right: 2%;">
-                        <el-input v-model="pattern"></el-input>
-                        <br/>
-                        <br/>
-                        <el-button @click="GetServerLogger()" type="primary">Search</el-button>
-                    </div>
-                    <div class="resu" style="background-color: black;height: 700px;padding: 5px 10px;width: 90%;">
-                        <div style="color: aliceblue;">SimpLogServer :: {{ serverName }} :: created By leeks</div>
-                        <div style="color: aliceblue;margin: 2px;" v-for="item in logger">{{ item }}</div>
-                    </div>
-                </div>
+                <el-tabs v-model="activeName">
+                    <el-tab-pane label="logger" name="logger">
+                        <div style="display: flex;height: 700px;" v-if="activeName=='logger'">
+                            <div style="width: 13%;margin-right: 2%;">
+                                <el-select v-model="loggerFile">
+                                    <el-option v-for="item in loggerList" :key="item" :value="item" :label="item"></el-option>
+                                </el-select>
+                                <br/>
+                                <br/>
+                                <el-input v-model="pattern"></el-input>
+                                <br/>
+                                <br/>
+                                <el-button @click="GetServerLogger()" type="primary">Search</el-button>
+                            </div>
+                            <div class="resu" style="background-color: black;height: 700px;padding: 5px 10px;width: 85%;overflow: scroll;">
+                                <div style="color: aliceblue;">SimpLogServer :: {{ serverName }} :: created By leeks</div>
+                                <div style="color: aliceblue;margin: 2px;" v-for="item in logger">{{ item }}</div>
+                            </div>
+                        </div>
+                    </el-tab-pane>
+                    <el-tab-pane label="api" name="api">
+                        <div v-if="activeName=='api'">
+                            <div v-for="item in apis">
+                                <div style="display: flex;align-items: center;justify-content: space-between;margin: 5px;">
+                                    <el-button type="text">{{item.method}} | {{item.path}}</el-button>
+                                    <el-button type="primary">invoke</el-button>
+                                </div>
+                            </div>
+                        </div>
+                    </el-tab-pane>
+                    <el-tab-pane label="doc" name="doc">
+                        <div v-if="activeName=='doc'">
+                            <div>
+                                {{ doc }}
+                            </div>
+                        </div>
+                    </el-tab-pane>
+                </el-tabs>
             </el-card>
             <!-- 文件上传表单 -->
             <el-dialog append-to-body :visible="uploadVisible" width="50%" title="Release">
@@ -148,8 +180,8 @@
                 </el-form>
                 <span slot="footer">
                     <div style="display: flex;align-items: center;justify-content: center;">
-                        <el-button type="primary" @click="uploadFile">Upload</el-button>
-                        <el-button type="success" @click="uploadVisible=false">Close</el-button>
+                        <el-button type="primary" @click="uploadVisible=false">Close</el-button>
+                        <el-button type="success" @click="uploadFile">Upload</el-button>
                     </div>
                 </span>
             </el-dialog>
@@ -205,8 +237,9 @@
                   </el-select>
                 <span slot="footer">
                     <div style="display: flex;align-items: center;justify-content: center;">
-                       <el-button type="primary" @click="releaseVisible=false">Close</el-button>
+                        <el-button type="primary" @click="releaseVisible = false">Close</el-button>
                         <el-button type="success" @click="restartServer()">Release</el-button>
+                        <el-button type="danger" @click="uploadVisible = true">Upload</el-button>
                     </div>
                 </span>
                   
@@ -288,6 +321,24 @@
                     data
                 })
             },
+            GetApiJson:function(data,url="/getApiJson"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
+            GetDoc:function(data,url="/getDoc"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
+            GetLogList:function(data,url="/getLogList"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            }
         }
         new Vue({
             el: '#app',
@@ -319,7 +370,12 @@
                 releaseVisible:false,
                 selectRelease:'',
                 logger:'',
+                loggerList:[],
+                loggerFile:'',
                 pattern:'',
+                activeName:'logger',
+                apis:'', // API接口 由gin生成
+                doc:'',
             },
             methods: {
                 handleFileChange(file) {
@@ -404,13 +460,8 @@
                 },
                 async handleOpen(serverName, keyPath) {
                     this.serverName = serverName;
-                    this.packageList = []
-                    this.logger = ''
                     await this.getServerPackageList(serverName)
                     this.uploadForm.serverName = serverName;
-                },
-                handleClose(key, keyPath) {
-                    console.log(key, keyPath);
                 },
                 async showConfig() {
                     const formData = new FormData();
@@ -458,15 +509,55 @@
                 async GetServerLogger(){
                     const formData = new FormData();
                     formData.append('serverName', this.serverName);
+                    formData.append('fileName', this.loggerFile);
                     formData.append('pattern', this.pattern);
                     const rest = await API.GetLogger(formData)
                     this.logger = rest.Data.split("\n");
+                },
+                async initLogger(){
+                    this.loggerList = [];
+                    this.loggerFile = '';
+
+                    const formData = new FormData();
+                    formData.append('serverName', this.serverName);
+                    const data = await API.GetLogList(formData);
+                    this.loggerList = data.Data || [];
+                    this.loggerFile = this.loggerList.length ? this.loggerList[0]:''
                 }
 
             },
             mounted() {
                 // Fetch initial server list
                 this.fetchServerList();
+            },
+            watch: {
+                activeName:async function(val){
+                    if(val == 'api'){
+                        const formData = new FormData();
+                        formData.append('serverName', this.serverName);
+                        const data = await API.GetApiJson(formData)
+                        this.apis = JSON.parse(data.Data)
+                    }
+                    if(val == 'doc'){
+                        const formData = new FormData();
+                        formData.append('serverName', this.serverName);
+                        const data = await API.GetDoc(formData)
+                        this.doc = data.Data
+                    }
+                    if(val == "logger"){
+                        await this.initLogger()
+                        // const 
+                    }
+                },
+                serverName:async function(){
+                    this.doc = ''
+                    this.apis = [];
+                    this.logger = ''
+                    this.packageList = []
+                    this.activeName = 'logger'
+                    //
+                    await this.initLogger()
+                }
             },
         });
     </script>

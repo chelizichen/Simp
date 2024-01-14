@@ -12,3 +12,6 @@
 
 # 二进制
 service_go
+
+# 测试服务的tgz
+servers/CalcServer/CalcServer.tar.gz

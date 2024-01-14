@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -297,9 +298,9 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 
 	G.POST("/getServerLog", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
-		date := c.DefaultPostForm("date", "")
+		fileName := c.PostForm("fileName")
 		pattern := c.DefaultPostForm("pattern", "")
-		sm, err := utils.NewSimpMonitor(serverName, date)
+		sm, err := utils.NewSearchLogMonitor(serverName, fileName)
 		if err != nil {
 			fmt.Println("Error To New SimMonitor", err.Error())
 		}
@@ -309,4 +310,56 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		}
 		c.JSON(200, handlers.Resp(0, "ok", s))
 	})
+
+	G.POST("/getApiJson", func(c *gin.Context) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+		}
+		serverName := c.PostForm("serverName")
+		serverPath := filepath.Join(cwd, utils.PublishPath, serverName, "API.json")
+		Content, err := os.ReadFile(serverPath)
+		if err != nil {
+			fmt.Println("Error To ReadFile", err.Error())
+		}
+		c.JSON(200, handlers.Resp(0, "ok", string(Content)))
+	})
+
+	G.POST("/getDoc", func(c *gin.Context) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+		}
+		serverName := c.PostForm("serverName")
+		serverPath := filepath.Join(cwd, utils.PublishPath, serverName, "doc.txt")
+		Content, err := os.ReadFile(serverPath)
+		if err != nil {
+			fmt.Println("Error To ReadFile", err.Error())
+		}
+		c.JSON(200, handlers.Resp(0, "ok", string(Content)))
+	})
+
+	G.POST("/getLogList", func(c *gin.Context) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+		}
+		serverName := c.PostForm("serverName")
+		serverPath := filepath.Join(cwd, utils.PublishPath, serverName)
+		D, err := os.ReadDir(serverPath)
+		if err != nil {
+			fmt.Println("Error To ReadDir", err.Error())
+		}
+		var loggers []string
+		for i := 0; i < len(D); i++ {
+			de := D[i]
+			s := de.Name()
+			b := strings.HasSuffix(s, ".log")
+			if b {
+				loggers = append(loggers, s)
+			}
+		}
+		c.JSON(200, handlers.Resp(0, "ok", loggers))
+	})
+
 }

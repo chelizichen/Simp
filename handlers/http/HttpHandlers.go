@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"Simp/config"
+	"Simp/utils"
 	"fmt"
 	"os"
 	"strconv"
@@ -56,14 +57,11 @@ func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
 
 func NewSimpHttpServer(ctx *SimpHttpServerCtx) {
 	SIMP_PRODUCTION := os.Getenv("SIMP_PRODUCTION")
+	fmt.Println("SIMP_PRODUCTION", SIMP_PRODUCTION)
 	// 子服务生产时需要提供对应的API路由
 	if SIMP_PRODUCTION == "Yes" {
-		// 获取所有监听的路由
-		routes := ctx.Engine.Routes()
-		// 打印路由信息
-		for _, route := range routes {
-			fmt.Printf("Method: %s, Path: %s", route.Method, route.Path)
-		}
+		fmt.Println("CreateAPIFile |", ctx.name)
+		utils.CreateAPIFile(ctx.Engine, ctx.name)
 	}
 	err := ctx.Engine.Run(ctx.port)
 	if err != nil {

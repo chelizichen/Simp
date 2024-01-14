@@ -60,44 +60,6 @@ func Unzip(src, dest string) error {
 		return err
 	}
 	return nil
-	// tarReader := tar.NewReader(file)
-
-	// for {
-	// 	header, err := tarReader.Next()
-
-	// 	if err == io.EOF {
-	// 		fmt.Println("header Error", err.Error())
-	// 		break
-	// 	}
-
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	target := filepath.Join(dest, header.Name)
-
-	// 	switch header.Typeflag {
-	// 	case tar.TypeDir:
-	// 		if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
-	// 			return err
-	// 		}
-	// 	case tar.TypeReg:
-	// 		file, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-	// 		if err != nil {
-	// 			fmt.Println("OpenFile Error", err.Error())
-	// 			return err
-	// 		}
-
-	// 		if _, err := io.Copy(file, tarReader); err != nil {
-	// 			return err
-	// 		}
-	// 		file.Close()
-	// 	default:
-	// 		return fmt.Errorf("Unknown type: %v in %s", header.Typeflag, header.Name)
-	// 	}
-	// }
-
-	return nil
 }
 
 // GetSubdirectories
