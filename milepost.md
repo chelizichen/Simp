@@ -59,3 +59,6 @@ tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
 ## 2024.1.14
 
 提供生产时API路由文件展示在前端界面上。获取日志文件列表
+
+生产时静态界面好像有点问题，明天修复一下
+添加子服务 shell 脚本
