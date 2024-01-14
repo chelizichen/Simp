@@ -72,10 +72,12 @@ func NewSimpHttpServer(ctx *SimpHttpServerCtx) {
 	// 主控不提供数据库存储服务，存储服务由子服务提供
 	// 子服务生产时数据库链接不上将会panic
 	if !ctx.isMain {
+		fmt.Println("ctx.storagePath ", ctx.storagePath)
 		database, err := sqlx.Open("mysql", ctx.storagePath)
+		fmt.Println("database", err)
 		if err != nil && SIMP_PRODUCTION == "Yes" {
 			panic("init db error" + err.Error())
-		} else {
+		} else if err != nil {
 			fmt.Println("init db error", err.Error())
 		}
 		ctx.Storage = database

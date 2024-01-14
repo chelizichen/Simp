@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- 引入 Vue 2 的 CDN -->
+    <script src="http://127.0.0.1:8080/static/source/vue.min.js"></script>
+    <!-- 引入 Md5 的 CDN -->
+    <script src="http://127.0.0.1:8080/static/source/md5.min.js"></script>
+    <!-- 引入 AXIOS 的 CDN -->
+    <script src="http://127.0.0.1:8080/static/source/axios.js"></script>
+    <!-- 引入组件库 -->
+    <script src="http://127.0.0.1:8080/static/source/element.js"></script>
+    <link rel="stylesheet" href="http://127.0.0.1:8080/static/source/element.css">
+</head>
+
+<body>
+    <div id="app">
+        <el-col :span="4" style="height: 100vh;box-sizing: border-box;border-right: 1px solid #EBEEF5">
+            <h1 style="color: rgb(15, 207, 121);text-align: center;font-family: fantasy;">
+                Calculate<i class="el-icon-truck" style="color: rgb(15, 207, 121);font-size: 36px;"></i>
+            </h1>
+            <el-menu class="el-menu-vertical-demo"  active-text-color="rgb(15, 207, 121)" style="border: none">
+                <el-menu-item v-for="(item,index) in serverList " :index="item" :key="index" @click="handleOpen(item)">
+                    <i class="el-icon-menu"></i>
+                    <span slot="title">{{item}}</span>    
+                </el-menu-item>
+            </el-menu>
+        </el-col>
+        <el-col :span="20">
+            <div v-if="activeName == 'CreatePlan'">
+                <el-card>
+                    <el-form :model="newPlan" ref="newPlanForm" label-width="120px">
+                        <el-form-item label="Name" prop="name">
+                            <el-input v-model="newPlan.name" required></el-input>
+                        </el-form-item>
+                        <el-form-item label="Comment" prop="comment">
+                            <el-input type="textarea" v-model="newPlan.comment"></el-input>
+                        </el-form-item>
+                        <el-form-item label="Start Time" prop="startTime">
+                            <el-date-picker v-model="newPlan.startTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
+                        </el-form-item>
+                        <el-form-item label="End Time" prop="endTime">
+                            <el-date-picker v-model="newPlan.endTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
+                        </el-form-item>
+        
+        
+                        <el-form-item>
+                            <el-button type="success" @click="addPlan">Add Plan</el-button>
+                            <el-button type="error">Clear</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-card>
+                <el-card>
+                    <el-timeline>
+                        <el-timeline-item v-for="plan in subPlanList" :key="plan.id">
+                            <el-card>
+                                <p style="font-weight: bold;">{{ plan.name }}</p>
+                                <p>Comment: {{ plan.comment }}</p>
+                                <p>Start Time: {{ plan.startTime }}</p>
+                                <p>End Time: {{ plan.endTime }}</p>
+                            </el-card>
+                        </el-timeline-item>
+                    </el-timeline>
+                </el-card>
+            </div>
+            <div v-if="activeName == 'PlanList'">
+                <el-card>
+                        <div v-for="item in planList">
+                        </div>
+                </el-card>
+            </div>
+        </el-col>
+
+    </div>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                serverList:[
+                    "PlanList",
+                    "CreatePlan",
+                ],
+                newPlan: {
+                    name: '',
+                    comment: '',
+                    startTime: '',
+                    endTime: '',
+                    // 这里可以继续添加计划细节的数据项
+                },
+                subPlanList: [
+                    // 这里可以初始化一些计划数据
+                ],
+                activeName:'PlanList',
+                planList:[],
+            },
+            methods: {
+                addPlan() {
+                    // 在这里处理新增计划的逻辑，发送请求等
+                    // 示例中只是简单地将新计划添加到计划列表中
+                    this.subPlanList.push({ ...this.newPlan, id: Date.now() });
+                    // 清空表单
+                    this.$refs.newSubPlan.resetFields();
+                },
+                handleOpen(item){
+                    this.activeName = item;
+                }
+            },
+        });
+    </script>
+</body>
+
+</html>

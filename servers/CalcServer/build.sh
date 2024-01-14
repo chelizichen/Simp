@@ -7,4 +7,4 @@
 go build -o service_go
 
 # build
-tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
+tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go ./web

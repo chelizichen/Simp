@@ -38,6 +38,7 @@ type PlanDetail struct {
 }
 
 type PlanDTO struct {
+	Id        int          `json:"id,omitempty"`
 	Details   []PlanDetail `json:"details,omitempty"`    // 计划周期
 	Comment   string       `json:"comment,omitempty"`    // 标注
 	Name      string       `json:"name,omitempty"`       // 名称
@@ -47,6 +48,7 @@ type PlanDTO struct {
 
 // ST_Plan 数据库中存入的字段
 type ST_Plan struct {
+	Id        int    `db:"id,omitempty"`
 	Comment   string `db:"comment,omitempty"`    // 标注
 	Name      string `db:"name,omitempty"`       // 名称
 	StartTime string `db:"start_time,omitempty"` // 开始时间
