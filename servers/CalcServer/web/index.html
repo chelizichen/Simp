@@ -45,11 +45,9 @@
                         <el-form-item label="End Time" prop="endTime">
                             <el-date-picker v-model="newPlan.endTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
                         </el-form-item>
-        
-        
                         <el-form-item>
                             <el-button type="success" @click="addPlan">Add Plan</el-button>
-                            <el-button type="error">Clear</el-button>
+                            <el-button type="primary" @click="subPlanVisible = true">Add Sub Plan</el-button>
                         </el-form-item>
                     </el-form>
                 </el-card>
@@ -65,6 +63,36 @@
                         </el-timeline-item>
                     </el-timeline>
                 </el-card>
+                <el-dialog :visible="subPlanVisible">
+                    <el-form :model="subPlan"  ref="subplan" label-width="100px">
+                        <el-form-item label="Income">
+                            <el-input v-model="subPlan.income"></el-input>
+                        </el-form-item>
+                        <el-form-item label="Outcome">
+                            <el-input v-model="subPlan.outcome"></el-input>
+                        </el-form-item>
+                        <el-form-item label="Style">
+                            <el-select v-model="subPlan.style">
+                                <el-option v-for="item in PaymentFrequency" :label="item.key" :value="item.value"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="Sum">
+                            <el-input v-model="subPlan.sum"></el-input>
+                        </el-form-item>
+                        <el-form-item label="StartTime">
+                            <el-date-picker v-model="subPlan.startTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
+                        </el-form-item>
+                        <el-form-item label="Comment">
+                            <el-input v-model="subPlan.comment"></el-input>
+                        </el-form-item>
+                    </el-form>
+                    <span slot="footer">
+                        <div style="display: flex;align-items: center;justify-content: center;">
+                            <el-button type="primary" @click="subPlanVisible=false">Close</el-button>
+                            <el-button type="success" @click="addSubPlan()">Add</el-button>
+                        </div>
+                    </span>
+                </el-dialog>
             </div>
             <div v-if="activeName == 'PlanList'">
                 <el-card>
@@ -90,24 +118,50 @@
                     endTime: '',
                     // 这里可以继续添加计划细节的数据项
                 },
+                PaymentFrequency:[
+                    {key:'OneTime',value:0},
+                    {key:'PerDay',value:1},
+                    {key:'Week',value:2},
+                    {key:'Month',value:3},
+                    {key:'Year',value:4},
+                ],
+                subPlan:{
+                    income:0,
+                    outcome:0,
+                    style:0,
+                    comment:'',
+                    sum:0,
+                    startTime:'',
+                },
                 subPlanList: [
                     // 这里可以初始化一些计划数据
                 ],
                 activeName:'PlanList',
                 planList:[],
+                subPlanVisible:false,
             },
             methods: {
                 addPlan() {
-                    // 在这里处理新增计划的逻辑，发送请求等
-                    // 示例中只是简单地将新计划添加到计划列表中
-                    this.subPlanList.push({ ...this.newPlan, id: Date.now() });
-                    // 清空表单
-                    this.$refs.newSubPlan.resetFields();
+                    this.subPlanVisible = true;
                 },
                 handleOpen(item){
                     this.activeName = item;
+                },
+                addSubPlan(){
+                    const plan = Object.assign({},this.subPlan)
+                    this.subPlanList.push(plan)
+                    this.$refs.subplan.resetFields();
                 }
             },
+            watch:{
+                subPlanVisible:function(newVal){
+                    if(!newVal){
+                        if(this.$refs.subplan){
+                            this.$refs.subplan.resetFields();
+                        }
+                    }
+                }
+            }
         });
     </script>
 </body>
