@@ -10,6 +10,6 @@ func main() {
 	ctx.Use(service.Calc)
 	ctx.Use(service.Plan)
 	// static
-	ctx.Use(service.Static)
+	ctx.Static("/web")
 	h.NewSimpHttpServer(ctx)
 }

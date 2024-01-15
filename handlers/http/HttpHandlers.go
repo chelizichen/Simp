@@ -5,6 +5,7 @@ import (
 	"Simp/utils"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -43,6 +44,19 @@ func (c *SimpHttpServerCtx) Post(realPath string, handle gin.HandlerFunc) {
 
 func (c *SimpHttpServerCtx) Get(realPath string, handle gin.HandlerFunc) {
 	c.Engine.GET(realPath, handle)
+}
+
+func (c *SimpHttpServerCtx) Static(realPath string) {
+	wd, _ := os.Getwd()
+	SIMP_PRODUCTION := os.Getenv("SIMP_PRODUCTION")
+	var staticPath string
+	if SIMP_PRODUCTION == "Yes" {
+		SIMP_SERVER_PATH := os.Getenv("SIMP_SERVER_PATH")
+		staticPath = filepath.Join(SIMP_SERVER_PATH, c.StaticPath)
+	} else {
+		staticPath = filepath.Join(wd, c.StaticPath)
+	}
+	c.Engine.Static(realPath, staticPath)
 }
 
 func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
