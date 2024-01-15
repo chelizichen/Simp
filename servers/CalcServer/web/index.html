@@ -20,7 +20,7 @@
     <div id="app">
         <el-col :span="4" style="height: 100vh;box-sizing: border-box;border-right: 1px solid #EBEEF5">
             <h1 style="color: rgb(15, 207, 121);text-align: center;font-family: fantasy;">
-                Calculate<i class="el-icon-truck" style="color: rgb(15, 207, 121);font-size: 36px;"></i>
+                <i class="el-icon-truck" style="color: rgb(15, 207, 121);font-size: 36px;"></i>Calculate
             </h1>
             <el-menu class="el-menu-vertical-demo"  active-text-color="rgb(15, 207, 121)" style="border: none">
                 <el-menu-item v-for="(item,index) in serverList " :index="item" :key="index" @click="handleOpen(item)">

@@ -63,7 +63,16 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 	G.POST("/restartServer", func(c *gin.Context) {
 		fileName := c.PostForm("fileName")
 		serverName := c.PostForm("serverName")
-
+		isAlive := utils.ServantAlives[serverName]
+		if isAlive != 0 {
+			cmd := exec.Command("kill", "-9", strconv.Itoa(isAlive))
+			// 执行命令
+			err := cmd.Run()
+			if err != nil {
+				fmt.Println("Error killing process:", err)
+				return
+			}
+		}
 		isSame := utils.ConfirmFileName(serverName, fileName)
 		if !isSame {
 			fmt.Println("Error File!", fileName, "  | ", serverName)

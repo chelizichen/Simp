@@ -206,6 +206,7 @@
                 <span slot="footer">
                     <div style="display: flex;align-items: center;justify-content: center;">
                         <el-button type="primary" @click="configVisible=false">Close</el-button>
+                        <el-button type="success" @click="previewSubServer()">Preivew</el-button>
                     </div>
                 </span>
             </el-dialog>
@@ -530,6 +531,13 @@
                     const data = await API.GetLogList(formData);
                     this.loggerList = data.Data || [];
                     this.loggerFile = this.loggerList.length ? this.loggerList[0]:''
+                },
+                previewSubServer(){
+                    const conf = this.config
+                    const target = `http://localhost:${conf.Port}/${conf.StaticPath}/`
+                    // http://localhost:8511/web/
+                    // http://localhost:8511/web/
+                    window.open(target)
                 }
 
             },
