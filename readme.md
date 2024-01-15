@@ -1,5 +1,7 @@
 # Simp
 
+<img src="./static/img/main_control.png" />
+
 1. 我喜欢TAF Web化的部署方式。
 2. 我喜欢TRPC 简洁的开发模式
 3. TAF太重了，作为使用TAFNode进行日常开发的程序员，也会经常遇到自己不能hold住的问题。
