@@ -98,7 +98,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		cmd := exec.Command(storageExEPath)
 		stdoutPipe, err := cmd.StdoutPipe()
 		// 设置环境变量
-		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_CONFIG_PATH="+storageYmlEPath)
+		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_CONFIG_PATH="+storageYmlEPath, "SIMP_SERVER_PATH="+dest)
 		sm, err := utils.NewSimpMonitor(serverName, "")
 		err = cmd.Start()
 		// 启动一个协程，用于读取并打印命令的输出

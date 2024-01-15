@@ -18,7 +18,8 @@ type SimpHttpServerCtx struct {
 	Engine      *gin.Engine
 	Storage     *sqlx.DB
 	isMain      bool
-	storagePath string
+	StoragePath string
+	StaticPath  string
 }
 
 func Resp(code int, message string, data interface{}) *gin.H {
@@ -55,7 +56,8 @@ func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
 		name:        conf.Server.Name,
 		port:        ":" + strconv.Itoa(conf.Server.Port),
 		Engine:      G,
-		storagePath: conf.Server.Storage,
+		StoragePath: conf.Server.Storage,
+		StaticPath:  conf.Server.StaticPath,
 	}
 	return ctx
 }
@@ -72,8 +74,8 @@ func NewSimpHttpServer(ctx *SimpHttpServerCtx) {
 	// 主控不提供数据库存储服务，存储服务由子服务提供
 	// 子服务生产时数据库链接不上将会panic
 	if !ctx.isMain {
-		fmt.Println("ctx.storagePath ", ctx.storagePath)
-		database, err := sqlx.Open("mysql", ctx.storagePath)
+		fmt.Println("ctx.storagePath ", ctx.StoragePath)
+		database, err := sqlx.Open("mysql", ctx.StoragePath)
 		fmt.Println("database", err)
 		if err != nil && SIMP_PRODUCTION == "Yes" {
 			panic("init db error" + err.Error())
