@@ -62,3 +62,8 @@ tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
 
 生产时静态界面好像有点问题，明天修复一下
 添加子服务 shell 脚本
+
+## 2024.1.15
+
+优化Static函数，修复静态资源问题。前端界面提供Preview方法。
+
