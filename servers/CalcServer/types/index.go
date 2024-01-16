@@ -69,16 +69,3 @@ func DTO2ST_PLAN(dto PlanDTO) *ST_Plan {
 		Details:   string(b),
 	}
 }
-
-func SavePlan(req ST_Plan) (sql string, args []any) {
-	sql = `insert into calc_plan 
-		(
-			name,comment,start_time,end_time,details
-		) 
-		values 
-		(
-			?,	?,	?,	?,	?
-		)`
-	args = append(args, req.Name, req.Comment, req.StartTime, req.EndTime, req.Details)
-	return sql, args
-}
