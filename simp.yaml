@@ -1,4 +1,5 @@
 server:
+  main: true
   name: SimpServer
   port: 8080
   type: main

@@ -46,7 +46,7 @@
                             <el-date-picker v-model="newPlan.endTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
                         </el-form-item>
                         <el-form-item>
-                            <el-button type="success" @click="addPlan">Add Plan</el-button>
+                            <el-button type="success" @click="addPlanVisible = true">Add Plan</el-button>
                             <el-button type="primary" @click="subPlanVisible = true">Add Sub Plan</el-button>
                         </el-form-item>
                     </el-form>
@@ -66,10 +66,10 @@
                 <el-dialog :visible="subPlanVisible">
                     <el-form :model="subPlan"  ref="subplan" label-width="100px">
                         <el-form-item label="Income">
-                            <el-input v-model="subPlan.income"></el-input>
+                            <el-input-number v-model="subPlan.income"></el-input>
                         </el-form-item>
                         <el-form-item label="Outcome">
-                            <el-input v-model="subPlan.outcome"></el-input>
+                            <el-input-number v-model="subPlan.outcome"></el-input>
                         </el-form-item>
                         <el-form-item label="Style">
                             <el-select v-model="subPlan.style">
@@ -77,7 +77,7 @@
                             </el-select>
                         </el-form-item>
                         <el-form-item label="Sum">
-                            <el-input v-model="subPlan.sum"></el-input>
+                            <el-input-number v-model="subPlan.sum"></el-input>
                         </el-form-item>
                         <el-form-item label="StartTime">
                             <el-date-picker v-model="subPlan.startTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
@@ -102,8 +102,40 @@
             </div>
         </el-col>
 
+        <el-dialog
+            title="提示"
+            :visible.sync="addPlanVisible"
+            width="30%"
+            center>
+            <span>确认添加？</span>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="addPlanVisible = false">取 消</el-button>
+                <el-button type="primary" @click="addPlan()">确 定</el-button>
+            </span>
+        </el-dialog>
+
     </div>
     <script>
+        const HttpReq = axios.create({
+            // baseURL, // api的base_url
+            timeout: 15000, // 请求超时时间,
+            method: "post",
+        });
+        HttpReq.interceptors.response.use(resp => {
+            if(resp.data.Code != 0 ){
+                console.log('resp.data.Message |',resp.data.Message);
+                // this.$message.error(resp.data.Message)
+            }
+            return resp.data;
+        })
+        const API = {
+            AddPlan:function(data,url="/plan/create"){
+                return HttpReq({
+                    url,data
+                })
+            },
+        }
+
         new Vue({
             el: '#app',
             data: {
@@ -139,10 +171,23 @@
                 activeName:'PlanList',
                 planList:[],
                 subPlanVisible:false,
+                addPlanVisible:false,
             },
             methods: {
-                addPlan() {
-                    this.subPlanVisible = true;
+                async addPlan() {
+                    const body = {
+                        ...this.newPlan,
+                        details:this.subPlanList
+                    }
+                    const data = await API.AddPlan(body)
+                    if(data.Code){
+                        this.$message.error("Save Error" + data.Message)
+                        this.addPlanVisible = false;
+                        return;
+                    }
+                    this.addPlanVisible = false;
+                    this.$message.success("Save Success")
+
                 },
                 handleOpen(item){
                     this.activeName = item;

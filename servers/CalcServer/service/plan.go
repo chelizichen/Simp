@@ -15,14 +15,18 @@ func Plan(ctx *handlers.SimpHttpServerCtx) {
 	G.POST("/plan/create", func(ctx *gin.Context) {
 		var requestBody types.PlanDTO
 		if err := ctx.BindJSON(&requestBody); err != nil {
-			ctx.JSON(http.StatusOK, handlers.Resp(0, "-1", err.Error()))
+			ctx.JSON(http.StatusOK, handlers.Resp(0-1, "Error"+err.Error(), nil))
 			return
 		}
 		s := types.DTO2ST_PLAN(requestBody)
 		sql, args := types.SavePlan(*s)
-		_, err := ST.Exec(sql, args)
+		fmt.Println("ctx.ST is Nil", ST == nil)
+		fmt.Println("sql", sql, "args", args)
+		_, err := ST.DB.Exec(sql, args...) // 保存
 		if err != nil {
 			fmt.Println("SavePlan Error ", err.Error())
+			ctx.JSON(http.StatusOK, handlers.Resp(-1, "saveError", nil))
+			return
 		}
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})

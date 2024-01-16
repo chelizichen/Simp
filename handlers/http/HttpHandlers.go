@@ -66,12 +66,34 @@ func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
 	if err != nil {
 		fmt.Println("get Config Error :", err.Error())
 	}
+	// database, err := sqlx.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/stockpool")
+	// 主控不提供数据库存储服务，存储服务由子服务提供
+	// 子服务生产时数据库链接不上将会panic
+	SIMP_PRODUCTION := os.Getenv("SIMP_PRODUCTION")
+	var ST *sqlx.DB
+	if !conf.Server.Main {
+		fmt.Println("conf.Server.Storage ", conf.Server.Storage)
+		database, err := sqlx.Open("mysql", conf.Server.Storage)
+		if err != nil && SIMP_PRODUCTION == "Yes" {
+			panic("init db error" + err.Error())
+		} else if err != nil {
+			fmt.Println("init db error", err.Error())
+		}
+		ST = database
+		fmt.Println("ctx.Storage", database, database == nil)
+		err = database.Ping()
+		if err != nil {
+			fmt.Println("Error! database ping ", err.Error())
+		}
+	}
+
 	ctx = &SimpHttpServerCtx{
 		name:        conf.Server.Name,
 		port:        ":" + strconv.Itoa(conf.Server.Port),
 		Engine:      G,
 		StoragePath: conf.Server.Storage,
 		StaticPath:  conf.Server.StaticPath,
+		Storage:     ST,
 	}
 	return ctx
 }
@@ -83,20 +105,6 @@ func NewSimpHttpServer(ctx *SimpHttpServerCtx) {
 	if SIMP_PRODUCTION == "Yes" {
 		fmt.Println("CreateAPIFile |", ctx.name)
 		utils.CreateAPIFile(ctx.Engine, ctx.name)
-	}
-	// database, err := sqlx.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/stockpool")
-	// 主控不提供数据库存储服务，存储服务由子服务提供
-	// 子服务生产时数据库链接不上将会panic
-	if !ctx.isMain {
-		fmt.Println("ctx.storagePath ", ctx.StoragePath)
-		database, err := sqlx.Open("mysql", ctx.StoragePath)
-		fmt.Println("database", err)
-		if err != nil && SIMP_PRODUCTION == "Yes" {
-			panic("init db error" + err.Error())
-		} else if err != nil {
-			fmt.Println("init db error", err.Error())
-		}
-		ctx.Storage = database
 	}
 
 	err := ctx.Engine.Run(ctx.port)

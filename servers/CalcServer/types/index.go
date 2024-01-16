@@ -29,21 +29,21 @@ const (
 )
 
 type PlanDetail struct {
-	Income    float64          `json:"income,omitempty"`     // 预计收入
-	OutCome   float64          `json:"out_come,omitempty"`   // 预计支出
-	Style     PaymentFrequency `json:"style,omitempty"`      // 周期
-	Comment   string           `json:"comment,omitempty"`    // 评价
-	Sum       int              `json:"sum,omitempty"`        // 几个周期 0为完整周期、其他为指定周期
-	StartTime string           `json:"start_time,omitempty"` // 开始时间 传空为覆盖完整周期
+	Income    float64          `json:"income,omitempty"`    // 预计收入
+	OutCome   float64          `json:"outcome,omitempty"`   // 预计支出
+	Style     PaymentFrequency `json:"style,omitempty"`     // 周期
+	Comment   string           `json:"comment,omitempty"`   // 评价
+	Sum       int              `json:"sum,omitempty"`       // 几个周期 0为完整周期、其他为指定周期
+	StartTime string           `json:"startTime,omitempty"` // 开始时间 传空为覆盖完整周期
 }
 
 type PlanDTO struct {
 	Id        int          `json:"id,omitempty"`
-	Details   []PlanDetail `json:"details,omitempty"`    // 计划周期
-	Comment   string       `json:"comment,omitempty"`    // 标注
-	Name      string       `json:"name,omitempty"`       // 名称
-	StartTime string       `json:"start_time,omitempty"` // 开始时间
-	EndTime   string       `json:"end_time,omitempty"`   // 结束时间
+	Details   []PlanDetail `json:"details,omitempty"`   // 计划周期
+	Comment   string       `json:"comment,omitempty"`   // 标注
+	Name      string       `json:"name,omitempty"`      // 名称
+	StartTime string       `json:"startTime,omitempty"` // 开始时间
+	EndTime   string       `json:"endTime,omitempty"`   // 结束时间
 }
 
 // ST_Plan 数据库中存入的字段
@@ -70,8 +70,15 @@ func DTO2ST_PLAN(dto PlanDTO) *ST_Plan {
 	}
 }
 
-func SavePlan(req ST_Plan) (sql string, args []string) {
-	sql = `insert into plan (name,comment,start_time,end_time,deatils) values (?,?,?,?,?)`
+func SavePlan(req ST_Plan) (sql string, args []any) {
+	sql = `insert into calc_plan 
+		(
+			name,comment,start_time,end_time,details
+		) 
+		values 
+		(
+			?,	?,	?,	?,	?
+		)`
 	args = append(args, req.Name, req.Comment, req.StartTime, req.EndTime, req.Details)
 	return sql, args
 }

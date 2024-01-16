@@ -16,6 +16,7 @@ type SimpConfig struct {
 		Type       string `yaml:"type"`
 		StaticPath string `yaml:"staticPath"`
 		Storage    string `yaml:"storage"`
+		Main       bool   `yaml:"main"`
 		Proxy      []struct {
 			Server struct {
 				Type string `yaml:"type"`
