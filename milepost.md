@@ -67,3 +67,6 @@ tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
 
 优化Static函数，修复静态资源问题。前端界面提供Preview方法。
 
+## 2024.1.16
+
+优化子服务
