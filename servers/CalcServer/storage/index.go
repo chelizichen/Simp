@@ -2,7 +2,8 @@ package storage
 
 import "Simp/servers/CalcServer/types"
 
-func SavePlan(req types.ST_Plan) (sql string, args []any) {
+func SavePlan(dto types.PlanDTO) (sql string, args []any) {
+	req := types.DTO2ST_PLAN(dto)
 	sql = `insert into calc_plan 
 		(
 			name,comment,start_time,end_time,details
@@ -18,4 +19,23 @@ func SavePlan(req types.ST_Plan) (sql string, args []any) {
 func GetList() (sql string) {
 	sql = `select * from calc_plan `
 	return sql
+}
+
+func DeleteById(id int) (sql string, args []any) {
+	sql = `delete from calc_plan where id = `
+	args = append(args, id)
+	return sql, args
+}
+
+func UpdatePlan(req types.PlanDTO) (sql string, args []any) {
+	s := types.DTO2ST_PLAN(req)
+	sql = `update calc_plan set 
+	name = ?,
+	comment = ?,
+	start_time = ?,
+	end_time = ?,
+	details = ?
+	`
+	args = append(args, s.Name, s.Comment, s.StartTime, s.EndTime, s.Details)
+	return sql, args
 }

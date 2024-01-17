@@ -6,6 +6,7 @@ import (
 	"Simp/servers/CalcServer/types"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,8 +20,7 @@ func Plan(ctx *handlers.SimpHttpServerCtx) {
 			ctx.JSON(http.StatusOK, handlers.Resp(0-1, "Error"+err.Error(), nil))
 			return
 		}
-		s := types.DTO2ST_PLAN(requestBody)
-		sql, args := storage.SavePlan(*s)
+		sql, args := storage.SavePlan(requestBody)
 		fmt.Println("ctx.ST is Nil", ST == nil)
 		fmt.Println("sql", sql, "args", args)
 		_, err := ST.DB.Exec(sql, args...) // 保存
@@ -42,6 +42,42 @@ func Plan(ctx *handlers.SimpHttpServerCtx) {
 			return
 		}
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", Resp))
+	})
+
+	G.POST("/plan/update", func(ctx *gin.Context) {
+		var requestBody types.PlanDTO
+		if err := ctx.BindJSON(&requestBody); err != nil {
+			ctx.JSON(http.StatusOK, handlers.Resp(0-1, "Error"+err.Error(), nil))
+			return
+		}
+		sql, args := storage.UpdatePlan(requestBody)
+		_, err := ST.DB.Exec(sql, args...) // 保存
+		if err != nil {
+			fmt.Println("UpdateError Error ", err.Error())
+			ctx.JSON(http.StatusOK, handlers.Resp(-1, "Update Error", nil))
+			return
+		}
+		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
+	})
+
+	G.GET("/plan/list", func(ctx *gin.Context) {
+		id := ctx.Query("id")
+		if id == "" {
+			ctx.JSON(http.StatusOK, handlers.Resp(-1, "Id  Error", nil))
+			return
+		}
+		i, err := strconv.Atoi(id)
+		if err != nil {
+			ctx.JSON(http.StatusOK, handlers.Resp(-1, "strconv Atoi", nil))
+			return
+		}
+		sql, args := storage.DeleteById(i)
+		_, err = ST.DB.Exec(sql, args...) // 保存
+		if err != nil {
+			ctx.JSON(http.StatusOK, handlers.Resp(-1, "Delete Error", nil))
+			return
+		}
+		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
 }
