@@ -70,3 +70,7 @@ tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
 ## 2024.1.16
 
 优化子服务
+
+## 2024.1.17
+
+添加子服务BlogServer，用于测试 XORM;
