@@ -3,6 +3,9 @@
 # if permission denied
 # run script with ` chmod +x build.sh ` 
 
+# rm
+rm ./CalcServer.tar.gz ./service_go
+
 # compile
 go build -o service_go
 
