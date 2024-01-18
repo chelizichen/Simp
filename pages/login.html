@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WelcomeSimp</title>
+    <script src="/static/source/axios.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f1f1f1;
+        }
+
+        .container {
+            width: 300px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .alert {
+            margin-top: 10px;
+            padding: 5px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+    </style>
+    <script>
+          const HttpReq = axios.create({
+            // baseURL, // api的base_url
+            timeout: 15000, // 请求超时时间,
+            method: "post",
+        });
+
+        const API = {
+            Login:function(data,url="/login"){
+                return HttpReq({
+                    url,data
+                })
+            },
+        }
+        async function saveToken() {
+            var tokenInput = document.getElementById("tokenInput").value;
+            const data = new FormData()
+            data.append("token",tokenInput)
+            const ret = await API.Login(data)
+            if(ret.Data){
+                alert("Please enter a valid token.");
+            }else{
+                window.location.href = "/web/server.html"
+                localStorage.setItem("token", tokenInput);
+            }
+        }  
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Welcome Simp!</h1>
+        <input type="text" id="tokenInput" placeholder="Enter your token">
+        <br />
+        <br />
+        <button onclick="saveToken()">Login</button>
+    </div>
+</body>
+
+</html>

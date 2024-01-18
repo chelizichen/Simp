@@ -112,9 +112,9 @@
                     <div class="flex-item">
                         <div @click="uploadVisible = true" style="color: rgb(207, 15, 124);cursor: pointer;">Upload</div>
                     </div>
-<!--                    <div class="flex-item">-->
-<!--                        <div @click="DeleteAllPackages()" style="color: rgb(207, 15, 124);cursor: pointer;">Remove</div>-->
-<!--                    </div>-->
+                   <div class="flex-item">
+                       <div @click="ShutDownServer()" style="color: rgb(207, 15, 124);cursor: pointer;">Shutdown</div>
+                   </div>
 
                     <div class="flex-item">
                         <div @click="releaseVisible=true" style="color: rgb(207, 15, 124);cursor: pointer;">Release</div>
@@ -261,6 +261,13 @@
                 // this.$message.error(resp.data.Message)
             }
             return resp.data;
+        })
+
+        HttpReq.interceptors.request.use(config => {
+            const tkn = localStorage.getItem("token")
+            console.log("token",tkn);
+            config.headers["token"] = tkn
+            return config;
         })
 
         const API = {
@@ -538,6 +545,23 @@
                     // http://localhost:8511/web/
                     // http://localhost:8511/web/
                     window.open(target)
+                },
+                async ShutDownServer(){
+                    const formData = new FormData();
+                    formData.append('serverName', this.serverName);
+                    const data = await API.ShutDownServer(formData);
+                    if(data.Code){
+                        this.$message({
+                            type: 'error',
+                            message: '关闭失败!' + data.Message
+                        });
+                        return;
+                    }
+                    this.$message({
+                        type: 'success',
+                        message: '成功关闭节点!'
+                    });
+                    this.getServerPackageList(this.serverName)
                 }
 
             },
