@@ -15,3 +15,8 @@ service_go
 
 # 测试服务的tgz
 servers/CalcServer/CalcServer.tar.gz
+
+# 阿里云TEST
+SimpServer.tar.gz
+
+nginx.conf

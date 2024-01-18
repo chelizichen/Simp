@@ -4,6 +4,7 @@ import (
 	"Simp/config"
 	"Simp/utils"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -99,6 +100,22 @@ func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
 }
 
 func NewSimpHttpServer(ctx *SimpHttpServerCtx) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	for _, addr := range addrs {
+		// Check if the address is not a loopback address
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				fmt.Println("IPv4 Address:", ipnet.IP.String())
+			} else {
+				fmt.Println("IPv6 Address:", ipnet.IP.String())
+			}
+		}
+	}
 	SIMP_PRODUCTION := os.Getenv("SIMP_PRODUCTION")
 	fmt.Println("SIMP_PRODUCTION", SIMP_PRODUCTION)
 	// 子服务生产时需要提供对应的API路由
@@ -107,7 +124,7 @@ func NewSimpHttpServer(ctx *SimpHttpServerCtx) {
 		utils.CreateAPIFile(ctx.Engine, ctx.name)
 	}
 
-	err := ctx.Engine.Run(ctx.port)
+	err = ctx.Engine.Run(ctx.port)
 	if err != nil {
 		return
 	}

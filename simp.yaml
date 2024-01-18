@@ -1,7 +1,7 @@
 server:
   main: true
   name: SimpServer
-  port: 8080
+  port: 80
   type: main
   staticPath: static # 静态资源
   storage:  mysql@3306...... # 存储
