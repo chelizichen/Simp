@@ -78,3 +78,26 @@ tar -cvf TestServer.tar.gz ./simp.yaml ./service_go
 # 发布创建服务、上传服务包、发布服务！
 
 ````
+
+## PRODUCTION
+
+先编译打包主控服务
+注意：编译前需要定义好环境变量
+才能发布至云上
+
+````sh
+#!/bin/bash  
+
+# if permission denied
+# run script with ` chmod +x build.sh ` 
+readonly ServerName="SimpServer"
+
+# rm
+rm ./$ServerName.tar.gz ./service_go
+
+# compile
+GOOS=linux GOARCH=amd64 go build -o service_go
+
+# build
+tar -cvf $ServerName.tar.gz ./simp.yaml ./service_go ./static ./pages
+````

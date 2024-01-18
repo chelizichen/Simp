@@ -74,3 +74,7 @@ tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
 ## 2024.1.17
 
 添加子服务BlogServer，用于测试 XORM;
+
+## 2024.1.18
+
+阿里云部署测试成功
