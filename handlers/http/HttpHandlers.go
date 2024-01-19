@@ -62,6 +62,11 @@ func (c *SimpHttpServerCtx) Static(realPath string) {
 
 func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
 	conf, err := config.NewConfig(path)
+	if err != nil {
+		fmt.Println("NewConfig Error:", err.Error())
+		panic(err.Error())
+	}
+	fmt.Println("SIMP_PRODUCTION Conf", conf)
 	var G *gin.Engine
 	G = gin.Default()
 	if err != nil {

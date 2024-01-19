@@ -107,6 +107,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, fileName)
 		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, "service_go")
 		storageYmlEPath := filepath.Join(cwd, utils.PublishPath, serverName, "simp.yaml")
+		storageYmlProdPath := filepath.Join(cwd, utils.PublishPath, serverName, "simpProd.yaml")
 		storageDocPath := filepath.Join(cwd, utils.PublishPath, serverName, "doc.txt")
 
 		err = utils.IFExistThenRemove(storageExEPath)
@@ -127,10 +128,21 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 		if err != nil {
 			fmt.Println("Error To Unzip", err.Error())
 		}
+		_, err = os.Stat(storageYmlProdPath)
+		if err != nil {
+			fmt.Println("os.Stat ", err.Error())
+		}
+		// 如果没有该文件，则将simp.yaml拷贝一份成simpProd.yaml
+		if os.IsNotExist(err) {
+			err = utils.CopyFile(storageYmlEPath, storageYmlProdPath)
+			if err != nil {
+				fmt.Println("utils.CopyFile "+storageDocPath, storageYmlEPath, err.Error())
+			}
+		}
 		cmd := exec.Command(storageExEPath)
 		stdoutPipe, err := cmd.StdoutPipe()
 		// 设置环境变量
-		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_CONFIG_PATH="+storageYmlEPath, "SIMP_SERVER_PATH="+dest)
+		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
 		sm, err := utils.NewSimpMonitor(serverName, "")
 		err = cmd.Start()
 		// 启动一个协程，用于读取并打印命令的输出
@@ -138,12 +150,13 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			for {
 				// 读取输出
 				buf := make([]byte, 1024)
+				s := time.Now().Format(time.TimeOnly)
 				n, err := stdoutPipe.Read(buf)
 				if err != nil {
 					break
 				}
 				// 打印输出
-				content := "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+				content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
 				sm.AppendLogger(content)
 			}
 		}()
