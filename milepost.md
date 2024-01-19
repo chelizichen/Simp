@@ -78,3 +78,12 @@ tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
 ## 2024.1.18
 
 阿里云部署测试成功
+
+## 2024.1.19
+
+生产待解决问题：
+
+配置文件问题，每次发布时不应该覆盖，而是APPEND
+首次发布时，判断有没有 simpProd.yaml
+如果没有，则分别添加simp.yaml 和 simpProd.yaml 然后通过合并操作
+以simpProd.yaml为准
