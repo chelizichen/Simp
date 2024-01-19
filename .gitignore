@@ -16,6 +16,8 @@ service_go
 # 测试服务的tgz
 servers/CalcServer/CalcServer.tar.gz
 
+servers/PoolServer/*
+
 ./servers/BlogServer/*
 
 servers/CalcServer/simp.prod.yaml
