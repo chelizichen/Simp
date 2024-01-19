@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -32,8 +33,10 @@ func Resp(code int, message string, data interface{}) *gin.H {
 	}
 }
 
-func (c *SimpHttpServerCtx) Use(callback func(engine *SimpHttpServerCtx)) {
-	callback(c)
+func (c *SimpHttpServerCtx) Use(callback func(engine *SimpHttpServerCtx, pre string)) {
+	s := c.name
+	pre := strings.ToLower(s)
+	callback(c, pre)
 }
 
 func (c *SimpHttpServerCtx) DefineMain() {
@@ -48,6 +51,11 @@ func (c *SimpHttpServerCtx) Get(realPath string, handle gin.HandlerFunc) {
 }
 
 func (c *SimpHttpServerCtx) Static(realPath string) {
+	s := c.name
+	pre := strings.ToLower(s)
+	f := utils.Join(pre)
+	target := f(realPath)
+
 	wd, _ := os.Getwd()
 	SIMP_PRODUCTION := os.Getenv("SIMP_PRODUCTION")
 	var staticPath string
@@ -57,7 +65,7 @@ func (c *SimpHttpServerCtx) Static(realPath string) {
 	} else {
 		staticPath = filepath.Join(wd, c.StaticPath)
 	}
-	c.Engine.Static(realPath, staticPath)
+	c.Engine.Static(target, staticPath)
 }
 
 func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {

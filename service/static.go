@@ -2,6 +2,7 @@ package service
 
 import (
 	handlers "Simp/handlers/http"
+	"Simp/utils"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,7 +24,8 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-func Static(ctx *handlers.SimpHttpServerCtx) {
+func Static(ctx *handlers.SimpHttpServerCtx, pre string) {
+	f := utils.Join(pre)
 	G := ctx.Engine
 	wd, err := os.Getwd()
 	if err != nil {
@@ -32,8 +34,8 @@ func Static(ctx *handlers.SimpHttpServerCtx) {
 	staticRoot := filepath.Join(wd, "static")
 	webRoot := filepath.Join(wd, "pages")
 	G.Use(CORSMiddleware())
-	G.Static("/static", staticRoot)
-	G.Static("/web", webRoot)
+	G.Static(f("/static"), staticRoot)
+	G.Static(f("/web"), webRoot)
 	// G.GET("/", func(ctx *gin.Context) {
 	// 	ctx.Redirect(304, "/web")
 	// })

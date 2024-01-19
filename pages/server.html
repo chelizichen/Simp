@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SimpCloud</title>
     <!-- 引入 Vue 2 的 CDN -->
-    <script src="/static/source/vue.min.js"></script>
+    <script src="/simpserver/static/source/vue.min.js"></script>
     <!-- 引入 Md5 的 CDN -->
-    <script src="/static/source/md5.min.js"></script>
+    <script src="/simpserver/static/source/md5.min.js"></script>
     <!-- 引入 AXIOS 的 CDN -->
-    <script src="/static/source/axios.js"></script>
+    <script src="/simpserver/static/source/axios.js"></script>
     <!-- 引入组件库 -->
-    <script src="/static/source/element.js"></script>
-    <link rel="stylesheet" href="/static/source/element.css">
+    <script src="/simpserver/static/source/element.js"></script>
+    <link rel="stylesheet" href="/simpserver/static/source/element.css">
     <style>
         .like {
             cursor: pointer;
@@ -255,6 +255,7 @@
             // baseURL, // api的base_url
             timeout: 15000, // 请求超时时间,
             method: "post",
+            baseURL:'/simpserver/'
         });
         HttpReq.interceptors.response.use(resp => {
             if(resp.data.Code != 0 ){

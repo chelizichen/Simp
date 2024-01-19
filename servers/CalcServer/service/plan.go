@@ -4,6 +4,7 @@ import (
 	handlers "Simp/handlers/http"
 	"Simp/servers/CalcServer/storage"
 	"Simp/servers/CalcServer/types"
+	su "Simp/utils"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -11,10 +12,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Plan(ctx *handlers.SimpHttpServerCtx) {
+func Plan(ctx *handlers.SimpHttpServerCtx, pre string) {
+	f := su.Join(pre)
+
 	G := ctx.Engine
 	ST := ctx.Storage
-	G.POST("/plan/create", func(ctx *gin.Context) {
+	G.POST(f("/plan/create"), func(ctx *gin.Context) {
 		var requestBody types.PlanDTO
 		if err := ctx.BindJSON(&requestBody); err != nil {
 			ctx.JSON(http.StatusOK, handlers.Resp(0-1, "Error"+err.Error(), nil))
@@ -32,7 +35,7 @@ func Plan(ctx *handlers.SimpHttpServerCtx) {
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
-	G.POST("/plan/list", func(ctx *gin.Context) {
+	G.POST(f("/plan/list"), func(ctx *gin.Context) {
 		var Resp []types.ST_Plan
 		sql := storage.GetList()
 		err := ST.Select(&Resp, sql) // 保存
@@ -44,7 +47,7 @@ func Plan(ctx *handlers.SimpHttpServerCtx) {
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", Resp))
 	})
 
-	G.POST("/plan/update", func(ctx *gin.Context) {
+	G.POST(f("/plan/update"), func(ctx *gin.Context) {
 		var requestBody types.PlanDTO
 		if err := ctx.BindJSON(&requestBody); err != nil {
 			ctx.JSON(http.StatusOK, handlers.Resp(0-1, "Error"+err.Error(), nil))
@@ -60,7 +63,7 @@ func Plan(ctx *handlers.SimpHttpServerCtx) {
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
-	G.GET("/plan/list", func(ctx *gin.Context) {
+	G.GET(f("/plan/list"), func(ctx *gin.Context) {
 		id := ctx.Query("id")
 		if id == "" {
 			ctx.JSON(http.StatusOK, handlers.Resp(-1, "Id  Error", nil))

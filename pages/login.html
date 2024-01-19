@@ -3,7 +3,7 @@
 
 <head>
     <title>WelcomeSimp</title>
-    <script src="/static/source/axios.js"></script>
+    <script src="/simpserver/static/source/axios.js"></script>
     <style>
         body {
             display: flex;
@@ -62,6 +62,7 @@
             // baseURL, // api的base_url
             timeout: 15000, // 请求超时时间,
             method: "post",
+            baseURL:'/simpserver/'
         });
 
         const API = {
@@ -79,7 +80,7 @@
             if(ret.Data){
                 alert("Please enter a valid token.");
             }else{
-                window.location.href = "/web/server.html"
+                window.location.href = "/simpserver/web/server.html"
                 localStorage.setItem("token", tokenInput);
             }
         }  

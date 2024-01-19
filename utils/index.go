@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -309,4 +310,10 @@ func CopyFile(src string, dst string) error {
 	}
 
 	return nil
+}
+
+func Join(pre string) func(t string) string {
+	return func(target string) string {
+		return path.Join(pre, target)
+	}
 }
