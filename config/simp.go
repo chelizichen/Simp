@@ -58,7 +58,7 @@ func NewConfig(path string) (conf SimpConfig, err error) {
 		}
 		fmt.Println("doc1", doc1)
 		fmt.Println("doc2", doc2)
-		mergeYaml := mergeYAML(doc1, doc2)
+		mergeYaml := MergeYAML(doc1, doc2)
 		// 将 interface{} 转换为 MyStruct
 		if conf, ok := mergeYaml.(SimpConfig); ok {
 			return conf, nil
@@ -127,7 +127,7 @@ func ParseConfig(yamlString string) (string, error) {
 }
 
 // mergeYAML 递归合并两个YAML文档
-func mergeYAML(doc1, doc2 interface{}) interface{} {
+func MergeYAML(doc1, doc2 interface{}) interface{} {
 	switch doc1 := doc1.(type) {
 	case map[interface{}]interface{}:
 		doc2, ok := doc2.(map[interface{}]interface{})
@@ -136,7 +136,7 @@ func mergeYAML(doc1, doc2 interface{}) interface{} {
 		}
 		merged := make(map[interface{}]interface{})
 		for k, v := range doc1 {
-			merged[k] = mergeYAML(v, doc2[k])
+			merged[k] = MergeYAML(v, doc2[k])
 		}
 		return merged
 	default:

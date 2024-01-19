@@ -283,11 +283,14 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 	G.POST("/checkConfig", TOKEN_VALIDATE, func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		configPath := filepath.Join(utils.PublishPath, serverName, "simp.yaml")
+		configProdPath := filepath.Join(utils.PublishPath, serverName, "simpProd.yaml")
 		sc, err := config.NewConfig(configPath)
+		prod, err := config.NewConfig(configProdPath)
+		mergeConf := config.MergeYAML(prod, sc)
 		if err != nil {
 			fmt.Println("Error To Get NewConfig", err.Error())
 		}
-		c.JSON(200, handlers.Resp(0, "ok", sc))
+		c.JSON(200, handlers.Resp(0, "ok", mergeConf))
 	})
 
 	G.POST("/coverConfig", TOKEN_VALIDATE, func(c *gin.Context) {
@@ -316,7 +319,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 			c.JSON(http.StatusOK, handlers.Resp(0, "Error To Stringify config", nil))
 			return
 		}
-		configPath := filepath.Join(utils.PublishPath, serverName, "simp.yaml")
+		configPath := filepath.Join(utils.PublishPath, serverName, "simpProd.yaml")
 		err = config.CoverConfig(string(marshal), configPath)
 		if err != nil {
 			fmt.Println("CoverConfig Error", err.Error())
