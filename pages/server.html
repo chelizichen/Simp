@@ -197,16 +197,17 @@
                         <el-input v-model="config.Type" disabled></el-input>
                     </el-form-item>
                     <el-form-item label="Static Path">
-                        <el-input v-model="config.StaticPath" disabled></el-input>
+                        <el-input v-model="config.StaticPath"></el-input>
                     </el-form-item>
                     <el-form-item label="Storage">
-                        <el-input v-model="config.Storage" disabled></el-input>
+                        <el-input v-model="config.Storage"></el-input>
                     </el-form-item>
                 </el-form>
                 <span slot="footer">
                     <div style="display: flex;align-items: center;justify-content: center;">
                         <el-button type="primary" @click="configVisible=false">Close</el-button>
                         <el-button type="success" @click="previewSubServer()">Preivew</el-button>
+                        <el-button type="danger" @click="uploadConfig()">Upload</el-button>
                     </div>
                 </span>
             </el-dialog>
@@ -342,6 +343,12 @@
                 })
             },
             GetLogList:function(data,url="/getLogList"){
+                return HttpReq({
+                    url,
+                    data
+                })
+            },
+            CoverConfig:function(data,url="/coverConfig"){
                 return HttpReq({
                     url,
                     data
@@ -562,6 +569,39 @@
                         message: '成功关闭节点!'
                     });
                     this.getServerPackageList(this.serverName)
+                },
+                async uploadConfig(){
+                    const body = this.MapKeysToUpper({
+                        ServerName:this.serverName,
+                        Conf:{
+                            Server:this.config
+                        }
+                    })
+                    const ret = await API.CoverConfig(body)
+                    if(ret.Data){
+                        this.$message({
+                            type: 'error',
+                            message: '覆盖失败!' + data.Message
+                        });
+                        return;
+                    }
+                    this.$message({
+                        type: 'success',
+                        message: '覆盖成功!'
+                    });
+                    this.configVisible=false
+                },
+                MapKeysToUpper(obj){
+                    var newObj = {};  
+                    for (var key in obj) {  
+                        if (typeof key === 'string') {  
+                            newObj[key.charAt(0).toUpperCase() + key.slice(1)] = obj[key];  
+                        } else {  
+                            newObj[key] = obj[key];  
+                        }  
+                    }  
+
+                    return newObj;  
                 }
 
             },

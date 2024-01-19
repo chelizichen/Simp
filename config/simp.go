@@ -6,24 +6,30 @@ import (
 	"os"
 	"path/filepath"
 
+	jsonToYaml "github.com/ghodss/yaml"
 	"gopkg.in/yaml.v2"
 )
 
 type SimpConfig struct {
 	Server struct {
-		Name       string `yaml:"name"`
-		Port       int    `yaml:"port"`
+		Name       string `yaml:"name" `
+		Port       int    `yaml:"port" `
 		Type       string `yaml:"type"`
-		StaticPath string `yaml:"staticPath"`
-		Storage    string `yaml:"storage"`
-		Main       bool   `yaml:"main"`
+		StaticPath string `yaml:"staticPath" `
+		Storage    string `yaml:"storage" `
+		Main       bool   `yaml:"main" `
 		Proxy      []struct {
 			Server struct {
 				Type string `yaml:"type"`
-				Name string `yaml:"name"`
+				Name string `yaml:"name" `
 			} `yaml:"server"`
 		} `yaml:"proxy"`
 	} `yaml:"server"`
+}
+
+type CoverConfigVo struct {
+	Conf       SimpConfig
+	ServerName string
 }
 
 func NewConfig(path string) (conf SimpConfig, err error) {
@@ -67,7 +73,7 @@ func ResetConfig(yamlContent string, filePath string) error {
 	return nil
 }
 
-func CoverConfig(config SimpConfig, filePath string) error {
+func CoverConfig(content string, filePath string) error {
 	// 删除
 	utils.IFExistThenRemove(filePath)
 	file, err := os.Create(filePath)
@@ -76,21 +82,19 @@ func CoverConfig(config SimpConfig, filePath string) error {
 	}
 	defer file.Close()
 
-	encoder := yaml.NewEncoder(file)
-	defer encoder.Close()
-
-	if err := encoder.Encode(config); err != nil {
+	err = os.WriteFile(filePath, []byte(content), 0644)
+	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func ParseConfig(yamlString string) (SimpConfig, error) {
-	var config SimpConfig
-	err := yaml.Unmarshal([]byte(yamlString), &config)
+func ParseConfig(yamlString string) (string, error) {
+	yml, err := jsonToYaml.JSONToYAML([]byte(yamlString))
 	if err != nil {
-		return SimpConfig{}, err
+		fmt.Println("JSON TO YamlError")
 	}
-	return config, nil
+	fmt.Println("Cover yml \n", string(yml))
+
+	return string(yml), nil
 }

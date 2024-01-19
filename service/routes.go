@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v2"
 )
 
 const TOKEN = "e609d00404645feed1c1733835b8c127"
@@ -23,6 +24,7 @@ func TOKEN_VALIDATE(ctx *gin.Context) {
 	s := ctx.Request.Header.Get("token")
 	if s != TOKEN {
 		ctx.JSON(http.StatusBadRequest, handlers.Resp(-2, "Token Error", nil))
+		return
 	}
 	ctx.Next()
 }
@@ -276,16 +278,37 @@ func Registry(ctx *handlers.SimpHttpServerCtx) {
 	})
 
 	G.POST("/coverConfig", TOKEN_VALIDATE, func(c *gin.Context) {
-		serverName := c.PostForm("serverName")
-		uploadConfig := c.PostForm("uploadConfig")
-		conf, err := config.ParseConfig(uploadConfig)
+		var reqVo config.CoverConfigVo
+		if err := c.BindJSON(&reqVo); err != nil {
+			c.JSON(http.StatusOK, handlers.Resp(0, "-1", err.Error()))
+			return
+		}
+		serverName := reqVo.ServerName
+		uploadConfig := reqVo.Conf
+		if serverName == "" {
+			fmt.Println("Server Name is Empty")
+			c.JSON(http.StatusOK, handlers.Resp(0, "Server Name is Empty", nil))
+			return
+		}
+		marshal, err := yaml.Marshal(uploadConfig)
 		if err != nil {
-			fmt.Println("Error To Get NewConfig", err.Error())
-			c.JSON(200, handlers.Resp(-1, "Error To ParseConfig", nil))
+			fmt.Println("Error To Stringify config", err.Error())
+			c.JSON(http.StatusOK, handlers.Resp(0, "Error To Stringify config", nil))
+			return
+		}
+		fmt.Println("serverName", serverName)
+		fmt.Println("uploadConfig", string(marshal))
+		if len(marshal) == 0 {
+			fmt.Println("Error To Stringify config", err.Error())
+			c.JSON(http.StatusOK, handlers.Resp(0, "Error To Stringify config", nil))
 			return
 		}
 		configPath := filepath.Join(utils.PublishPath, serverName, "simp.yaml")
-		config.CoverConfig(conf, configPath)
+		err = config.CoverConfig(string(marshal), configPath)
+		if err != nil {
+			fmt.Println("CoverConfig Error", err.Error())
+			c.JSON(200, handlers.Resp(-1, "CoverConfig Error", nil))
+		}
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
 
