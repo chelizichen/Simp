@@ -87,3 +87,10 @@ tar -cvf CalcServer.tar.gz ./simp.yaml ./service_go
 首次发布时，判断有没有 simpProd.yaml
 如果没有，则分别添加simp.yaml 和 simpProd.yaml 然后通过合并操作
 以simpProd.yaml为准
+
+## 2024.1.21
+
+配置文件问题解决
+服务发布问题解决
+Nginx问题解决
+持续优化和迭代中
