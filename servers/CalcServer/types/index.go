@@ -48,12 +48,12 @@ type PlanDTO struct {
 
 // ST_Plan 数据库中存入的字段
 type ST_Plan struct {
-	Id        int    `db:"id,omitempty"`
-	Comment   string `db:"comment,omitempty"`    // 标注
-	Name      string `db:"name,omitempty"`       // 名称
-	StartTime string `db:"start_time,omitempty"` // 开始时间
-	EndTime   string `db:"end_time,omitempty"`   // 结束时间
-	Details   string `db:"details,omitempty"`    // 细节
+	Id        int    `db:"id,omitempty" json:"id,omitempty"`
+	Comment   string `db:"comment,omitempty" json:"comment,omitempty"`      // 标注
+	Name      string `db:"name,omitempty" json:"name,omitempty"`            // 名称
+	StartTime string `db:"start_time,omitempty" json:"startTime,omitempty"` // 开始时间
+	EndTime   string `db:"end_time,omitempty" json:"endRime,omitempty"`     // 结束时间
+	Details   string `db:"details,omitempty" json:"details,omitempty"`      // 细节
 }
 
 func DTO2ST_PLAN(dto PlanDTO) *ST_Plan {
@@ -67,5 +67,6 @@ func DTO2ST_PLAN(dto PlanDTO) *ST_Plan {
 		StartTime: dto.StartTime,
 		EndTime:   dto.EndTime,
 		Details:   string(b),
+		Id:        dto.Id,
 	}
 }

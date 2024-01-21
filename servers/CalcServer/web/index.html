@@ -34,6 +34,12 @@
             padding: 0;
             font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
         }
+        .el-card__header{
+            box-sizing: border-box;
+            padding: 0;
+            border: none;
+            float: right;
+        }
     </style>
 </head>
 
@@ -84,52 +90,37 @@
                         </el-timeline-item>
                     </el-timeline>
                 </el-card>
-                <el-dialog :visible="subPlanVisible">
-                    <el-form :model="subPlan"  ref="subplan" label-width="100px">
-                        <el-form-item label="Income">
-                            <el-input-number v-model="subPlan.income"></el-input>
-                        </el-form-item>
-                        <el-form-item label="Outcome">
-                            <el-input-number v-model="subPlan.outcome"></el-input>
-                        </el-form-item>
-                        <el-form-item label="Style">
-                            <el-select v-model="subPlan.style">
-                                <el-option v-for="item in PaymentFrequency" :label="item.key" :value="item.value"></el-option>
-                            </el-select>
-                        </el-form-item>
-                        <el-form-item label="Sum">
-                            <el-input-number v-model="subPlan.sum"></el-input>
-                        </el-form-item>
-                        <el-form-item label="StartTime">
-                            <el-date-picker v-model="subPlan.startTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
-                        </el-form-item>
-                        <el-form-item label="Comment">
-                            <el-input v-model="subPlan.comment"></el-input>
-                        </el-form-item>
-                    </el-form>
-                    <span slot="footer">
-                        <div style="display: flex;align-items: center;justify-content: center;">
-                            <el-button type="primary" @click="subPlanVisible=false">Close</el-button>
-                            <el-button type="success" @click="addSubPlan()">Add</el-button>
-                        </div>
-                    </span>
-                </el-dialog>
             </div>
             <div v-if="activeName == 'PlanList'">
-                <el-card v-for="item in planList" class="card-container">
+                <el-card v-for="(item,index) in planList" class="card-container" :key="index">
                     <div style="display: flex;">
                         <el-card class="main-card">
-                            <div :style="{ 'margin-bottom': '5px', 'color': '#333' }"><span>Name: </span>{{ item.Name}}</div>
-                            <div :style="{ 'margin-bottom': '5px', 'color': '#333' }"><span>Comment: </span>{{ item.Comment}}</div>
-                            <div :style="{ 'margin-bottom': '5px' }"><span>StartTime: </span>{{ item.StartTime}}</div>
-                            <div><span>EndTime: </span>{{ item.EndTime}}</div>
+                            <div slot="header" v-show="EditIconVisible && ItemIndex==index" @click="subPlanVisible = true">
+                                <el-icon class="el-icon-plus" style="cursor: pointer;"></el-icon>
+                            </div>
+                            <div :style="{ 'margin-bottom': '5px', 'color': '#333' }"><span>Name: </span>{{ item.name}}</div>
+                            <div :style="{ 'margin-bottom': '5px', 'color': '#333' }"><span>Comment: </span>{{ item.comment}}</div>
+                            <div :style="{ 'margin-bottom': '5px' }"><span>StartTime: </span>{{ item.startTime}}</div>
+                            <div><span>EndTime: </span>{{ item.endTime}}</div>
                         </el-card>
-                        <el-card v-for="subItem in item.Details" class="sub-card">
+                        <el-card v-for="(subItem,subIndex) in item.details" class="sub-card" :key="subIndex">
+                            <div slot="header" v-show="EditIconVisible && ItemIndex==index" @click="deleteSubPlan(subIndex)">
+                                <el-icon class="el-icon-close" style="cursor: pointer;"></el-icon>
+                            </div>
                             <div :style="{ 'margin-bottom': '5px', 'color': 'red' }"><span>income: </span>{{ subItem.income}}</div>
                             <div :style="{ 'margin-bottom': '5px', 'color': 'green'}"><span>outcome: </span>{{ subItem.outcome}}</div>
                             <div :style="{ 'margin-bottom': '5px', 'font-size': '14px' }"><span>startTime: </span>{{ subItem.startTime}}</div>
                             <div :style="{ 'margin-bottom': '5px', 'font-weight': '600'}"><span>sum: </span>{{ subItem.sum}}</div>
-                            <div>{{ subItem.comment}}</div>
+                            <div>Comment:{{ subItem.comment}}</div>
+                        </el-card>
+                        <el-card style="width: 100px;display: flex;justify-content: center;align-items: center;">
+                            <div>
+                                <el-button type="primary" size="small" @click="EDIT(item,index)">EDIT</el-button>
+                            </div>
+                            <br/>
+                            <div>
+                                <el-button type="success" size="small" @click="SAVE()">SAVE</el-button>
+                            </div>
                         </el-card>
                     </div>
                 </el-card>
@@ -145,6 +136,36 @@
             <span slot="footer" class="dialog-footer">
                 <el-button @click="addPlanVisible = false">取 消</el-button>
                 <el-button type="primary" @click="addPlan()">确 定</el-button>
+            </span>
+        </el-dialog>
+        <el-dialog :visible="subPlanVisible">
+            <el-form :model="subPlan"  ref="subplan" label-width="100px">
+                <el-form-item label="Income">
+                    <el-input-number v-model="subPlan.income"></el-input>
+                </el-form-item>
+                <el-form-item label="Outcome">
+                    <el-input-number v-model="subPlan.outcome"></el-input>
+                </el-form-item>
+                <el-form-item label="Style">
+                    <el-select v-model="subPlan.style">
+                        <el-option v-for="item in PaymentFrequency" :label="item.key" :value="item.value"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="Sum">
+                    <el-input-number v-model="subPlan.sum"></el-input>
+                </el-form-item>
+                <el-form-item label="StartTime">
+                    <el-date-picker v-model="subPlan.startTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
+                </el-form-item>
+                <el-form-item label="Comment">
+                    <el-input v-model="subPlan.comment"></el-input>
+                </el-form-item>
+            </el-form>
+            <span slot="footer">
+                <div style="display: flex;align-items: center;justify-content: center;">
+                    <el-button type="primary" @click="subPlanVisible=false">Close</el-button>
+                    <el-button type="success" @click="addSubPlan()">Add</el-button>
+                </div>
             </span>
         </el-dialog>
 
@@ -165,6 +186,11 @@
         })
         const API = {
             AddPlan:function(data,url="/plan/create"){
+                return HttpReq({
+                    url,data
+                })
+            },
+            UpdatePlan:function(data,url="/plan/update"){
                 return HttpReq({
                     url,data
                 })
@@ -212,6 +238,9 @@
                 planList:[],
                 subPlanVisible:false,
                 addPlanVisible:false,
+                EditIconVisible:false,
+                ItemIndex:0,
+                id:0,
             },
             methods: {
                 async addPlan() {
@@ -233,17 +262,44 @@
                     this.activeName = item;
                 },
                 addSubPlan(){
-                    const plan = Object.assign({},this.subPlan)
-                    this.subPlanList.push(plan)
-                    this.$refs.subplan.resetFields();
+                    // 判断是不是编辑中
+                    if(this.EditIconVisible){
+                        const plan = Object.assign({},this.subPlan);
+                        const item = this.planList.find(v=>v.id == this.id)
+                        item.details.push(plan)
+                    }else{
+                        const plan = Object.assign({},this.subPlan)
+                        this.subPlanList.push(plan)
+                        this.$refs.subplan.resetFields();
+                    }
+                    this.subPlanVisible = false;
+                },
+                deleteSubPlan(index){
+                    const item = this.planList.find(v=>v.id == this.id)
+                    item.details.splice(index,1)
                 },
                 async getPlanList(){
                     const list = await API.GetPlanList();
                     this.planList = list.Data.map(v=>{
-                        v.Details = JSON.parse(v.Details)
+                        v.details = JSON.parse(v.details)
                         return v;
                     });
                     console.log(this.planList);
+                },
+                EDIT(item,index){
+                    this.EditIconVisible = true
+                    this.ItemIndex = index;
+                    this.id = item.id;
+                },
+                async SAVE(){
+                    const item = this.planList.find(v=>v.id == this.id)
+                    // item.details = JSON.stringify(item.details)
+                    const data = await API.UpdatePlan(item)
+                    if(data.Code){
+                        this.$message.error("Save Error" + data.Message)
+                        return;
+                    }
+                    this.$message.success("Save Success")
                 }
             },
             watch:{

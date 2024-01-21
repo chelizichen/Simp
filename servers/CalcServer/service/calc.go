@@ -4,17 +4,16 @@ import (
 	handlers "Simp/handlers/http"
 	"Simp/servers/CalcServer/types"
 	"Simp/servers/CalcServer/utils"
-	su "Simp/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func Calc(ctx *handlers.SimpHttpServerCtx, pre string) {
+	GROUP := ctx.Engine.Group(pre)
 	G := ctx.Engine
-	f := su.Join(pre)
 
-	G.POST(f("/calc/FixeIncome"), func(ctx *gin.Context) {
+	GROUP.POST("/calc/FixeIncome", func(ctx *gin.Context) {
 		var requestBody types.CalculateFutureValueDTO
 		if err := ctx.BindJSON(&requestBody); err != nil {
 			ctx.JSON(http.StatusOK, handlers.Resp(0, "-1", err.Error()))
@@ -36,7 +35,7 @@ func Calc(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", responseBody))
 	})
-	G.POST(f("/calc/CalculateFutureValue"), func(ctx *gin.Context) {
+	GROUP.POST("/calc/CalculateFutureValue", func(ctx *gin.Context) {
 		var requestBody types.CalculateFutureValueDTO
 		if err := ctx.BindJSON(&requestBody); err != nil {
 			ctx.JSON(http.StatusOK, handlers.Resp(0, "-1", err.Error()))
@@ -59,4 +58,6 @@ func Calc(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", responseBody))
 	})
+
+	G.Use(GROUP.Handlers...)
 }

@@ -35,7 +35,8 @@ func UpdatePlan(req types.PlanDTO) (sql string, args []any) {
 	start_time = ?,
 	end_time = ?,
 	details = ?
+	where id = ?
 	`
-	args = append(args, s.Name, s.Comment, s.StartTime, s.EndTime, s.Details)
+	args = append(args, s.Name, s.Comment, s.StartTime, s.EndTime, s.Details, s.Id)
 	return sql, args
 }

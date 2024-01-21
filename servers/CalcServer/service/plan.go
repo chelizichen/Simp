@@ -4,7 +4,6 @@ import (
 	handlers "Simp/handlers/http"
 	"Simp/servers/CalcServer/storage"
 	"Simp/servers/CalcServer/types"
-	su "Simp/utils"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -13,11 +12,12 @@ import (
 )
 
 func Plan(ctx *handlers.SimpHttpServerCtx, pre string) {
-	f := su.Join(pre)
+	GROUP := ctx.Engine.Group(pre)
+	// f := su.Join(pre)
 
 	G := ctx.Engine
 	ST := ctx.Storage
-	G.POST(f("/plan/create"), func(ctx *gin.Context) {
+	GROUP.POST("/plan/create", func(ctx *gin.Context) {
 		var requestBody types.PlanDTO
 		if err := ctx.BindJSON(&requestBody); err != nil {
 			ctx.JSON(http.StatusOK, handlers.Resp(0-1, "Error"+err.Error(), nil))
@@ -35,7 +35,7 @@ func Plan(ctx *handlers.SimpHttpServerCtx, pre string) {
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
-	G.POST(f("/plan/list"), func(ctx *gin.Context) {
+	GROUP.POST("/plan/list", func(ctx *gin.Context) {
 		var Resp []types.ST_Plan
 		sql := storage.GetList()
 		err := ST.Select(&Resp, sql) // 保存
@@ -47,13 +47,15 @@ func Plan(ctx *handlers.SimpHttpServerCtx, pre string) {
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", Resp))
 	})
 
-	G.POST(f("/plan/update"), func(ctx *gin.Context) {
+	GROUP.POST("/plan/update", func(ctx *gin.Context) {
 		var requestBody types.PlanDTO
 		if err := ctx.BindJSON(&requestBody); err != nil {
 			ctx.JSON(http.StatusOK, handlers.Resp(0-1, "Error"+err.Error(), nil))
 			return
 		}
+		fmt.Println("update requestBody", requestBody)
 		sql, args := storage.UpdatePlan(requestBody)
+		fmt.Println("UpdatePlan", sql, args)
 		_, err := ST.DB.Exec(sql, args...) // 保存
 		if err != nil {
 			fmt.Println("UpdateError Error ", err.Error())
@@ -63,7 +65,7 @@ func Plan(ctx *handlers.SimpHttpServerCtx, pre string) {
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
-	G.GET(f("/plan/list"), func(ctx *gin.Context) {
+	GROUP.GET("/plan/detail", func(ctx *gin.Context) {
 		id := ctx.Query("id")
 		if id == "" {
 			ctx.JSON(http.StatusOK, handlers.Resp(-1, "Id  Error", nil))
@@ -83,4 +85,5 @@ func Plan(ctx *handlers.SimpHttpServerCtx, pre string) {
 		ctx.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
+	G.Use(GROUP.Handlers...)
 }
