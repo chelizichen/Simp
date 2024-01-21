@@ -40,6 +40,9 @@
             border: none;
             float: right;
         }
+        .el-textarea__inner{
+            min-height: 100px !important;
+        }
     </style>
 </head>
 
@@ -158,7 +161,7 @@
                     <el-date-picker v-model="subPlan.startTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
                 </el-form-item>
                 <el-form-item label="Comment">
-                    <el-input v-model="subPlan.comment"></el-input>
+                    <el-input  type="textarea" rows="10" v-model="subPlan.comment"></el-input>
                 </el-form-item>
             </el-form>
             <span slot="footer">
