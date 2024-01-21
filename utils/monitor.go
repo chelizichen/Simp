@@ -163,3 +163,45 @@ func CreateAPIFile(c *gin.Engine, serverName string) {
 	}
 	F.WriteString(string(B))
 }
+
+// 主控服务用
+type LogWriter struct {
+	File *os.File
+}
+
+func NewLogWriter(filePath string) (*LogWriter, error) {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LogWriter{File: file}, nil
+}
+
+func (lw *LogWriter) Write(p []byte) (n int, err error) {
+	s := time.Now().Format(time.Stamp) + " " + string(p)
+	_, err = lw.File.WriteString(s)
+	return len(p), err
+}
+
+func GetServerLogName() string {
+	tdy := time.Now().Format(time.DateOnly)
+	return "server_" + tdy + ".log"
+}
+
+func AutoSetLogWriter() {
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic("GetWd Error" + err.Error())
+	}
+	logFilePath := path.Join(cwd, "static/main", GetServerLogName())
+
+	logWriter, err := NewLogWriter(logFilePath)
+	if err != nil {
+		fmt.Println("创建文件失败:", err)
+		return
+	}
+
+	// 重定向标准输出到自定义的写入器
+	os.Stdout = logWriter.File
+}

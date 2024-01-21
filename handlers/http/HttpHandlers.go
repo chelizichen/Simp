@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/robfig/cron"
 )
 
 type SimpHttpServerCtx struct {
@@ -39,7 +40,31 @@ func (c *SimpHttpServerCtx) Use(callback func(engine *SimpHttpServerCtx, pre str
 	callback(c, pre)
 }
 
+// 主控服务需要做日志系统与监控
 func (c *SimpHttpServerCtx) DefineMain() {
+	// go func() {
+	utils.AutoSetLogWriter()
+	go func() {
+		c := cron.New()
+
+		// 4小时执行一次，更换日志文件指定目录
+		spec := "4 * * *"
+
+		// 添加定时任务
+		err := c.AddFunc(spec, func() {
+			utils.AutoSetLogWriter()
+		})
+		if err != nil {
+			fmt.Println("AddFuncErr", err)
+		}
+		// 启动Cron调度器
+		go c.Start()
+	}()
+
+	// 关闭文件
+	// logWriter.file.Close()
+	// }()
+	// os.
 	c.isMain = true
 }
 func (c *SimpHttpServerCtx) Post(realPath string, handle gin.HandlerFunc) {
