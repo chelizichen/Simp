@@ -489,12 +489,18 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		sm, err := utils.NewMainSearchLogMonitor(logFile)
 		if err != nil {
 			fmt.Println("Error To New SimMonitor", err.Error())
+			c.JSON(200, handlers.Resp(-2, err.Error(), nil))
+			return
 		}
 		s, err := sm.GetLogger(pattern)
 		if err != nil {
 			fmt.Println("Error To GetLogger", err.Error())
+			c.JSON(200, handlers.Resp(-1, err.Error(), nil))
+			return
 		}
 		c.JSON(200, handlers.Resp(0, "ok", s))
+		return
+
 	})
 	G.Use(GROUP.Handlers...)
 
