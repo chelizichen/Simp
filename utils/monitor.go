@@ -170,12 +170,12 @@ type LogWriter struct {
 }
 
 func NewLogWriter(filePath string) (*LogWriter, error) {
-	file, err := os.Create(filePath)
+	F, err := IFNotExistThenCreate(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	return &LogWriter{File: file}, nil
+	return &LogWriter{File: &F}, nil
 }
 
 func (lw *LogWriter) Write(p []byte) (n int, err error) {

@@ -22,7 +22,17 @@ const TOKEN = "e609d00404645feed1c1733835b8c127"
 
 func TOKEN_VALIDATE(ctx *gin.Context) {
 	s := ctx.Request.Header.Get("token")
+	fmt.Println("TokenValidate", s)
 	if s != TOKEN {
+		if strings.HasSuffix(ctx.Request.URL.Path, "web/login.html") {
+			ctx.Next()
+		}
+		if strings.HasSuffix(ctx.Request.URL.Path, "web/server.html") {
+			ctx.Next()
+		}
+		if strings.Index(ctx.Request.URL.Path, "static/source") > -1 {
+			ctx.Next()
+		}
 		ctx.JSON(http.StatusBadRequest, handlers.Resp(-2, "Token Error", nil))
 		return
 	} else {
