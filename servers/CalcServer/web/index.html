@@ -13,6 +13,7 @@
     <script src="http://47.98.174.10/simpserver/static/source/axios.js"></script>
     <!-- 引入组件库 -->
     <script src="http://47.98.174.10/simpserver/static/source/element.js"></script>
+    <script src="http://47.98.174.10/simpserver/static/source/moment.js"></script>
     <link rel="stylesheet" href="http://47.98.174.10/simpserver/static/source/element.css">
     <style>
         .main-card, .sub-card {
@@ -70,10 +71,10 @@
                             <el-input type="textarea" v-model="newPlan.comment"></el-input>
                         </el-form-item>
                         <el-form-item label="Start Time" prop="startTime">
-                            <el-date-picker v-model="newPlan.startTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
+                            <el-date-picker v-model="FMT_TIME(newPlan.startTime)" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
                         </el-form-item>
                         <el-form-item label="End Time" prop="endTime">
-                            <el-date-picker v-model="newPlan.endTime" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
+                            <el-date-picker v-model="FMT_TIME(newPlan.endTime)" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
                         </el-form-item>
                         <el-form-item>
                             <el-button type="success" @click="addPlanVisible = true">Add Plan</el-button>
@@ -87,8 +88,8 @@
                             <el-card>
                                 <p style="font-weight: bold;">{{ plan.name }}</p>
                                 <p>Comment: {{ plan.comment }}</p>
-                                <p>Start Time: {{ plan.startTime }}</p>
-                                <p>End Time: {{ plan.endTime }}</p>
+                                <p>Start Time: {{ FMT_TIME(plan.startTime) }}</p>
+                                <p>End Time: {{ FMT_TIME(plan.endTime) }}</p>
                             </el-card>
                         </el-timeline-item>
                     </el-timeline>
@@ -103,8 +104,8 @@
                             </div>
                             <div :style="{ 'margin-bottom': '5px', 'color': '#333' }"><span>Name: </span>{{ item.name}}</div>
                             <div :style="{ 'margin-bottom': '5px', 'color': '#333' }"><span>Comment: </span>{{ item.comment}}</div>
-                            <div :style="{ 'margin-bottom': '5px' }"><span>StartTime: </span>{{ item.startTime}}</div>
-                            <div><span>EndTime: </span>{{ item.endTime}}</div>
+                            <div :style="{ 'margin-bottom': '5px' }"><span>StartTime: </span>{{ FMT_TIME(item.startTime) }}</div>
+                            <div><span>EndTime: </span>{{ FMT_TIME(item.endTime)}}</div>
                         </el-card>
                         <el-card v-for="(subItem,subIndex) in item.details" class="sub-card" :key="subIndex">
                             <div slot="header" v-show="EditIconVisible && ItemIndex==index" @click="deleteSubPlan(subIndex)">
@@ -112,7 +113,7 @@
                             </div>
                             <div :style="{ 'margin-bottom': '5px', 'color': 'red' }"><span>income: </span>{{ subItem.income || 0}}</div>
                             <div :style="{ 'margin-bottom': '5px', 'color': 'green'}"><span>outcome: </span>{{ subItem.outcome || 0}}</div>
-                            <div :style="{ 'margin-bottom': '5px', 'font-size': '14px' }"><span>startTime: </span>{{ subItem.startTime || ''}}</div>
+                            <div :style="{ 'margin-bottom': '5px', 'font-size': '14px' }"><span>startTime: </span>{{ FMT_TIME(subItem.startTime) || ''}}</div>
                             <div :style="{ 'margin-bottom': '5px', 'font-weight': '600'}"><span>sum: </span>{{ subItem.sum || 0}}</div>
                             <div>Comment:{{ subItem.comment}}</div>
                         </el-card>
@@ -303,6 +304,13 @@
                         return;
                     }
                     this.$message.success("Save Success")
+                },
+                FMT_TIME(time){
+                    if (time == "" || !time){
+                        return time || "";
+                    }else{
+                        return moment(time).format("YYYY-MM-DD HH:mm:ss")
+                    }
                 }
             },
             watch:{
