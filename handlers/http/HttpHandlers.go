@@ -42,7 +42,22 @@ func (c *SimpHttpServerCtx) Use(callback func(engine *SimpHttpServerCtx, pre str
 
 // 主控服务需要做日志系统与监控
 func (c *SimpHttpServerCtx) DefineMain() {
-	// go func() {
+	cwd, err := os.Getwd()
+	if err != nil {
+		Err_Message := "Error To Get Wd" + err.Error()
+		fmt.Println(Err_Message)
+		panic(Err_Message)
+	}
+	mainPath := filepath.Join(cwd, "static/main")
+	b := utils.IsExist(filepath.Join(cwd, "static/main"))
+	if !b {
+		err = os.Mkdir(mainPath, os.ModePerm)
+		if err != nil {
+			Err_Message := "Error To Mkdir" + err.Error()
+			fmt.Println(Err_Message)
+			panic(Err_Message)
+		}
+	}
 	utils.AutoSetLogWriter()
 	go func() {
 		c := cron.New()

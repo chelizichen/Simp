@@ -26,17 +26,21 @@ func TOKEN_VALIDATE(ctx *gin.Context) {
 	if s != TOKEN {
 		if strings.HasSuffix(ctx.Request.URL.Path, "web/login.html") {
 			ctx.Next()
+			return
 		}
 		if strings.HasSuffix(ctx.Request.URL.Path, "web/server.html") {
 			ctx.Next()
+			return
 		}
 		if strings.Index(ctx.Request.URL.Path, "static/source") > -1 {
 			ctx.Next()
+			return
 		}
 		ctx.JSON(http.StatusBadRequest, handlers.Resp(-2, "Token Error", nil))
 		return
 	} else {
 		ctx.Next()
+		return
 	}
 }
 
