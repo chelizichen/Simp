@@ -31,9 +31,10 @@ func TOKEN_VALIDATE(ctx *gin.Context) {
 }
 
 func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
-	f := utils.Join(pre)
 
+	f := utils.Join(pre)
 	G := ctx.Engine
+
 	G.GET(f("/web"), func(c *gin.Context) {
 		c.Redirect(http.StatusPermanentRedirect, "/web/login.html")
 	})
@@ -45,7 +46,10 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		c.JSON(http.StatusBadRequest, handlers.Resp(-1, "Error", nil))
 	})
-	G.POST(f("/uploadServer"), TOKEN_VALIDATE, func(c *gin.Context) {
+
+	GROUP := G.Group(pre)
+	GROUP.Use(TOKEN_VALIDATE)
+	GROUP.POST("/uploadServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -80,13 +84,20 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			return
 		}
 		releaseDoc := c.PostForm("doc")
-		utils.AppendDocToTgz(storagePath, releaseDoc)
+		storageDocPath := filepath.Join(cwd, utils.PublishPath, serverName, "doc.txt")
+		E, err := utils.IFNotExistThenCreate(storageDocPath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, handlers.Resp(-1, "打开或创建文件失败"+err.Error(), nil))
+		}
+		defer E.Close()
+		content := storagePath + "\n" + releaseDoc + "\n"
+		E.WriteString(content)
 		c.JSON(http.StatusOK, handlers.Resp(0, "上传成功", nil))
 	})
 
 	// serverName SimpTestServer
 	// fileName SimpTestServer_asdh213njonasd.tar.gz
-	G.POST(f("/restartServer"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/restartServer", func(c *gin.Context) {
 		fileName := c.PostForm("fileName")
 		serverName := c.PostForm("serverName")
 		isAlive := utils.ServantAlives[serverName]
@@ -175,7 +186,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
 	})
 
-	G.POST(f("/test/restart"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/test/restart", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
@@ -198,7 +209,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
-	G.POST(f("/getServers"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/getServers", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
@@ -212,7 +223,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", subdirectories))
 	})
 
-	G.POST(f("/createServer"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/createServer", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
@@ -232,7 +243,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
-	G.POST(f("/getServerPackageList"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/getServerPackageList", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
@@ -250,7 +261,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", packages))
 	})
 
-	G.POST(f("/deletePackage"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/deletePackage", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		F := c.PostForm("fileName")
 		cwd, err := os.Getwd()
@@ -266,7 +277,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
-	G.POST(f("/checkServer"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/checkServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		pid := c.DefaultPostForm("pid", fmt.Sprint(utils.ServantAlives[serverName]))
 		P, err := strconv.Atoi(pid)
@@ -283,7 +294,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
 	})
 
-	G.POST(f("/checkConfig"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/checkConfig", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		configPath := filepath.Join(utils.PublishPath, serverName, "simp.yaml")
 		configProdPath := filepath.Join(utils.PublishPath, serverName, "simpProd.yaml")
@@ -296,7 +307,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", mergeConf))
 	})
 
-	G.POST(f("/coverConfig"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/coverConfig", func(c *gin.Context) {
 		var reqVo config.CoverConfigVo
 		if err := c.BindJSON(&reqVo); err != nil {
 			c.JSON(http.StatusOK, handlers.Resp(0, "-1", err.Error()))
@@ -331,7 +342,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
 
-	G.POST(f("/deleteAllPackage"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/deleteAllPackage", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		ErrorToRemoveAll := "Error To Remove All"
 		ErrorToMakeAServer := "Error To Make A Sever"
@@ -355,7 +366,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
 
-	G.POST(f("/shutdownServer"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/shutdownServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		pid := utils.ServantAlives[serverName]
 		if pid == 0 {
@@ -374,7 +385,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
 
-	G.POST(f("/getServerLog"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/getServerLog", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		fileName := c.PostForm("fileName")
 		pattern := c.DefaultPostForm("pattern", "")
@@ -389,7 +400,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", s))
 	})
 
-	G.POST(f("/getApiJson"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/getApiJson", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
@@ -403,7 +414,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", string(Content)))
 	})
 
-	G.POST(f("/getDoc"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/getDoc", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
@@ -417,7 +428,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", string(Content)))
 	})
 
-	G.POST(f("/getLogList"), TOKEN_VALIDATE, func(c *gin.Context) {
+	GROUP.POST("/getLogList", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
@@ -439,5 +450,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		c.JSON(200, handlers.Resp(0, "ok", loggers))
 	})
+
+	G.Use(GROUP.Handlers...)
 
 }
