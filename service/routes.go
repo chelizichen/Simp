@@ -461,6 +461,41 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", loggers))
 	})
 
+	GROUP.POST("/main/getLogList", func(c *gin.Context) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+		}
+		serverPath := filepath.Join(cwd, "static/main")
+		D, err := os.ReadDir(serverPath)
+		if err != nil {
+			fmt.Println("Error To ReadDir", err.Error())
+		}
+		var loggers []string
+		for i := 0; i < len(D); i++ {
+			de := D[i]
+			s := de.Name()
+			b := strings.HasSuffix(s, ".log")
+			if b {
+				loggers = append(loggers, s)
+			}
+		}
+		c.JSON(200, handlers.Resp(0, "ok", loggers))
+	})
+
+	GROUP.POST("/main/getServerLog", func(c *gin.Context) {
+		logFile := c.PostForm("logFile")
+		pattern := c.DefaultPostForm("pattern", "")
+		sm, err := utils.NewMainSearchLogMonitor(logFile)
+		if err != nil {
+			fmt.Println("Error To New SimMonitor", err.Error())
+		}
+		s, err := sm.GetLogger(pattern)
+		if err != nil {
+			fmt.Println("Error To GetLogger", err.Error())
+		}
+		c.JSON(200, handlers.Resp(0, "ok", s))
+	})
 	G.Use(GROUP.Handlers...)
 
 }

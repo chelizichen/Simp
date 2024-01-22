@@ -33,6 +33,20 @@ func NewSearchLogMonitor(serverName string, fileName string) (s SimpMonitor, e e
 	return s, nil
 }
 
+func NewMainSearchLogMonitor(fileName string) (s SimpMonitor, e error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Error To GetWd", err.Error())
+	}
+	path := path.Join(cwd, "static/main", fileName)
+	s.LogPath = path
+	b := IsExist(path)
+	if !b {
+		return s, errors.New("Error! File is Not Exist")
+	}
+	return s, nil
+}
+
 func NewSimpMonitor(serverName string, date string) (s SimpMonitor, e error) {
 	// 判断date是否有值
 	// 没有则传当天
