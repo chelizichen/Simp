@@ -1,8 +1,7 @@
 package types
 
 import (
-	"encoding/json"
-	"fmt"
+	"database/sql"
 )
 
 type CalculateFutureValueDTO struct {
@@ -29,12 +28,14 @@ const (
 )
 
 type PlanDetail struct {
-	Income    float64          `json:"income,omitempty"`    // 预计收入
-	OutCome   float64          `json:"outcome,omitempty"`   // 预计支出
-	Style     PaymentFrequency `json:"style,omitempty"`     // 周期
-	Comment   string           `json:"comment,omitempty"`   // 评价
-	Sum       int              `json:"sum,omitempty"`       // 几个周期 0为完整周期、其他为指定周期
-	StartTime string           `json:"startTime,omitempty"` // 开始时间 传空为覆盖完整周期
+	Id        int              `json:"id,omitempty" db:"id"`
+	Income    float64          `json:"income,omitempty" db:"income"`        // 预计收入
+	OutCome   float64          `json:"outcome,omitempty" db:"outcome"`      // 预计支出
+	Style     PaymentFrequency `json:"style,omitempty" db:"style"`          // 周期
+	Comment   string           `json:"comment,omitempty" db:"comment"`      // 评价
+	Sum       int              `json:"sum,omitempty" db:"sum"`              // 几个周期 0为完整周期、其他为指定周期
+	StartTime string           `json:"startTime,omitempty" db:"start_time"` // 开始时间 传空为覆盖完整周期
+	PlanId    int              `json:"planId,omitempty" db:"plan_id"`       // 开始时间 传空为覆盖完整周期
 }
 
 type PlanDTO struct {
@@ -47,26 +48,35 @@ type PlanDTO struct {
 }
 
 // ST_Plan 数据库中存入的字段
-type ST_Plan struct {
+type PlanDAO struct {
 	Id        int    `db:"id,omitempty" json:"id,omitempty"`
 	Comment   string `db:"comment,omitempty" json:"comment,omitempty"`      // 标注
 	Name      string `db:"name,omitempty" json:"name,omitempty"`            // 名称
 	StartTime string `db:"start_time,omitempty" json:"startTime,omitempty"` // 开始时间
 	EndTime   string `db:"end_time,omitempty" json:"endRime,omitempty"`     // 结束时间
-	Details   string `db:"details,omitempty" json:"details,omitempty"`      // 细节
 }
 
-func DTO2ST_PLAN(dto PlanDTO) *ST_Plan {
-	b, err := json.Marshal(dto.Details)
-	if err != nil {
-		fmt.Println("Error On PlanDTO_ST ", err.Error())
-	}
-	return &ST_Plan{
+func PlanConvert(dto PlanDTO) *PlanDAO {
+	return &PlanDAO{
 		Comment:   dto.Comment,
 		Name:      dto.Name,
 		StartTime: dto.StartTime,
 		EndTime:   dto.EndTime,
-		Details:   string(b),
 		Id:        dto.Id,
 	}
+}
+
+type PlanListDAO struct {
+	Id         int             `db:"id"`
+	Comment    sql.NullString  `db:"comment,omitempty"`
+	Name       sql.NullString  `db:"name,omitempty"`
+	StartTime  sql.NullString  `db:"start_time,omitempty"`
+	EndTime    sql.NullString  `db:"end_time,omitempty"`
+	Details    sql.NullString  `db:"details,omitempty"`
+	SId        sql.NullInt64   `db:"s_id,omitempty"`
+	SComment   sql.NullString  `db:"s_comment,omitempty"`
+	Income     sql.NullFloat64 `db:"income,omitempty"`
+	Outcome    sql.NullFloat64 `db:"outcome,omitempty"`
+	SStartTime sql.NullString  `db:"s_start_time,omitempty"`
+	Sum        sql.NullInt32   `db:"sum,omitempty"`
 }

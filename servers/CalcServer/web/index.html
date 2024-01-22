@@ -110,10 +110,10 @@
                             <div slot="header" v-show="EditIconVisible && ItemIndex==index" @click="deleteSubPlan(subIndex)">
                                 <el-icon class="el-icon-close" style="cursor: pointer;"></el-icon>
                             </div>
-                            <div :style="{ 'margin-bottom': '5px', 'color': 'red' }"><span>income: </span>{{ subItem.income}}</div>
-                            <div :style="{ 'margin-bottom': '5px', 'color': 'green'}"><span>outcome: </span>{{ subItem.outcome}}</div>
-                            <div :style="{ 'margin-bottom': '5px', 'font-size': '14px' }"><span>startTime: </span>{{ subItem.startTime}}</div>
-                            <div :style="{ 'margin-bottom': '5px', 'font-weight': '600'}"><span>sum: </span>{{ subItem.sum}}</div>
+                            <div :style="{ 'margin-bottom': '5px', 'color': 'red' }"><span>income: </span>{{ subItem.income || 0}}</div>
+                            <div :style="{ 'margin-bottom': '5px', 'color': 'green'}"><span>outcome: </span>{{ subItem.outcome || 0}}</div>
+                            <div :style="{ 'margin-bottom': '5px', 'font-size': '14px' }"><span>startTime: </span>{{ subItem.startTime || ''}}</div>
+                            <div :style="{ 'margin-bottom': '5px', 'font-weight': '600'}"><span>sum: </span>{{ subItem.sum || 0}}</div>
                             <div>Comment:{{ subItem.comment}}</div>
                         </el-card>
                         <el-card style="width: 100px;display: flex;justify-content: center;align-items: center;">
@@ -269,6 +269,9 @@
                     if(this.EditIconVisible){
                         const plan = Object.assign({},this.subPlan);
                         const item = this.planList.find(v=>v.id == this.id)
+                        if(!item.details){
+                            item.details = []
+                        }
                         item.details.push(plan)
                     }else{
                         const plan = Object.assign({},this.subPlan)
@@ -283,10 +286,7 @@
                 },
                 async getPlanList(){
                     const list = await API.GetPlanList();
-                    this.planList = list.Data.map(v=>{
-                        v.details = JSON.parse(v.details)
-                        return v;
-                    });
+                    this.planList = list.Data
                     console.log(this.planList);
                 },
                 EDIT(item,index){
