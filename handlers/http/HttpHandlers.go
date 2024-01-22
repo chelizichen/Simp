@@ -48,7 +48,7 @@ func (c *SimpHttpServerCtx) DefineMain() {
 		c := cron.New()
 
 		// 4小时执行一次，更换日志文件指定目录
-		spec := "4 * * *"
+		spec := "* * 4 * * *"
 
 		// 添加定时任务
 		err := c.AddFunc(spec, func() {
