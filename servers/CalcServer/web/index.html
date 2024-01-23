@@ -277,7 +277,15 @@
                     }else{
                         const plan = Object.assign({},this.subPlan)
                         this.subPlanList.push(plan)
-                        this.$refs.subplan.resetFields();
+                    }
+                    this.subPlan = null;
+                    this.subPlan = {
+                        income:0,
+                        outcome:0,
+                        style:0,
+                        comment:'',
+                        sum:0,
+                        startTime:'',
                     }
                     this.subPlanVisible = false;
                 },
@@ -301,8 +309,14 @@
                     const data = await API.UpdatePlan(item)
                     if(data.Code){
                         this.$message.error("Save Error" + data.Message)
+                        this.EditIconVisible = false;
+                        this.ItemIndex = 0;
+                        this.id = 0; 
                         return;
                     }
+                    this.EditIconVisible = false;
+                    this.ItemIndex = 0;
+                    this.id = 0; 
                     this.$message.success("Save Success")
                 },
                 FMT_TIME(time){

@@ -85,6 +85,7 @@ func Plan(ctx *handlers.SimpHttpServerCtx, pre string) {
 				d.OutCome = float64(detail.Outcome.Float64)
 				d.Income = float64(detail.Income.Float64)
 				d.StartTime = detail.SStartTime.String
+				d.Sum = int(detail.Sum.Int32)
 				ret.Details = append(ret.Details, *d)
 			}
 			RespVo = append(RespVo, *ret)
