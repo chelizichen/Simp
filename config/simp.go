@@ -13,6 +13,7 @@ import (
 type SimpConfig struct {
 	Server struct {
 		Name       string `yaml:"name" `
+		Host       string `yaml:"host"`
 		Port       int    `yaml:"port" `
 		Type       string `yaml:"type"`
 		StaticPath string `yaml:"staticPath" `

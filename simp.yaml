@@ -1,5 +1,6 @@
 server:
   main: true
+  host: 0.0.0.0
   name: SimpServer
   port: 8511
   type: main
