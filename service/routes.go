@@ -136,7 +136,6 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, "service_go")
 		storageYmlEPath := filepath.Join(cwd, utils.PublishPath, serverName, "simp.yaml")
 		storageYmlProdPath := filepath.Join(cwd, utils.PublishPath, serverName, "simpProd.yaml")
-		storageDocPath := filepath.Join(cwd, utils.PublishPath, serverName, "doc.txt")
 
 		err = utils.IFExistThenRemove(storageExEPath)
 		if err != nil {
@@ -146,10 +145,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if err != nil {
 			fmt.Println("remove File Error "+storageYmlEPath, err.Error())
 		}
-		err = utils.IFExistThenRemove(storageDocPath)
-		if err != nil {
-			fmt.Println("remove File Error "+storageDocPath, err.Error())
-		}
+
 		dest := filepath.Join(cwd, utils.PublishPath, serverName)
 
 		err = utils.Unzip(storagePath, dest)
@@ -164,7 +160,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if os.IsNotExist(err) {
 			err = utils.CopyFile(storageYmlEPath, storageYmlProdPath)
 			if err != nil {
-				fmt.Println("utils.CopyFile "+storageDocPath, storageYmlEPath, err.Error())
+				fmt.Println("utils.CopyFile ", storageYmlEPath, err.Error())
 			}
 		}
 		cmd := exec.Command(storageExEPath)
@@ -223,6 +219,22 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
 
+	GROUP.POST("/test/changeDoc", func(c *gin.Context) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+		}
+		releaseDoc := c.PostForm("doc")
+		storageDocPath := filepath.Join(cwd, utils.PublishPath, "CalcServer", "doc.txt")
+		E, err := utils.IFNotExistThenCreate(storageDocPath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, handlers.Resp(-1, "打开或创建文件失败"+err.Error(), nil))
+		}
+		defer E.Close()
+		content := "\nCalcServer_2024_01_01_asdaasgjjhasioudh.tar.gz" + "\n" + releaseDoc + "\n"
+		E.WriteString(content)
+		c.JSON(http.StatusOK, handlers.Resp(0, "上传成功", nil))
+	})
 	GROUP.POST("/getServers", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {

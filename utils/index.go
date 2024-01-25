@@ -154,21 +154,12 @@ func IsExist(filePath string) bool {
 }
 
 func IFNotExistThenCreate(filePath string) (os.File, error) {
-	_, err := os.Stat(filePath)
-	if os.IsNotExist(err) {
-		f, err := os.Create(filePath)
-		if err != nil {
-			fmt.Println("Error to Open File", err.Error())
-			return *f, err
-		}
-		return *f, nil
-	} else {
-		f, err := os.Open(filePath)
-		if err != nil {
-			fmt.Println("Error to Open File", err.Error())
-		}
-		return *f, err
+	fmt.Println("Exist ", filePath)
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Error to Open File", err.Error())
 	}
+	return *f, err
 }
 
 func IFExistThenRemove(path string) error {
