@@ -732,6 +732,16 @@
                     this.activeName = 'logger'
                     //
                     await this.initLogger()
+                },
+                releaseVisible:function(newVal){
+                    if(newVal){
+                        this.selectRelease = ''
+                        this.uploadForm= {
+                            serverName: '',
+                            file: null,
+                            doc: ''
+                        }
+                    }
                 }
             },
         });
