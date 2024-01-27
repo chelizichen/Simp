@@ -3,10 +3,9 @@ package service
 import handlers "Simp/handlers/http"
 
 func Gateway(ctx *handlers.SimpHttpServerCtx, pre string) {
-	G := ctx.Engine
-	P := G.Group(pre)
-	W := &handlers.SimpHttpGateway{}
-	W.InitGateway()
-	P.POST("/api/*route", W.GatewayMiddleWare)
-	G.Use(P.Handlers...)
+	Engine := ctx.Engine
+	Group := Engine.Group(pre)
+	GateWay := &handlers.SimpHttpGateway{}
+	GateWay.Use(Group)
+	Engine.Use(Group.Handlers...)
 }

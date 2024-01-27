@@ -6,11 +6,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 
 var ServantProviders = make(map[string]*ServantProvider, 512)
 
-type Apis map[string]struct {
+type Apis []struct {
 	Method string
 	Path   string
 }
@@ -41,18 +42,21 @@ type SimpHttpGateway struct {
 // 1 可以更灵活的做限流
 // 2 可以统一API网关
 // 3 好统一做校验
-func (s *SimpHttpGateway) InitGateway() {
+func (s *SimpHttpGateway) Use(P *gin.RouterGroup) {
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		fmt.Println(CWD_ERROR)
 		panic(CWD_ERROR)
 	}
 	serverPath := filepath.Join(cwd, utils.PublishPath)
+	// 获取服务目录
 	subdirectories, err := utils.GetSubdirectories(serverPath)
 	if err != nil {
 		fmt.Println(GetSubdirectories_Error)
 		panic(GetSubdirectories_Error)
 	}
+	// 遍历映射服务详情与API
 	for _, serverName := range subdirectories {
 		s := &ServantProvider{}
 		ServantProviders[serverName] = s
@@ -71,19 +75,90 @@ func (s *SimpHttpGateway) InitGateway() {
 			fmt.Println(ReadApi_Error)
 			panic(ReadApi_Error)
 		}
-		json.Unmarshal(Content, &apis)
-
+		err = json.Unmarshal(Content, &apis)
+		if err != nil {
+			fmt.Println(ReadApi_Error + err.Error())
+			panic(ReadApi_Error + err.Error())
+		}
 		s.ServerName = serverName
 		s.Port = conf.Server.Port
 		s.Apis = apis
 	}
-}
+	fmt.Println("ServantProviders", ServantProviders)
+	for serverName, Provider := range ServantProviders {
+		svr := P.Group(serverName)
+		fmt.Println("serverName", serverName)
+		for _, v := range *Provider.Apis {
+			if v.Method == "POST" {
+				fmt.Println("v.Path", v.Path, "v.Method", v.Method)
+				svr.POST(v.Path, func(ctx *gin.Context) {
+					route := v.Path
+					target := Provider.GetTarget(route) // 调用 proxy
+					client := &http.Client{}
+					// 读取请求体
+					bodyBytes, err := io.ReadAll(ctx.Request.Body)
+					if err != nil {
+						// 处理错误
+						return
+					}
+					// 创建请求体可读对象
+					requestBody := io.NopCloser(bytes.NewReader(bodyBytes))
+					// 发送请求
+					resp, err := client.Post(target, ctx.ContentType(), requestBody)
+					if err != nil {
+						// 处理错误
+						ctx.JSON(http.StatusInternalServerError, gin.H{"error": "发送请求失败"})
+						return
+					}
+					defer resp.Body.Close()
 
-type InvokeBody struct {
-	ServerName string      `json:"serverName,omitempty"`
-	Route      string      `json:"route,omitempty"`
-	Token      string      `json:"token,omitempty"`
-	Data       interface{} `json:"data,omitempty"`
+					// 处理响应
+					// 读取响应体，处理状态码等
+					responseBody, err := io.ReadAll(resp.Body)
+					if err != nil {
+						// 处理错误
+						ctx.JSON(http.StatusInternalServerError, gin.H{"error": "读取响应体失败"})
+						return
+					}
+
+					// 假设你想将响应体直接返回给客户端
+					ctx.String(resp.StatusCode, string(responseBody))
+				})
+			}
+			if v.Method == "GET" {
+				svr.GET(v.Path, func(ctx *gin.Context) {
+					route := v.Path
+					target := Provider.GetTarget(route) // 调用 proxy
+					client := &http.Client{}
+
+					// 读取请求的 query 参数
+					queryParams := ctx.Request.URL.Query()
+					queryString := queryParams.Encode()
+
+					// 发送 GET 请求
+					resp, err := client.Get(target + "?" + queryString)
+					if err != nil {
+						// 处理错误
+						ctx.JSON(http.StatusInternalServerError, gin.H{"error": "发送请求失败"})
+						return
+					}
+					defer resp.Body.Close()
+
+					// 处理响应
+					// 读取响应体，处理状态码等
+					responseBody, err := io.ReadAll(resp.Body)
+					if err != nil {
+						// 处理错误
+						ctx.JSON(http.StatusInternalServerError, gin.H{"error": "读取响应体失败"})
+						return
+					}
+
+					// 假设你想将响应体直接返回给客户端
+					ctx.String(resp.StatusCode, string(responseBody))
+				})
+			}
+		}
+	}
 }
 
 // GetTarget 获取调用方
@@ -93,36 +168,4 @@ type InvokeBody struct {
 func (s *ServantProvider) GetTarget(route string) string {
 	url := fmt.Sprintf("http://%s:%d%s", s.Host, s.Port, route)
 	return url
-}
-
-func (s *SimpHttpGateway) Invoke(header *InvokeBody) *http.Response {
-	provider := ServantProviders[header.ServerName]
-	route := header.Route
-	target := provider.GetTarget(route)
-	client := &http.Client{}
-	marshal, err := json.Marshal(header.Data)
-	if err != nil {
-		fmt.Println("JSON stringify Error:", err)
-		return nil
-	}
-	var R io.Reader = bytes.NewBuffer(marshal)
-	resp, err := client.Post(target, "application/json", R)
-
-	if err != nil {
-		fmt.Println("创建请求失败:", err)
-		return nil
-	}
-	return resp
-}
-
-func (s *SimpHttpGateway) GatewayMiddleWare(c *gin.Context) {
-	var invokeBody *InvokeBody
-	err := c.BindJSON(invokeBody)
-	if err != nil {
-		fmt.Println("Error To BindJson")
-	}
-	go func() {
-		invoke := s.Invoke(invokeBody)
-		c.JSON(http.StatusOK, invoke)
-	}()
 }
