@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,20 +38,11 @@ type ServantProvider struct {
 type SimpHttpGateway struct {
 }
 
-// InitGateway
-// 主控根据服务名称直接寻址
-// 1 可以更灵活的做限流
-// 2 可以统一API网关
-// 3 好统一做校验
-func (s *SimpHttpGateway) Use(P *gin.RouterGroup) {
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		fmt.Println(CWD_ERROR)
-		panic(CWD_ERROR)
-	}
-	serverPath := filepath.Join(cwd, utils.PublishPath)
+func (s *SimpHttpGateway) Use(svr *gin.RouterGroup, ctx *SimpHttpServerCtx) {
+	var serverPath string
+	serverPath = filepath.Join(ctx.StaticPath, utils.PublishPath)
 	// 获取服务目录
+	fmt.Println("ServerPath |", serverPath)
 	subdirectories, err := utils.GetSubdirectories(serverPath)
 	if err != nil {
 		fmt.Println(GetSubdirectories_Error)
@@ -58,22 +50,26 @@ func (s *SimpHttpGateway) Use(P *gin.RouterGroup) {
 	}
 	// 遍历映射服务详情与API
 	for _, serverName := range subdirectories {
+		fmt.Println("serverName", serverName, " || ctx.name", ctx.name)
+		if strings.ToLower(serverName) == strings.ToLower(ctx.name) {
+			return
+		}
 		s := &ServantProvider{}
 		ServantProviders[serverName] = s
 		// 对接生产Path
-		servantConfigPath := filepath.Join(utils.PublishPath, serverName, "simpProd.yaml")
-		conf, err := config.NewConfig(servantConfigPath)
+		servantConfigPath := filepath.Join(ctx.StaticPath, utils.PublishPath, serverName, "simpProd.yaml")
+		conf, err := config.NewConfig("", servantConfigPath)
 		if err != nil {
 			fmt.Println(NewConfig_Error + servantConfigPath)
 			panic(NewConfig_Error + servantConfigPath)
 		}
-		ApisPath := filepath.Join(cwd, utils.PublishPath, serverName, "Api.json")
+		ApisPath := filepath.Join(ctx.StaticPath, utils.PublishPath, serverName, "API.json")
 
 		var apis *Apis
 		Content, err := os.ReadFile(ApisPath)
 		if err != nil {
-			fmt.Println(ReadApi_Error)
-			panic(ReadApi_Error)
+			fmt.Println(ReadApi_Error + err.Error())
+			panic(ReadApi_Error + err.Error())
 		}
 		err = json.Unmarshal(Content, &apis)
 		if err != nil {
@@ -83,14 +79,13 @@ func (s *SimpHttpGateway) Use(P *gin.RouterGroup) {
 		s.ServerName = serverName
 		s.Port = conf.Server.Port
 		s.Apis = apis
+		s.Host = conf.Server.Host
 	}
-	fmt.Println("ServantProviders", ServantProviders)
 	for serverName, Provider := range ServantProviders {
-		svr := P.Group(serverName)
-		fmt.Println("serverName", serverName)
-		for _, v := range *Provider.Apis {
+		fmt.Println("serverName", serverName, " is load success")
+		for _, V := range *Provider.Apis {
+			v := V
 			if v.Method == "POST" {
-				fmt.Println("v.Path", v.Path, "v.Method", v.Method)
 				svr.POST(v.Path, func(ctx *gin.Context) {
 					route := v.Path
 					target := Provider.GetTarget(route) // 调用 proxy
@@ -116,13 +111,18 @@ func (s *SimpHttpGateway) Use(P *gin.RouterGroup) {
 					// 读取响应体，处理状态码等
 					responseBody, err := io.ReadAll(resp.Body)
 					if err != nil {
-						// 处理错误
+						fmt.Println("Error reading response body:", err.Error())
 						ctx.JSON(http.StatusInternalServerError, gin.H{"error": "读取响应体失败"})
 						return
 					}
-
-					// 假设你想将响应体直接返回给客户端
-					ctx.String(resp.StatusCode, string(responseBody))
+					var anyBody interface{}
+					err = json.Unmarshal(responseBody, &anyBody)
+					if err != nil {
+						fmt.Println("Error To Unmarshal json:", err.Error())
+						ctx.JSON(http.StatusInternalServerError, gin.H{"error": "解码响应体失败"})
+						return
+					}
+					ctx.JSON(resp.StatusCode, anyBody)
 				})
 			}
 			if v.Method == "GET" {
@@ -148,13 +148,18 @@ func (s *SimpHttpGateway) Use(P *gin.RouterGroup) {
 					// 读取响应体，处理状态码等
 					responseBody, err := io.ReadAll(resp.Body)
 					if err != nil {
-						// 处理错误
+						fmt.Println("Error reading response body:", err.Error())
 						ctx.JSON(http.StatusInternalServerError, gin.H{"error": "读取响应体失败"})
 						return
 					}
-
-					// 假设你想将响应体直接返回给客户端
-					ctx.String(resp.StatusCode, string(responseBody))
+					var anyBody interface{}
+					err = json.Unmarshal(responseBody, &anyBody)
+					if err != nil {
+						fmt.Println("Error To Unmarshal json:", err.Error())
+						ctx.JSON(http.StatusInternalServerError, gin.H{"error": "解码响应体失败"})
+						return
+					}
+					ctx.JSON(resp.StatusCode, anyBody)
 				})
 			}
 		}
@@ -167,5 +172,13 @@ func (s *SimpHttpGateway) Use(P *gin.RouterGroup) {
 // route := "/api/data"
 func (s *ServantProvider) GetTarget(route string) string {
 	url := fmt.Sprintf("http://%s:%d%s", s.Host, s.Port, route)
+	fmt.Println("target ", url)
 	return url
+}
+
+func UseGateway(ctx *SimpHttpServerCtx, pre string) {
+	Engine := ctx.Engine
+	Group := Engine.Group(pre)
+	GateWay := &SimpHttpGateway{}
+	GateWay.Use(Group, ctx)
 }

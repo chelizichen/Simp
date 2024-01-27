@@ -230,7 +230,7 @@
                         <el-input v-model="config.Name" disabled></el-input>
                     </el-form-item>
                     <el-form-item label="Host">
-                        <el-input v-model="config.Host" disabled></el-input>
+                        <el-input v-model="config.Host"></el-input>
                     </el-form-item>
                     <el-form-item label="Port">
                         <el-input v-model="config.Port" disabled></el-input>
@@ -278,7 +278,7 @@
                             <i class="el-icon-remove" style="color: crimson;cursor: pointer;"></i>
                         </span>
                         <span style="float: right; color: #8492a6; font-size: 13px">
-                            {{ item.Hash }}
+                            {{ item.Hash }} &nbsp;
                         </span>
                     </el-option>
                 </el-select>
@@ -742,7 +742,7 @@
                     if(newVal){
                         this.selectRelease = ''
                         this.uploadForm= {
-                            serverName: '',
+                            serverName: this.serverName,
                             file: null,
                             doc: ''
                         }

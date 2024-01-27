@@ -33,44 +33,68 @@ type CoverConfigVo struct {
 	ServerName string
 }
 
-func NewConfig(path string) (conf SimpConfig, err error) {
+func NewConfig(path string, args ...string) (conf SimpConfig, err error) {
 	wd, _ := os.Getwd()
+	var configPath string
 	SIMP_PRODUCTION := os.Getenv("SIMP_PRODUCTION")
 	fmt.Println("NewConfig SIMP_PRODUCTION", SIMP_PRODUCTION)
-	var configPath string
-	if SIMP_PRODUCTION == "Yes" {
-		SIMP_SERVER_PATH := os.Getenv("SIMP_SERVER_PATH")
-		prodConfigPath := filepath.Join(SIMP_SERVER_PATH, "simpProd.yaml")
-		configPath = filepath.Join(SIMP_SERVER_PATH, "simp.yaml")
-		yamlFile, err := os.ReadFile(configPath)
-		if err != nil {
-			fmt.Println("Error to Get YamlFile ", configPath)
-		}
-		yamlProdFile, err := os.ReadFile(prodConfigPath)
-		if err != nil {
-			fmt.Println("Error to Get yamlProdFile ", prodConfigPath)
-		}
-		var doc1, doc2 SimpConfig
-		if err := yaml.Unmarshal(yamlProdFile, &doc1); err != nil {
-			fmt.Println("无法解析第一个YAML文件：", err)
-		}
-		if err := yaml.Unmarshal(yamlFile, &doc2); err != nil {
-			fmt.Println("无法解析第二个YAML文件：", err)
-		}
-		fmt.Println("doc1", doc1)
-		fmt.Println("doc2", doc2)
-		mergeYaml := MergeYAML(doc1, doc2)
-		// 将 interface{} 转换为 MyStruct
-		if conf, ok := mergeYaml.(SimpConfig); ok {
-			return conf, nil
-			// 转换成功，可以使用 myStruct 进行操作
+	// 普通环境，args为0
+	if len(args) == 0 {
+		if SIMP_PRODUCTION == "Yes" {
+			SIMP_SERVER_PATH := os.Getenv("SIMP_SERVER_PATH")
+			prodConfigPath := filepath.Join(SIMP_SERVER_PATH, "simpProd.yaml")
+			configPath = filepath.Join(SIMP_SERVER_PATH, "simp.yaml")
+			yamlFile, err := os.ReadFile(configPath)
+			if err != nil {
+				fmt.Println("Error to Get YamlFile ", configPath)
+			}
+			yamlProdFile, err := os.ReadFile(prodConfigPath)
+			if err != nil {
+				fmt.Println("Error to Get yamlProdFile ", prodConfigPath)
+			}
+			var doc1, doc2 SimpConfig
+			if err := yaml.Unmarshal(yamlProdFile, &doc1); err != nil {
+				fmt.Println("无法解析第一个YAML文件：", err)
+			}
+			if err := yaml.Unmarshal(yamlFile, &doc2); err != nil {
+				fmt.Println("无法解析第二个YAML文件：", err)
+			}
+			fmt.Println("doc1", doc1)
+			fmt.Println("doc2", doc2)
+			mergeYaml := MergeYAML(doc1, doc2)
+			// 将 interface{} 转换为 MyStruct
+			if conf, ok := mergeYaml.(SimpConfig); ok {
+				return conf, nil
+				// 转换成功，可以使用 myStruct 进行操作
+			} else {
+				fmt.Println("Error to Parsse Interface to Yaml ", prodConfigPath)
+				return conf, err
+				// 转换失败，处理错误情况
+			}
 		} else {
-			fmt.Println("Error to Parsse Interface to Yaml ", prodConfigPath)
-			return conf, err
-			// 转换失败，处理错误情况
+			configPath = filepath.Join(wd, path)
+			// 读取 YAML 文件
+			yamlFile, err := os.ReadFile(configPath)
+			fmt.Println("Get FilePath from ", configPath)
+			if err != nil {
+				fmt.Println("Error reading YAML file:", err)
+				return conf, err
+			}
+
+			// 解析 YAML 数据
+			err = yaml.Unmarshal(yamlFile, &conf)
+			if err != nil {
+				fmt.Println("Error unmarshalling YAML:", err)
+				return conf, err
+			}
+
+			// 打印解析后的配置
+			fmt.Printf("%+v\n", conf)
+			return conf, nil
 		}
 	} else {
-		configPath = filepath.Join(wd, path)
+		// 特殊情况下使用args
+		configPath = filepath.Join(args...)
 		// 读取 YAML 文件
 		yamlFile, err := os.ReadFile(configPath)
 		fmt.Println("Get FilePath from ", configPath)

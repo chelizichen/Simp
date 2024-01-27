@@ -10,6 +10,5 @@ func main() {
 	ctx.DefineMain()
 	ctx.Use(service.Registry)
 	ctx.Use(service.Static)
-	ctx.Use(service.Gateway)
 	h.NewSimpHttpServer(ctx)
 }
