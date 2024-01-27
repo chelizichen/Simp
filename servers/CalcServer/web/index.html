@@ -71,10 +71,10 @@
                             <el-input type="textarea" v-model="newPlan.comment"></el-input>
                         </el-form-item>
                         <el-form-item label="Start Time" prop="startTime">
-                            <el-date-picker v-model="FMT_TIME(newPlan.startTime)" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
+                            <el-date-picker v-model="(newPlan.startTime)" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
                         </el-form-item>
                         <el-form-item label="End Time" prop="endTime">
-                            <el-date-picker v-model="FMT_TIME(newPlan.endTime)" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
+                            <el-date-picker v-model="(newPlan.endTime)" type="datetime" placeholder="Select Date and Time" required></el-date-picker>
                         </el-form-item>
                         <el-form-item>
                             <el-button type="success" @click="addPlanVisible = true">Add Plan</el-button>
