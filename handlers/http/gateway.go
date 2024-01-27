@@ -50,8 +50,8 @@ func (s *SimpHttpGateway) Use(svr *gin.RouterGroup, ctx *SimpHttpServerCtx) {
 	}
 	// 遍历映射服务详情与API
 	for _, serverName := range subdirectories {
-		fmt.Println("serverName", serverName, " || ctx.name", ctx.name)
-		if strings.ToLower(serverName) == strings.ToLower(ctx.name) {
+		fmt.Println("serverName", serverName, " || ctx.name", ctx.Name)
+		if strings.ToLower(serverName) == strings.ToLower(ctx.Name) {
 			return
 		}
 		s := &ServantProvider{}

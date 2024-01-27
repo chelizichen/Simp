@@ -17,8 +17,8 @@ import (
 )
 
 type SimpHttpServerCtx struct {
-	port        string
-	name        string
+	Port        string
+	Name        string
 	Engine      *gin.Engine
 	Storage     *sqlx.DB
 	isMain      bool
@@ -35,7 +35,7 @@ func Resp(code int, message string, data interface{}) *gin.H {
 }
 
 func (c *SimpHttpServerCtx) Use(callback func(engine *SimpHttpServerCtx, pre string)) {
-	s := c.name
+	s := c.Name
 	pre := strings.ToLower(s)
 	callback(c, pre)
 }
@@ -91,7 +91,7 @@ func (c *SimpHttpServerCtx) Get(realPath string, handle gin.HandlerFunc) {
 }
 
 func (c *SimpHttpServerCtx) Static(realPath string) {
-	s := c.name
+	s := c.Name
 	pre := strings.ToLower(s)
 	f := utils.Join(pre)
 	target := f(realPath)
@@ -142,8 +142,8 @@ func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
 	}
 
 	ctx = &SimpHttpServerCtx{
-		name:        conf.Server.Name,
-		port:        ":" + strconv.Itoa(conf.Server.Port),
+		Name:        conf.Server.Name,
+		Port:        ":" + strconv.Itoa(conf.Server.Port),
 		Engine:      G,
 		StoragePath: conf.Server.Storage,
 		StaticPath:  conf.Server.StaticPath,
@@ -173,11 +173,11 @@ func NewSimpHttpServer(ctx *SimpHttpServerCtx) {
 	fmt.Println("SIMP_PRODUCTION", SIMP_PRODUCTION)
 	// 子服务生产时需要提供对应的API路由
 	if SIMP_PRODUCTION == "Yes" {
-		fmt.Println("CreateAPIFile |", ctx.name)
-		utils.CreateAPIFile(ctx.Engine, ctx.name)
+		fmt.Println("CreateAPIFile |", ctx.Name)
+		utils.CreateAPIFile(ctx.Engine, ctx.Name)
 	}
 
-	err = ctx.Engine.Run(ctx.port)
+	err = ctx.Engine.Run(ctx.Port)
 	if err != nil {
 		return
 	}
