@@ -5,6 +5,7 @@ import "time"
 type Config struct {
 	shards          int
 	expiredCallback ExpiredCallback
+	deleteCallback  ExpiredCallback
 	hash            IHash
 	clearInterval   time.Duration
 }

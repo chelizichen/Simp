@@ -11,7 +11,7 @@ import (
 	"github.com/robfig/cron"
 )
 
-type SimpCacheHandleFunc func(ctx *h.SimpHttpServerCtx) cache.CacheWithExpired
+type SimpCacheHandleFunc func(ctx *h.SimpHttpServerCtx) cache.HookFunc
 
 // 检查表是否存在
 func tableExists(db *sqlx.DB, tableName string) bool {
@@ -54,9 +54,14 @@ func isRowCountsTooBig(db *sqlx.DB, tableName string) (int, error) {
 	return count, nil
 }
 
-func SimpCacheWithExpired(ctx *h.SimpHttpServerCtx) cache.CacheWithExpired {
+type SimpCacheHook struct {
+	Exipred cache.HookFunc
+	Delete  cache.HookFunc
+}
+
+func SimpCacheWithExpired(ctx *h.SimpHttpServerCtx) *SimpCacheHook {
 	var idx int = 1
-	var latest_cache_table string
+	var latest_cache_table *string
 	for {
 		tableName := cache.DB_NAME + ctx.Name + string(rune(idx))
 		if !tableExists(ctx.Storage, tableName) {
@@ -65,7 +70,7 @@ func SimpCacheWithExpired(ctx *h.SimpHttpServerCtx) cache.CacheWithExpired {
 			if err != nil {
 				fmt.Println("Error To CreateTable", err.Error())
 			}
-			latest_cache_table = tableName
+			*latest_cache_table = tableName
 			break
 		} else {
 			count, err := isRowCountsTooBig(ctx.Storage, tableName)
@@ -75,6 +80,8 @@ func SimpCacheWithExpired(ctx *h.SimpHttpServerCtx) cache.CacheWithExpired {
 			if count > 200000 {
 				idx = idx + 1
 			} else {
+				// 没大于20万条 则用该表
+				*latest_cache_table = tableName
 				break
 			}
 		}
@@ -88,15 +95,15 @@ func SimpCacheWithExpired(ctx *h.SimpHttpServerCtx) cache.CacheWithExpired {
 
 		// 添加定时任务
 		err := c.AddFunc(spec, func() {
-			count, err := isRowCountsTooBig(ctx.Storage, latest_cache_table)
+			count, err := isRowCountsTooBig(ctx.Storage, *latest_cache_table)
 			if err != nil {
 				fmt.Println("Error To CreateTable", err.Error())
 			}
 			if count > 200000 {
 				idx = idx + 1
 			}
-			latest_cache_table = cache.DB_NAME + ctx.Name + string(rune(idx))
-			err = createTable(ctx.Storage, latest_cache_table)
+			*latest_cache_table = cache.DB_NAME + ctx.Name + string(rune(idx))
+			err = createTable(ctx.Storage, *latest_cache_table)
 			if err != nil {
 				fmt.Println("Error To CreateTable", err.Error())
 			}
@@ -107,13 +114,18 @@ func SimpCacheWithExpired(ctx *h.SimpHttpServerCtx) cache.CacheWithExpired {
 		// 启动Cron调度器
 		go c.Start()
 	}()
-	return func(k string, v interface{}) error {
-		bV, err := json.Marshal(v)
-		if err != nil {
-			fmt.Println("Error Marshal", err.Error())
+	return &SimpCacheHook{
+		Exipred: func(k string, v interface{}) error {
+			bV, err := json.Marshal(v)
+			if err != nil {
+				fmt.Println("Error Marshal", err.Error())
+				return nil
+			}
+			insertData(ctx.Storage, *latest_cache_table, k, bV)
 			return nil
-		}
-		insertData(ctx.Storage, latest_cache_table, k, bV)
-		return nil
+		},
+		Delete: func(k string, v interface{}) error {
+			return nil
+		},
 	}
 }

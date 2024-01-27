@@ -33,4 +33,4 @@ func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) (cacheSvr *CacheSvr) {
 	return
 }
 
-type CacheWithExpired func(k string, v interface{}) error
+type HookFunc func(k string, v interface{}) error
