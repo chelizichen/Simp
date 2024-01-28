@@ -97,7 +97,7 @@
             </div>
             <div v-if="activeName == 'PlanList'">
                 <el-card v-for="(item,index) in planList" class="card-container" :key="index">
-                    <div style="display: flex;">
+                    <div style="display: flex;flex-wrap: wrap;">
                         <el-card class="main-card">
                             <div slot="header" v-show="EditIconVisible && ItemIndex==index" @click="subPlanVisible = true">
                                 <el-icon class="el-icon-plus" style="cursor: pointer;"></el-icon>
