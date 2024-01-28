@@ -1,9 +1,9 @@
 package service
 
 import (
-	handlers "Simp/handlers/http"
 	"Simp/servers/CalcServer/types"
 	"Simp/servers/CalcServer/utils"
+	handlers "Simp/src/http"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

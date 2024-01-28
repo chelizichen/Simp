@@ -1,7 +1,7 @@
 package cache
 
 import (
-	h "Simp/handlers/http"
+	h "Simp/src/http"
 	"database/sql"
 )
 

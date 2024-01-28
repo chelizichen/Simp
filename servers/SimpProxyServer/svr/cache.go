@@ -6,8 +6,8 @@
 package svr
 
 import (
-	"Simp/handlers/cache"
-	h "Simp/handlers/http"
+	"Simp/src/cache"
+	h "Simp/src/http"
 	"encoding/json"
 	"fmt"
 	"strings"

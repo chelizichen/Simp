@@ -1,8 +1,8 @@
 package service
 
 import (
-	handlers "Simp/handlers/http"
-	"Simp/utils"
+	handlers "Simp/src/http"
+	"Simp/src/utils"
 	"fmt"
 	"os"
 	"path/filepath"

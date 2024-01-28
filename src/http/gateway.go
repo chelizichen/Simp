@@ -1,8 +1,8 @@
-package handlers
+package http
 
 import (
-	"Simp/config"
-	"Simp/utils"
+	"Simp/src/config"
+	utils "Simp/src/utils"
 	"bytes"
 	"encoding/json"
 	"fmt"

@@ -1,8 +1,8 @@
 package main
 
 import (
-	h "Simp/handlers/http"
 	"Simp/servers/BlogServer/service"
+	h "Simp/src/http"
 )
 
 func main() {

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"Simp/utils"
+	"Simp/src/utils"
 	"fmt"
 	"os"
 	"path/filepath"

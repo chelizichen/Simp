@@ -1,7 +1,7 @@
 package main
 
 import (
-	h "Simp/handlers/http"
+	h "Simp/src/http"
 	"fmt"
 
 	"github.com/gin-gonic/gin"

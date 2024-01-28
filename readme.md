@@ -58,7 +58,7 @@ touch simp.yaml
 # 开发人员手动补全 service.Test 
 # package main
 # import (
-# 	h "Simp/handlers/http"
+# 	h "Simp/src/http"
 # 	"Simp/servers/TestServer/service"
 # )
 # func main() {

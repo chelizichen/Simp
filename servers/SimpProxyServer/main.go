@@ -1,8 +1,8 @@
 package main
 
 import (
-	h "Simp/handlers/http"
 	"Simp/servers/SimpProxyServer/svr"
+	h "Simp/src/http"
 	"fmt"
 )
 

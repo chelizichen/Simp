@@ -1,10 +1,10 @@
 package service
 
 import (
-	handlers "Simp/handlers/http"
 	"Simp/servers/CalcServer/storage"
 	"Simp/servers/CalcServer/types"
 	"Simp/servers/CalcServer/utils"
+	handlers "Simp/src/http"
 	"fmt"
 	"net/http"
 	"sort"

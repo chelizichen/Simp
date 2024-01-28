@@ -1,9 +1,9 @@
 package service
 
 import (
-	"Simp/config"
-	handlers "Simp/handlers/http"
-	"Simp/utils"
+	"Simp/src/config"
+	handlers "Simp/src/http"
+	utils2 "Simp/src/utils"
 	"bufio"
 	"fmt"
 	"net/http"
@@ -46,7 +46,7 @@ func TOKEN_VALIDATE(ctx *gin.Context) {
 
 func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
-	f := utils.Join(pre)
+	f := utils2.Join(pre)
 	G := ctx.Engine
 
 	G.GET(f("/web"), func(c *gin.Context) {
@@ -70,7 +70,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		F, err := c.FormFile("file")
-		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, F.Filename)
+		storagePath := filepath.Join(cwd, utils2.PublishPath, serverName, F.Filename)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "接受文件失败", nil))
 			return
@@ -82,8 +82,8 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			return
 		}
 		// 校验文件完整性（这里使用MD5哈希值作为示例）
-		actualHash, err := utils.CalculateFileHash(tempPath)
-		utils.AddHashToPackageName(&storagePath, actualHash)
+		actualHash, err := utils2.CalculateFileHash(tempPath)
+		utils2.AddHashToPackageName(&storagePath, actualHash)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, handlers.Resp(-1, "计算哈希值失败", nil))
 			return
@@ -92,14 +92,14 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		fmt.Println("tempPath", tempPath)
 		fmt.Println("storagePath", storagePath)
 
-		if err := utils.MoveAndRemove(tempPath, storagePath); err != nil {
+		if err := utils2.MoveAndRemove(tempPath, storagePath); err != nil {
 			fmt.Println("Error To Rename", err.Error())
 			c.JSON(http.StatusInternalServerError, handlers.Resp(-1, "移动文件失败", nil))
 			return
 		}
 		releaseDoc := c.PostForm("doc")
-		storageDocPath := filepath.Join(cwd, utils.PublishPath, serverName, "doc.txt")
-		E, err := utils.IFNotExistThenCreate(storageDocPath)
+		storageDocPath := filepath.Join(cwd, utils2.PublishPath, serverName, "doc.txt")
+		E, err := utils2.IFNotExistThenCreate(storageDocPath)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, handlers.Resp(-1, "打开或创建文件失败"+err.Error(), nil))
 		}
@@ -114,7 +114,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 	GROUP.POST("/restartServer", func(c *gin.Context) {
 		fileName := c.PostForm("fileName")
 		serverName := c.PostForm("serverName")
-		isAlive := utils.ServantAlives[serverName]
+		isAlive := utils2.ServantAlives[serverName]
 		if isAlive != 0 {
 			cmd := exec.Command("kill", "-9", strconv.Itoa(isAlive))
 			// 执行命令
@@ -124,7 +124,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 				return
 			}
 		}
-		isSame := utils.ConfirmFileName(serverName, fileName)
+		isSame := utils2.ConfirmFileName(serverName, fileName)
 		if !isSame {
 			fmt.Println("Error File!", fileName, "  | ", serverName)
 		}
@@ -132,23 +132,23 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
-		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, fileName)
-		storageExEPath := filepath.Join(cwd, utils.PublishPath, serverName, "service_go")
-		storageYmlEPath := filepath.Join(cwd, utils.PublishPath, serverName, "simp.yaml")
-		storageYmlProdPath := filepath.Join(cwd, utils.PublishPath, serverName, "simpProd.yaml")
+		storagePath := filepath.Join(cwd, utils2.PublishPath, serverName, fileName)
+		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "service_go")
+		storageYmlEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simp.yaml")
+		storageYmlProdPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simpProd.yaml")
 
-		err = utils.IFExistThenRemove(storageExEPath)
+		err = utils2.IFExistThenRemove(storageExEPath)
 		if err != nil {
 			fmt.Println("remove File Error "+storageExEPath, err.Error())
 		}
-		err = utils.IFExistThenRemove(storageYmlEPath)
+		err = utils2.IFExistThenRemove(storageYmlEPath)
 		if err != nil {
 			fmt.Println("remove File Error "+storageYmlEPath, err.Error())
 		}
 
-		dest := filepath.Join(cwd, utils.PublishPath, serverName)
+		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
 
-		err = utils.Unzip(storagePath, dest)
+		err = utils2.Unzip(storagePath, dest)
 		if err != nil {
 			fmt.Println("Error To Unzip", err.Error())
 		}
@@ -158,7 +158,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		// 如果没有该文件，则将simp.yaml拷贝一份成simpProd.yaml
 		if os.IsNotExist(err) {
-			err = utils.CopyFile(storageYmlEPath, storageYmlProdPath)
+			err = utils2.CopyFile(storageYmlEPath, storageYmlProdPath)
 			if err != nil {
 				fmt.Println("utils.CopyFile ", storageYmlEPath, err.Error())
 			}
@@ -167,7 +167,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		stdoutPipe, err := cmd.StdoutPipe()
 		// 设置环境变量
 		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
-		sm, err := utils.NewSimpMonitor(serverName, "")
+		sm, err := utils2.NewSimpMonitor(serverName, "")
 		err = cmd.Start()
 		// 启动一个协程，用于读取并打印命令的输出
 		go func() {
@@ -191,7 +191,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		fmt.Println("v", v)
 		v["pid"] = cmd.Process.Pid
 		v["status"] = true
-		utils.ServantAlives[serverName] = cmd.Process.Pid
+		utils2.ServantAlives[serverName] = cmd.Process.Pid
 
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
 	})
@@ -201,7 +201,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
-		filePath := filepath.Join(cwd, utils.PublishPath, "SimpTestServer/childservice")
+		filePath := filepath.Join(cwd, utils2.PublishPath, "SimpTestServer/childservice")
 		cmd := exec.Command(filePath)
 		stdoutPipe, err := cmd.StdoutPipe()
 		err = cmd.Start()
@@ -225,8 +225,8 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		releaseDoc := c.PostForm("doc")
-		storageDocPath := filepath.Join(cwd, utils.PublishPath, "CalcServer", "doc.txt")
-		E, err := utils.IFNotExistThenCreate(storageDocPath)
+		storageDocPath := filepath.Join(cwd, utils2.PublishPath, "CalcServer", "doc.txt")
+		E, err := utils2.IFNotExistThenCreate(storageDocPath)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, handlers.Resp(-1, "打开或创建文件失败"+err.Error(), nil))
 		}
@@ -240,9 +240,9 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
-		serverPath := filepath.Join(cwd, utils.PublishPath)
+		serverPath := filepath.Join(cwd, utils2.PublishPath)
 		fmt.Println("serverPath", serverPath)
-		subdirectories, err := utils.GetSubdirectories(serverPath)
+		subdirectories, err := utils2.GetSubdirectories(serverPath)
 		if err != nil {
 			fmt.Println("Error To GetSubdirectories")
 		}
@@ -258,8 +258,8 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		value := c.PostForm("serverName")
 		fmt.Println("createServer | serverName ", value)
-		serverPath := filepath.Join(cwd, utils.PublishPath, value)
-		utils.AutoCreateLoggerFile(value)
+		serverPath := filepath.Join(cwd, utils2.PublishPath, value)
+		utils2.AutoCreateLoggerFile(value)
 		err = os.Mkdir(serverPath, os.ModePerm)
 		if err != nil {
 			fmt.Println("Error To Mkdir", err.Error())
@@ -277,10 +277,10 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			return
 		}
 		serverName := c.PostForm("serverName")
-		serverPath := filepath.Join(cwd, utils.PublishPath, serverName)
+		serverPath := filepath.Join(cwd, utils2.PublishPath, serverName)
 		fmt.Println("serverPath", serverPath)
-		var packages []utils.ReleasePackageVo
-		err = filepath.Walk(serverPath, utils.VisitTgzS(&packages, serverName))
+		var packages []utils2.ReleasePackageVo
+		err = filepath.Walk(serverPath, utils2.VisitTgzS(&packages, serverName))
 		if err != nil {
 			fmt.Printf("error walking the path %v: %v\n", serverPath, err)
 		}
@@ -294,7 +294,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
-		storagePath := filepath.Join(cwd, utils.PublishPath, serverName, F)
+		storagePath := filepath.Join(cwd, utils2.PublishPath, serverName, F)
 		err = os.Remove(storagePath)
 		if err != nil {
 			fmt.Println("Error To RemoveFile", err.Error())
@@ -305,12 +305,12 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 	GROUP.POST("/checkServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
-		pid := c.DefaultPostForm("pid", fmt.Sprint(utils.ServantAlives[serverName]))
+		pid := c.DefaultPostForm("pid", fmt.Sprint(utils2.ServantAlives[serverName]))
 		P, err := strconv.Atoi(pid)
 		if err != nil {
 			fmt.Println("Error to Atoi", err.Error())
 		}
-		b := utils.IsPidAlive(P, serverName)
+		b := utils2.IsPidAlive(P, serverName)
 		v := make(map[string]interface{}, 10)
 		v["status"] = false
 		if b == true {
@@ -322,8 +322,8 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 	GROUP.POST("/checkConfig", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
-		configPath := filepath.Join(utils.PublishPath, serverName, "simp.yaml")
-		configProdPath := filepath.Join(utils.PublishPath, serverName, "simpProd.yaml")
+		configPath := filepath.Join(utils2.PublishPath, serverName, "simp.yaml")
+		configProdPath := filepath.Join(utils2.PublishPath, serverName, "simpProd.yaml")
 		sc, err := config.NewConfig(configPath)
 		prod, err := config.NewConfig(configProdPath)
 		mergeConf := config.MergeYAML(prod, sc)
@@ -359,7 +359,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			c.JSON(http.StatusOK, handlers.Resp(0, "Error To Stringify config", nil))
 			return
 		}
-		configPath := filepath.Join(utils.PublishPath, serverName, "simpProd.yaml")
+		configPath := filepath.Join(utils2.PublishPath, serverName, "simpProd.yaml")
 		err = config.CoverConfig(string(marshal), configPath)
 		if err != nil {
 			fmt.Println("CoverConfig Error", err.Error())
@@ -376,7 +376,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
-		serverPath := filepath.Join(cwd, utils.PublishPath, serverName)
+		serverPath := filepath.Join(cwd, utils2.PublishPath, serverName)
 		err = os.RemoveAll(serverPath)
 		if err != nil {
 			fmt.Println(ErrorToRemoveAll, err.Error())
@@ -394,7 +394,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 	GROUP.POST("/shutdownServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
-		pid := utils.ServantAlives[serverName]
+		pid := utils2.ServantAlives[serverName]
 		if pid == 0 {
 			c.JSON(200, handlers.Resp(-1, "暂无PID", nil))
 			return
@@ -407,7 +407,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error killing process:", err)
 			return
 		}
-		utils.ServantAlives[serverName] = 0
+		utils2.ServantAlives[serverName] = 0
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
 
@@ -415,7 +415,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		serverName := c.PostForm("serverName")
 		fileName := c.PostForm("fileName")
 		pattern := c.DefaultPostForm("pattern", "")
-		sm, err := utils.NewSearchLogMonitor(serverName, fileName)
+		sm, err := utils2.NewSearchLogMonitor(serverName, fileName)
 		if err != nil {
 			fmt.Println("Error To New SimMonitor", err.Error())
 		}
@@ -432,7 +432,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		serverName := c.PostForm("serverName")
-		serverPath := filepath.Join(cwd, utils.PublishPath, serverName, "API.json")
+		serverPath := filepath.Join(cwd, utils2.PublishPath, serverName, "API.json")
 		Content, err := os.ReadFile(serverPath)
 		if err != nil {
 			fmt.Println("Error To ReadFile", err.Error())
@@ -446,7 +446,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		serverName := c.PostForm("serverName")
-		serverPath := filepath.Join(cwd, utils.PublishPath, serverName, "doc.txt")
+		serverPath := filepath.Join(cwd, utils2.PublishPath, serverName, "doc.txt")
 		Content, err := os.ReadFile(serverPath)
 		if err != nil {
 			fmt.Println("Error To ReadFile", err.Error())
@@ -460,7 +460,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		serverName := c.PostForm("serverName")
-		serverPath := filepath.Join(cwd, utils.PublishPath, serverName)
+		serverPath := filepath.Join(cwd, utils2.PublishPath, serverName)
 		D, err := os.ReadDir(serverPath)
 		if err != nil {
 			fmt.Println("Error To ReadDir", err.Error())
@@ -502,7 +502,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 	GROUP.POST("/main/getServerLog", func(c *gin.Context) {
 		logFile := c.PostForm("logFile")
 		pattern := c.DefaultPostForm("pattern", "")
-		sm, err := utils.NewMainSearchLogMonitor(logFile)
+		sm, err := utils2.NewMainSearchLogMonitor(logFile)
 		if err != nil {
 			fmt.Println("Error To New SimMonitor", err.Error())
 			c.JSON(200, handlers.Resp(-2, err.Error(), nil))
