@@ -13,10 +13,15 @@ type memCacheShard struct {
 	hashmap         map[string]Item
 	lock            sync.RWMutex
 	expiredCallback ExpiredCallback
+	deleteCallback  ExpiredCallback
 }
 
 func newMemCacheShard(conf *Config) *memCacheShard {
-	return &memCacheShard{expiredCallback: conf.expiredCallback, hashmap: map[string]Item{}}
+	return &memCacheShard{
+		expiredCallback: conf.expiredCallback,
+		deleteCallback:  conf.deleteCallback,
+		hashmap:         map[string]Item{},
+	}
 }
 
 func (c *memCacheShard) set(k string, item *Item) {
@@ -66,7 +71,7 @@ func (c *memCacheShard) del(k string) int {
 	return count
 }
 
-//delExpired Only delete when key expires
+// delExpired Only delete when key expires
 func (c *memCacheShard) delExpired(k string) bool {
 	c.lock.Lock()
 	item, found := c.hashmap[k]

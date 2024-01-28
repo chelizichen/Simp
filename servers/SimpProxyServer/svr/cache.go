@@ -1,3 +1,8 @@
+// Simp Cache Servant
+// 1. expire delete 将会从cache 和 mysql中同步更改状态 0 expire 1 delete 2 online
+// 2. 热key在保存至数据库的同时 也会长期存在于内存中
+// 3. cache长时间未访问，超过24h？12h？的会从内存中移除。下次访问时会从mysql中取出。
+// 整个 servant 相当于 LRU + MySql的形式
 package svr
 
 import (
@@ -6,12 +11,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/robfig/cron"
 )
 
-type SimpCacheHandleFunc func(ctx *h.SimpHttpServerCtx) cache.HookFunc
+type SimpCacheHandleFunc func(ctx *h.SimpHttpServerCtx) cache.ExpiredCallback
 
 // 检查表是否存在
 func tableExists(db *sqlx.DB, tableName string) bool {
@@ -28,6 +34,7 @@ func tableExists(db *sqlx.DB, tableName string) bool {
 func createTable(db *sqlx.DB, tableName string) error {
 	query := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
 		id INT PRIMARY KEY AUTO_INCREMENT,
+		status INT PRIMARY,
 		name VARCHAR(255) NOT NULL,
 		value LONGBLOB,
 		create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -54,12 +61,21 @@ func isRowCountsTooBig(db *sqlx.DB, tableName string) (int, error) {
 	return count, nil
 }
 
-type SimpCacheHook struct {
-	Exipred cache.HookFunc
-	Delete  cache.HookFunc
+func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) (cacheSvr *cache.CacheSvr) {
+	sch := SimpCacheHookImpl(ctx)
+	servant := cache.NewMemCache(cache.WithDeleteCallback(sch.Delete), cache.WithExpiredCallback(sch.Exipred))
+	t := time.Now().Format(time.DateTime)
+	fmt.Println("svr point ", servant, &servant)
+	fmt.Println("cacheSvr", cacheSvr, &cacheSvr)
+	cacheSvr = &cache.CacheSvr{
+		SVR:      servant,
+		InitTime: t,
+		CTX:      ctx,
+	}
+	return
 }
 
-func SimpCacheWithExpired(ctx *h.SimpHttpServerCtx) *SimpCacheHook {
+func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
 	var idx int = 1
 	var latest_cache_table *string
 	for {
@@ -114,7 +130,7 @@ func SimpCacheWithExpired(ctx *h.SimpHttpServerCtx) *SimpCacheHook {
 		// 启动Cron调度器
 		go c.Start()
 	}()
-	return &SimpCacheHook{
+	return &cache.SimpCacheHook{
 		Exipred: func(k string, v interface{}) error {
 			bV, err := json.Marshal(v)
 			if err != nil {

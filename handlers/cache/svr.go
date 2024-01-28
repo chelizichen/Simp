@@ -3,7 +3,6 @@ package cache
 import (
 	h "Simp/handlers/http"
 	"database/sql"
-	"time"
 )
 
 const (
@@ -22,15 +21,10 @@ type SimpCacheTableStruct struct {
 	Key         sql.NullString `db:"name"`
 	Value       sql.NullByte   `db:"value"`
 	CreatetTime sql.NullString `db:"create_time"`
+	Status      sql.NullInt16  `db:"status"`
 }
 
-func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) (cacheSvr *CacheSvr) {
-	servant := NewMemCache()
-	t := time.Now().Format(time.DateTime)
-	cacheSvr.SVR = servant
-	cacheSvr.InitTime = t
-	cacheSvr.CTX = ctx
-	return
+type SimpCacheHook struct {
+	Exipred ExpiredCallback
+	Delete  ExpiredCallback
 }
-
-type HookFunc func(k string, v interface{}) error

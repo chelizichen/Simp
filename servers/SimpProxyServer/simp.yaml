@@ -4,5 +4,5 @@ server:
   port: 8558
   type: http
   staticPath: /Users/leemulus/GolandProjects/Simp # 静态资源 网关时指向root地址
-  storage: root:123456@tcp(127.0.0.1:3306)/stockpool # 存储
+  storage: root:123456@tcp(127.0.0.1:3306)/simp_server_db # 存储
   main: false
