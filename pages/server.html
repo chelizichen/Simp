@@ -71,14 +71,17 @@
         }
 
         @media screen and (min-width: 200px) and (max-width: 900px) { 
-            .appNotShow{
+            .app-not-show{
                 display: none;
             }
-            .appSmallSize{
+            .app-small-size{
                 font-size: 12px !important;
             }
-            .appBiggerSize{
+            .app-bigger-size{
                 font-size: 14px !important;
+            }
+            .app-text-center{
+                text-align: center;
             }
             *{
                 font-size: 12px;
@@ -90,12 +93,12 @@
 <body>
     <div id="app">
         <el-col :span="4" style="height: 100vh;box-sizing: border-box;border-right: 1px solid #EBEEF5">
-            <h1 style="color: rgb(207, 15, 124);text-align: center;font-family: fantasy;" class="appBiggerSize">
-                <i class="el-icon-help appBiggerSize" style="color: rgb(207, 90, 124);font-size: 36px;"></i>Simp
+            <h1 style="color: rgb(207, 15, 124);text-align: center;font-family: fantasy;" class="app-bigger-size">
+                <i class="el-icon-help app-bigger-size" style="color: rgb(207, 90, 124);font-size: 36px;"></i>Simp
             </h1>
             <el-menu class="el-menu-vertical-demo" active-text-color="rgb(207, 15, 124)" style="border: none">
-                <el-menu-item v-for="(item,index) in serverList " :index="item" :key="index" @click="handleOpen(item)">
-                    <i class="el-icon-menu"></i>
+                <el-menu-item v-for="(item,index) in serverList " class="app-text-center" :index="item" :key="index" @click="handleOpen(item)">
+                    <i class="el-icon-menu app-not-show"></i>
                     <span slot="title">{{item}}</span>
                 </el-menu-item>
             </el-menu>
