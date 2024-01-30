@@ -32,21 +32,29 @@ func tableExists(db *sqlx.DB, tableName string) bool {
 
 // 创建表
 func createTable(db *sqlx.DB, tableName string) error {
-	query := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
-		id INT PRIMARY KEY AUTO_INCREMENT,
-		status INT PRIMARY,
-		name VARCHAR(255) NOT NULL,
-		value LONGBLOB,
-		create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	)`, tableName)
-	_, err := db.Exec(query)
+	t := strings.ToLower(tableName)
+	query := " CREATE TABLE IF NOT EXISTS `" + t + "` ( " +
+		"`id` INT NOT NULL  PRIMARY KEY AUTO_INCREMENT, \n" +
+		"`s` INT NOT NULL,k VARCHAR(255) NOT NULL, \n" +
+		"`v` LONGBLOB NOT NULL, \n" +
+		"`t` VARCHAR(255) NOT NULL) \n"
+	fmt.Println("prepare sql \n", query)
+	sql, err := db.Prepare(query)
+	if err != nil {
+		fmt.Println("prepare error", err.Error())
+		return err
+	}
+	_, err = sql.Exec()
 	return err
 }
 
 // 插入数据
-func insertData(db *sqlx.DB, tableName, key string, value []byte) error {
-	query := fmt.Sprintf("INSERT INTO %s (name, value) VALUES (?, ?)", tableName)
-	_, err := db.Exec(query, key, value)
+func insertData(db *sqlx.DB, tableName, key string, value []byte, status int) error {
+	query := fmt.Sprintf("INSERT INTO %s (k, v, s) VALUES (?, ?, ?)", tableName)
+	if status == cache.ITEM_STATUS_DEFAULT {
+		cache.InsertKeySet(db, key, tableName)
+	}
+	_, err := db.Exec(query, key, value, status)
 	return err
 }
 
@@ -63,7 +71,11 @@ func isRowCountsTooBig(db *sqlx.DB, tableName string) (int, error) {
 
 func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) (cacheSvr *cache.CacheSvr) {
 	sch := SimpCacheHookImpl(ctx)
-	servant := cache.NewMemCache(cache.WithDeleteCallback(sch.Delete), cache.WithExpiredCallback(sch.Exipred))
+	servant := cache.NewMemCache(
+		cache.WithDeleteCallback(sch.Delete),
+		cache.WithExpiredCallback(sch.Exipred),
+		cache.WithDefaultCallback(sch.Default),
+	)
 	t := time.Now().Format(time.DateTime)
 	fmt.Println("svr point ", servant, &servant)
 	fmt.Println("cacheSvr", cacheSvr, &cacheSvr)
@@ -77,27 +89,27 @@ func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) (cacheSvr *cache.CacheSvr) {
 
 func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
 	var idx int = 1
-	var latest_cache_table *string
+	var latest_cache_table string = ""
 	for {
 		tableName := cache.DB_NAME + ctx.Name + string(rune(idx))
 		if !tableExists(ctx.Storage, tableName) {
 			// 如果表不存在，则创建表
 			err := createTable(ctx.Storage, tableName)
 			if err != nil {
-				fmt.Println("Error To CreateTable", err.Error())
+				fmt.Println("Error To CreateTable not exist", err.Error())
 			}
-			*latest_cache_table = tableName
+			latest_cache_table = tableName
 			break
 		} else {
 			count, err := isRowCountsTooBig(ctx.Storage, tableName)
 			if err != nil {
-				fmt.Println("Error To CreateTable", err.Error())
+				fmt.Println("Error To CreateTable too big", err.Error())
 			}
 			if count > 200000 {
 				idx = idx + 1
 			} else {
 				// 没大于20万条 则用该表
-				*latest_cache_table = tableName
+				latest_cache_table = tableName
 				break
 			}
 		}
@@ -111,15 +123,15 @@ func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
 
 		// 添加定时任务
 		err := c.AddFunc(spec, func() {
-			count, err := isRowCountsTooBig(ctx.Storage, *latest_cache_table)
+			count, err := isRowCountsTooBig(ctx.Storage, latest_cache_table)
 			if err != nil {
 				fmt.Println("Error To CreateTable", err.Error())
 			}
 			if count > 200000 {
 				idx = idx + 1
 			}
-			*latest_cache_table = cache.DB_NAME + ctx.Name + string(rune(idx))
-			err = createTable(ctx.Storage, *latest_cache_table)
+			latest_cache_table = cache.DB_NAME + ctx.Name + string(rune(idx))
+			err = createTable(ctx.Storage, latest_cache_table)
 			if err != nil {
 				fmt.Println("Error To CreateTable", err.Error())
 			}
@@ -137,10 +149,25 @@ func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
 				fmt.Println("Error Marshal", err.Error())
 				return nil
 			}
-			insertData(ctx.Storage, *latest_cache_table, k, bV)
+			insertData(ctx.Storage, latest_cache_table, k, bV, 1)
 			return nil
 		},
 		Delete: func(k string, v interface{}) error {
+			bV, err := json.Marshal(v)
+			if err != nil {
+				fmt.Println("Error Marshal", err.Error())
+				return nil
+			}
+			insertData(ctx.Storage, latest_cache_table, k, bV, 2)
+			return nil
+		},
+		Default: func(k string, v interface{}) error {
+			bV, err := json.Marshal(v)
+			if err != nil {
+				fmt.Println("Error Marshal", err.Error())
+				return nil
+			}
+			insertData(ctx.Storage, latest_cache_table, k, bV, 0)
 			return nil
 		},
 	}

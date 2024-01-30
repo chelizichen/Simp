@@ -6,6 +6,7 @@ type Config struct {
 	shards          int
 	expiredCallback ExpiredCallback
 	deleteCallback  ExpiredCallback
+	defaultCallback ExpiredCallback
 	hash            IHash
 	clearInterval   time.Duration
 }

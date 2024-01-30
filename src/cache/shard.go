@@ -10,11 +10,11 @@ import (
 type ExpiredCallback func(k string, v interface{}) error
 
 type memCacheShard struct {
-	hashmap           map[string]Item
-	lock              sync.RWMutex
-	expiredCallback   ExpiredCallback // 普通过期
-	deleteCallback    ExpiredCallback // 被删除
-	inStorageCallback ExpiredCallback // 入库
+	hashmap         map[string]Item
+	lock            sync.RWMutex
+	expiredCallback ExpiredCallback // 普通过期
+	deleteCallback  ExpiredCallback // 被删除
+	defaultCallback ExpiredCallback // 入库
 }
 
 func newMemCacheShard(conf *Config) *memCacheShard {
@@ -47,9 +47,11 @@ func (c *memCacheShard) get(k string) (interface{}, bool) {
 	if !exist {
 		return nil, false
 	}
+	// 如果没过期 返回item + true
 	if !item.Expired() {
 		return item.v, true
 	}
+	// 否则走 delExpired
 	if c.delExpired(k) {
 		return nil, false
 	}
@@ -95,7 +97,7 @@ func (c *memCacheShard) delExpired(k string) bool {
 		switch item.status {
 		case ITEM_STATUS_DEFAULT:
 			{
-				_ = c.inStorageCallback(k, item.v)
+				_ = c.defaultCallback(k, item.v)
 			}
 		case ITEM_STATUS_EXPIRE:
 			{

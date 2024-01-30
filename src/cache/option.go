@@ -50,6 +50,12 @@ func WithDeleteCallback(ec ExpiredCallback) ICacheOption {
 	}
 }
 
+func WithDefaultCallback(ec ExpiredCallback) ICacheOption {
+	return func(conf *Config) {
+		conf.defaultCallback = ec
+	}
+}
+
 // WithHash set custom hash key function
 func WithHash(hash IHash) ICacheOption {
 	return func(conf *Config) {
