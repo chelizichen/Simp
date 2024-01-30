@@ -24,7 +24,12 @@ func newMemCacheShard(conf *Config) *memCacheShard {
 	}
 }
 
+// 没有过期时间的默认给24小时自动过期
+// 防止太多cache存入内存中
 func (c *memCacheShard) set(k string, item *Item) {
+	if !item.CanExpire() {
+		item.SetExpireAt(time.Now().Add(24 * time.Hour))
+	}
 	c.lock.Lock()
 	c.hashmap[k] = *item
 	c.lock.Unlock()
