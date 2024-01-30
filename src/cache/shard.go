@@ -10,10 +10,11 @@ import (
 type ExpiredCallback func(k string, v interface{}) error
 
 type memCacheShard struct {
-	hashmap         map[string]Item
-	lock            sync.RWMutex
-	expiredCallback ExpiredCallback
-	deleteCallback  ExpiredCallback
+	hashmap           map[string]Item
+	lock              sync.RWMutex
+	expiredCallback   ExpiredCallback // 普通过期
+	deleteCallback    ExpiredCallback // 被删除
+	inStorageCallback ExpiredCallback // 入库
 }
 
 func newMemCacheShard(conf *Config) *memCacheShard {
@@ -28,7 +29,10 @@ func newMemCacheShard(conf *Config) *memCacheShard {
 // 防止太多cache存入内存中
 func (c *memCacheShard) set(k string, item *Item) {
 	if !item.CanExpire() {
+		item.status = ITEM_STATUS_DEFAULT
 		item.SetExpireAt(time.Now().Add(24 * time.Hour))
+	} else {
+		item.status = ITEM_STATUS_EXPIRE
 	}
 	c.lock.Lock()
 	c.hashmap[k] = *item
@@ -70,6 +74,7 @@ func (c *memCacheShard) del(k string) int {
 		delete(c.hashmap, k)
 		if !v.Expired() {
 			count++
+			c.deleteCallback(k, v)
 		}
 	}
 	c.lock.Unlock()
@@ -87,7 +92,16 @@ func (c *memCacheShard) delExpired(k string) bool {
 	delete(c.hashmap, k)
 	c.lock.Unlock()
 	if c.expiredCallback != nil {
-		_ = c.expiredCallback(k, item.v)
+		switch item.status {
+		case ITEM_STATUS_DEFAULT:
+			{
+				_ = c.inStorageCallback(k, item.v)
+			}
+		case ITEM_STATUS_EXPIRE:
+			{
+				_ = c.expiredCallback(k, item.v)
+			}
+		}
 	}
 	return true
 }
