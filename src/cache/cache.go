@@ -154,7 +154,8 @@ func (c *memCache) Set(k string, v interface{}, opts ...SetIOption) bool {
 func (c *memCache) Get(k string) (interface{}, bool) {
 	hashedKey := c.hash.Sum64(k)
 	shard := c.getShard(hashedKey)
-	return shard.get(k)
+	i, b := shard.get(k)
+	return i, b
 }
 
 func (c *memCache) GetSet(k string, v interface{}, opts ...SetIOption) (interface{}, bool) {

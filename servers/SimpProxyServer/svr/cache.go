@@ -19,6 +19,10 @@ import (
 
 type SimpCacheHandleFunc func(ctx *h.SimpHttpServerCtx) cache.ExpiredCallback
 
+const (
+	PrepareError = "PrepareError "
+)
+
 // 检查表是否存在
 func tableExists(db *sqlx.DB, tableName string) bool {
 	query := fmt.Sprintf("SHOW TABLES LIKE '%s'", tableName)
@@ -30,12 +34,54 @@ func tableExists(db *sqlx.DB, tableName string) bool {
 	return result == tableName
 }
 
+func getCache(db *sqlx.DB, k string) (interface{}, bool) {
+	var sci cache.SimpCacheItem
+	query := "select t from simp_caches_set scs where scs.k = ?"
+	s, err := db.Prepare(query)
+	if err != nil {
+		fmt.Println("PrepareError" + err.Error())
+		return nil, false
+	}
+	err = s.QueryRow(k).Scan(&sci)
+	if err != nil {
+		fmt.Println("QueryRow Error" + err.Error())
+		return nil, false
+	}
+	_queryString := "select v from [t] st where st.k = ? and st.s = 2"
+	queryString := strings.Replace(_queryString, "[t]", sci.Table, 0)
+	s, err = db.Prepare(queryString)
+	var row cache.SimpCacheItem
+
+	err = s.QueryRow(sci.Key).Scan(&row)
+	if err != nil {
+		return sci.Value, true
+	}
+	return nil, false
+}
+
+// 创建集合表
+func createCachesSet(db *sqlx.DB) error {
+	query := " 	CREATE TABLE IF NOT EXISTS simp_caches_set ( " +
+		"`id` 	INT NOT NULL  PRIMARY KEY AUTO_INCREMENT, \n" +
+		"`k` 	VARCHAR(255) NOT NULL, \n" +
+		"`t` 	VARCHAR(255) NOT NULL) \n"
+	fmt.Println("prepare sql \n", query)
+	sql, err := db.Prepare(query)
+	if err != nil {
+		fmt.Println("prepare error", err.Error())
+		return err
+	}
+	_, err = sql.Exec()
+	return err
+}
+
 // 创建表
 func createTable(db *sqlx.DB, tableName string) error {
 	t := strings.ToLower(tableName)
 	query := " CREATE TABLE IF NOT EXISTS `" + t + "` ( " +
 		"`id` INT NOT NULL  PRIMARY KEY AUTO_INCREMENT, \n" +
-		"`s` INT NOT NULL,k VARCHAR(255) NOT NULL, \n" +
+		"`s` INT NOT NULL, \n" +
+		"`k` VARCHAR(255) NOT NULL, \n" +
 		"`v` LONGBLOB NOT NULL, \n" +
 		"`t` VARCHAR(255) NOT NULL) \n"
 	fmt.Println("prepare sql \n", query)
@@ -75,6 +121,7 @@ func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) (cacheSvr *cache.CacheSvr) {
 		cache.WithDeleteCallback(sch.Delete),
 		cache.WithExpiredCallback(sch.Exipred),
 		cache.WithDefaultCallback(sch.Default),
+		cache.WithGetWhenExipred(sch.GetWhenExpired),
 	)
 	t := time.Now().Format(time.DateTime)
 	fmt.Println("svr point ", servant, &servant)
@@ -88,6 +135,11 @@ func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) (cacheSvr *cache.CacheSvr) {
 }
 
 func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
+	err := createCachesSet(ctx.Storage)
+	if err != nil {
+		ES := fmt.Sprintf("Error to create caches set %s", err.Error())
+		panic(ES)
+	}
 	var idx int = 1
 	var latest_cache_table string = ""
 	for {
@@ -96,14 +148,16 @@ func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
 			// 如果表不存在，则创建表
 			err := createTable(ctx.Storage, tableName)
 			if err != nil {
-				fmt.Println("Error To CreateTable not exist", err.Error())
+				ES := fmt.Sprintf("Error To CreateTable not exist %s", err.Error())
+				panic(ES)
 			}
 			latest_cache_table = tableName
 			break
 		} else {
 			count, err := isRowCountsTooBig(ctx.Storage, tableName)
 			if err != nil {
-				fmt.Println("Error To CreateTable too big", err.Error())
+				ES := fmt.Sprintf("Error To CreateTable too big %s", err.Error())
+				panic(ES)
 			}
 			if count > 200000 {
 				idx = idx + 1
@@ -169,6 +223,9 @@ func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
 			}
 			insertData(ctx.Storage, latest_cache_table, k, bV, 0)
 			return nil
+		},
+		GetWhenExpired: func(k string) (value interface{}, exist bool) {
+			return getCache(ctx.Storage, k)
 		},
 	}
 }

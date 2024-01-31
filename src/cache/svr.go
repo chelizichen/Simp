@@ -28,9 +28,10 @@ type SimpCacheTableStruct struct {
 }
 
 type SimpCacheHook struct {
-	Exipred ExpiredCallback
-	Delete  ExpiredCallback
-	Default ExpiredCallback
+	Exipred        ExpiredCallback
+	Delete         ExpiredCallback
+	Default        ExpiredCallback
+	GetWhenExpired GetWhenExpiredFunc
 }
 
 func InsertKeySet(db *sqlx.DB, key string, table string) error {

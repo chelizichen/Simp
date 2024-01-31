@@ -2,13 +2,15 @@ package cache
 
 import "time"
 
-// default 超过24小时  触发 callback ，callback自定义，数据被存入数据库，再次访问时被拿出 ， status 为 0
+// default 超过24小时  触发 callback ，callback自定义，数据被存入数据库，再次访问时被拿出 ， status 为 -1
 // expire  超过过期时间 触发 callback ，callback自定义，数据存入数据库   ，不被拿出，status 为 1
 // delete  超过过期时间 触发 callback ，callback自定义，数据存入数据库   ，不被拿出，status 为 2
 const (
-	ITEM_STATUS_DEFAULT = 0
-	ITEM_STATUS_EXPIRE  = 1
-	ITEM_STATUS_DELETE  = 2
+	ITEM_STATUS_DEFAULT    = 1
+	ITEM_STATUS_EXPIRE     = 2
+	ITEM_STATUS_DELETE     = 4
+	ITEM_STATUS_FROM_CACHE = 3
+	DEFAULT_EXPIRE_TIME    = 24 * time.Hour
 )
 
 type IItem interface {

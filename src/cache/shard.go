@@ -3,18 +3,32 @@ package cache
 import (
 	"sync"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // ExpiredCallback Callback the function when the key-value pair expires
 // Note that it is executed after expiration
 type ExpiredCallback func(k string, v interface{}) error
 
+type SimpCacheItem struct {
+	Key   string      `json:"k" db:"k"`
+	Table string      `json:"t" db:"t"`
+	Value interface{} `json:"v" db:"v"`
+}
+
+func (s *SimpCacheItem) GetFromTable(db *sqlx.DB) {
+
+}
+
+type GetWhenExpiredFunc func(k string) (value interface{}, exist bool)
 type memCacheShard struct {
 	hashmap         map[string]Item
 	lock            sync.RWMutex
 	expiredCallback ExpiredCallback // 普通过期
 	deleteCallback  ExpiredCallback // 被删除
 	defaultCallback ExpiredCallback // 入库
+	getWhenExpire   GetWhenExpiredFunc
 }
 
 func newMemCacheShard(conf *Config) *memCacheShard {
@@ -28,9 +42,9 @@ func newMemCacheShard(conf *Config) *memCacheShard {
 // 没有过期时间的默认给24小时自动过期
 // 防止太多cache存入内存中
 func (c *memCacheShard) set(k string, item *Item) {
-	if !item.CanExpire() {
+	if !item.CanExpire() || item.status == ITEM_STATUS_DEFAULT || item.status == ITEM_STATUS_FROM_CACHE {
 		item.status = ITEM_STATUS_DEFAULT
-		item.SetExpireAt(time.Now().Add(24 * time.Hour))
+		item.SetExpireAt(time.Now().Add(DEFAULT_EXPIRE_TIME))
 	} else {
 		item.status = ITEM_STATUS_EXPIRE
 	}
@@ -47,11 +61,14 @@ func (c *memCacheShard) get(k string) (interface{}, bool) {
 	if !exist {
 		return nil, false
 	}
-	// 如果没过期 返回item + true
 	if !item.Expired() {
 		return item.v, true
 	}
-	// 否则走 delExpired
+	value, exist := c.getWhenExpire(k)
+	if exist && item.status == ITEM_STATUS_DEFAULT {
+		c.set(k, &Item{v: value, status: ITEM_STATUS_FROM_CACHE})
+		return value, true
+	}
 	if c.delExpired(k) {
 		return nil, false
 	}

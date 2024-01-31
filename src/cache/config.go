@@ -3,12 +3,13 @@ package cache
 import "time"
 
 type Config struct {
-	shards          int
-	expiredCallback ExpiredCallback
-	deleteCallback  ExpiredCallback
-	defaultCallback ExpiredCallback
-	hash            IHash
-	clearInterval   time.Duration
+	shards                 int
+	expiredCallback        ExpiredCallback
+	deleteCallback         ExpiredCallback
+	defaultCallback        ExpiredCallback
+	getWhenExpiredCallback GetWhenExpiredFunc
+	hash                   IHash
+	clearInterval          time.Duration
 }
 
 func NewConfig() *Config {
