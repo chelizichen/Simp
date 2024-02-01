@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/robfig/cron"
@@ -96,7 +95,9 @@ func createTable(db *sqlx.DB, tableName string) error {
 
 // 插入数据
 func insertData(db *sqlx.DB, tableName, key string, value []byte, status int) error {
+	tableName = strings.ToLower(tableName)
 	query := fmt.Sprintf("INSERT INTO %s (k, v, s) VALUES (?, ?, ?)", tableName)
+	fmt.Println("query", query, key, value, tableName)
 	if status == cache.ITEM_STATUS_DEFAULT {
 		cache.InsertKeySet(db, key, tableName)
 	}
@@ -115,7 +116,7 @@ func isRowCountsTooBig(db *sqlx.DB, tableName string) (int, error) {
 	return count, nil
 }
 
-func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) (cacheSvr *cache.CacheSvr) {
+func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) {
 	sch := SimpCacheHookImpl(ctx)
 	servant := cache.NewMemCache(
 		cache.WithDeleteCallback(sch.Delete),
@@ -123,15 +124,8 @@ func InitizalCacheSvr(ctx *h.SimpHttpServerCtx) (cacheSvr *cache.CacheSvr) {
 		cache.WithDefaultCallback(sch.Default),
 		cache.WithGetWhenExipred(sch.GetWhenExpired),
 	)
-	t := time.Now().Format(time.DateTime)
 	fmt.Println("svr point ", servant, &servant)
-	fmt.Println("cacheSvr", cacheSvr, &cacheSvr)
-	cacheSvr = &cache.CacheSvr{
-		SVR:      servant,
-		InitTime: t,
-		CTX:      ctx,
-	}
-	return
+	ctx.CacheSvr = servant
 }
 
 func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
@@ -168,7 +162,7 @@ func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
 			}
 		}
 	}
-
+	fmt.Println("latest_cache_table", latest_cache_table)
 	go func() {
 		c := cron.New()
 
@@ -207,12 +201,17 @@ func SimpCacheHookImpl(ctx *h.SimpHttpServerCtx) *cache.SimpCacheHook {
 			return nil
 		},
 		Delete: func(k string, v interface{}) error {
+			fmt.Println("执行删除callback")
 			bV, err := json.Marshal(v)
 			if err != nil {
 				fmt.Println("Error Marshal", err.Error())
 				return nil
 			}
-			insertData(ctx.Storage, latest_cache_table, k, bV, 2)
+			err = insertData(ctx.Storage, latest_cache_table, k, bV, 2)
+			if err != nil {
+				fmt.Println("insert delete data error", err.Error())
+				return err
+			}
 			return nil
 		},
 		Default: func(k string, v interface{}) error {

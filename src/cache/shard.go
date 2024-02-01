@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -35,6 +36,8 @@ func newMemCacheShard(conf *Config) *memCacheShard {
 	return &memCacheShard{
 		expiredCallback: conf.expiredCallback,
 		deleteCallback:  conf.deleteCallback,
+		defaultCallback: conf.defaultCallback,
+		getWhenExpire:   conf.getWhenExpiredCallback,
 		hashmap:         map[string]Item{},
 	}
 }
@@ -91,7 +94,9 @@ func (c *memCacheShard) del(k string) int {
 	v, found := c.hashmap[k]
 	if found {
 		delete(c.hashmap, k)
+		fmt.Println("删除成功")
 		if !v.Expired() {
+			fmt.Println("删除下一步 判断是否过期")
 			count++
 			c.deleteCallback(k, v)
 		}

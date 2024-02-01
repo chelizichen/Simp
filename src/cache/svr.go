@@ -1,7 +1,6 @@
 package cache
 
 import (
-	h "Simp/src/http"
 	"database/sql"
 	"fmt"
 
@@ -11,12 +10,6 @@ import (
 const (
 	DB_NAME = "simp_cache_"
 )
-
-type CacheSvr struct {
-	SVR      ICache
-	InitTime string
-	CTX      *h.SimpHttpServerCtx
-}
 
 type SimpCacheTableStruct struct {
 	// 定义表的结构，字段应该和数据库表的字段对应

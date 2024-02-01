@@ -1,6 +1,9 @@
 package cache
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // SetIOption The option used to cache set
 type SetIOption func(ICache, string, IItem) bool
@@ -46,7 +49,9 @@ func WithExpiredCallback(ec ExpiredCallback) ICacheOption {
 
 func WithDeleteCallback(ec ExpiredCallback) ICacheOption {
 	return func(conf *Config) {
+		fmt.Println("** 开始执行删除callback **")
 		conf.deleteCallback = ec
+		fmt.Println("** 执行删除callback结束 **")
 	}
 }
 

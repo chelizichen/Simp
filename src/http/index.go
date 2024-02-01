@@ -1,6 +1,7 @@
 package http
 
 import (
+	"Simp/src/cache"
 	"Simp/src/config"
 	"Simp/src/utils"
 	"fmt"
@@ -24,6 +25,7 @@ type SimpHttpServerCtx struct {
 	isMain      bool
 	StoragePath string
 	StaticPath  string
+	CacheSvr    cache.ICache
 }
 
 func Resp(code int, message string, data interface{}) *gin.H {
