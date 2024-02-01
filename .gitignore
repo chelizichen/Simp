@@ -19,6 +19,8 @@ servers/CalcServer/CalcServer.tar.gz
 
 servers/PoolServer/*
 
+servers/ZYZQUploadServer/*
+
 ./servers/BlogServer/*
 
 servers/CalcServer/simp.prod.yaml
