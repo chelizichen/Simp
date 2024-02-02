@@ -92,7 +92,7 @@ func (c *SimpHttpServerCtx) Get(realPath string, handle gin.HandlerFunc) {
 	c.Engine.GET(realPath, handle)
 }
 
-func (c *SimpHttpServerCtx) Static(realPath string) {
+func (c *SimpHttpServerCtx) Static(realPath string, args ...string) {
 	s := c.Name
 	pre := strings.ToLower(s)
 	f := utils.Join(pre)
@@ -103,9 +103,19 @@ func (c *SimpHttpServerCtx) Static(realPath string) {
 	var staticPath string
 	if SIMP_PRODUCTION == "Yes" {
 		SIMP_SERVER_PATH := os.Getenv("SIMP_SERVER_PATH")
-		staticPath = filepath.Join(SIMP_SERVER_PATH, c.StaticPath)
+		if len(args) > 0 {
+			otherPath := filepath.Join(args...)
+			staticPath = filepath.Join(SIMP_SERVER_PATH, otherPath)
+		} else {
+			staticPath = filepath.Join(SIMP_SERVER_PATH, c.StaticPath)
+		}
 	} else {
-		staticPath = filepath.Join(wd, c.StaticPath)
+		if len(args) > 0 {
+			otherPath := filepath.Join(args...)
+			staticPath = filepath.Join(wd, otherPath)
+		} else {
+			staticPath = filepath.Join(wd, c.StaticPath)
+		}
 	}
 	c.Engine.Static(target, staticPath)
 }
