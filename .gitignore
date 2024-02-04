@@ -15,15 +15,9 @@
 service_go
 
 # 测试服务的tgz
-servers/CalcServer/CalcServer.tar.gz
 
-servers/PoolServer/*
 
-servers/ZYZQUploadServer/*
-
-./servers/BlogServer/*
-
-servers/CalcServer/simp.prod.yaml
+servers/*
 
 
 # 阿里云TEST
