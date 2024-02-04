@@ -299,6 +299,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if err != nil {
 			fmt.Println("Error To RemoveFile", err.Error())
 			c.JSON(http.StatusBadRequest, handlers.Resp(-1, "Error To RemoveFile", nil))
+			return
 		}
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", nil))
 	})
