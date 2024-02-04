@@ -1,6 +1,10 @@
 package rpc
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"fmt"
+	"reflect"
+)
 
 type Encode[T any] struct {
 	Position  int32
@@ -48,7 +52,13 @@ func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 	return false, nil
 }
 
-func (e *Encode[T]) WriteStruct(tag int, value T) (bool, error) {
+func (e *Encode[T]) WriteStruct(tag int, value interface{}) (bool, error) {
+	t := reflect.TypeOf(value)
+	m, b := t.MethodByName("Encode")
+	if !b {
+		panic(fmt.Sprintf("Error! Struct %s does not have Method Encode", t.Name()))
+	}
+	m.Func.Call([]reflect.Value{reflect.ValueOf(value)})
 	e.Current = int32(tag)
 	return false, nil
 }
