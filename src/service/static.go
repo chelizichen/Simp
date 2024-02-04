@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,6 +32,13 @@ func Static(ctx *handlers.SimpHttpServerCtx, pre string) {
 	if err != nil {
 		fmt.Println("Error To GetWd", err.Error())
 	}
+	G.Use(func(c *gin.Context) {
+		if strings.Index(c.Request.URL.Path, "simpserver/static") > -1 {
+			// 对特定路由的静态资源设置 Cache-Control
+			c.Writer.Header().Set("Cache-Control", "public, max-age=3600")
+		}
+		c.Next()
+	})
 	staticRoot := filepath.Join(wd, "static")
 	webRoot := filepath.Join(wd, "pages")
 	G.Use(CORSMiddleware())
