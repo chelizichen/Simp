@@ -26,3 +26,5 @@ SimpServer.tar.gz
 nginx.conf
 
 .vscode/*
+
+.idea/*
