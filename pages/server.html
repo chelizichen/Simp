@@ -610,6 +610,7 @@
                         message: '添加成功!'
                     });
                     this.createServerVisible = false
+                    this.fetchServerList()
                 },
                 async DeletePackage(hash) {
                     this.$confirm('确认删除该发布包?', '提示', {
