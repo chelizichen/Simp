@@ -1,8 +1,0 @@
-# 生产为simp.prod.yaml
-server:
-  name: CalcServer
-  port: 8512
-  type: http
-  staticPath: web # 静态资源
-  storage: root:123456@tcp(127.0.0.1:3306)/simp_server_db # 存储
-  main: false
