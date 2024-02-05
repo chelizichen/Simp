@@ -28,7 +28,10 @@ type SimpCacheHook struct {
 }
 
 func InsertKeySet(db *sqlx.DB, key string, table string) error {
-	query := fmt.Sprintf("INSERT INTO simp_cache_keys (key, table) VALUES (?, ?)")
+	query := ("INSERT INTO simp_caches_set (k, t) VALUES (?, ?)")
 	_, err := db.Exec(query, key, table)
+	if err != nil {
+		fmt.Println("Error To Insert Key Set ", err.Error())
+	}
 	return err
 }

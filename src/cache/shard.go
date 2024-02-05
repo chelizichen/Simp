@@ -18,6 +18,11 @@ type SimpCacheItem struct {
 	Value interface{} `json:"v" db:"v"`
 }
 
+type DBCacheKey struct {
+	Key   string `db:"k"`
+	Table string `db:"t"`
+}
+
 func (s *SimpCacheItem) GetFromTable(db *sqlx.DB) {
 
 }
@@ -45,7 +50,7 @@ func newMemCacheShard(conf *Config) *memCacheShard {
 // 没有过期时间的默认给24小时自动过期
 // 防止太多cache存入内存中
 func (c *memCacheShard) set(k string, item *Item) {
-	if !item.CanExpire() || item.status == ITEM_STATUS_DEFAULT || item.status == ITEM_STATUS_FROM_CACHE {
+	if !item.CanExpire() || item.status == ITEM_STATUS_DEFAULT || item.status == ITEM_STATUS_FROM_CACHE || item.status == 0 {
 		item.status = ITEM_STATUS_DEFAULT
 		item.SetExpireAt(time.Now().Add(DEFAULT_EXPIRE_TIME))
 	} else {
@@ -61,16 +66,16 @@ func (c *memCacheShard) get(k string) (interface{}, bool) {
 	c.lock.RLock()
 	item, exist := c.hashmap[k]
 	c.lock.RUnlock()
+	value, exist := c.getWhenExpire(k)
+	if exist && item.status == ITEM_STATUS_DEFAULT {
+		c.set(k, &Item{v: value, status: ITEM_STATUS_FROM_CACHE})
+		return value, true
+	}
 	if !exist {
 		return nil, false
 	}
 	if !item.Expired() {
 		return item.v, true
-	}
-	value, exist := c.getWhenExpire(k)
-	if exist && item.status == ITEM_STATUS_DEFAULT {
-		c.set(k, &Item{v: value, status: ITEM_STATUS_FROM_CACHE})
-		return value, true
 	}
 	if c.delExpired(k) {
 		return nil, false
@@ -109,6 +114,7 @@ func (c *memCacheShard) del(k string) int {
 func (c *memCacheShard) delExpired(k string) bool {
 	c.lock.Lock()
 	item, found := c.hashmap[k]
+	status := item.status
 	if !found || !item.Expired() {
 		c.lock.Unlock()
 		return false
@@ -116,7 +122,7 @@ func (c *memCacheShard) delExpired(k string) bool {
 	delete(c.hashmap, k)
 	c.lock.Unlock()
 	if c.expiredCallback != nil {
-		switch item.status {
+		switch status {
 		case ITEM_STATUS_DEFAULT:
 			{
 				_ = c.defaultCallback(k, item.v)

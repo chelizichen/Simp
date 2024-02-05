@@ -10,7 +10,7 @@ const (
 	ITEM_STATUS_EXPIRE     = 2
 	ITEM_STATUS_DELETE     = 4
 	ITEM_STATUS_FROM_CACHE = 3
-	DEFAULT_EXPIRE_TIME    = 24 * time.Hour
+	DEFAULT_EXPIRE_TIME    = 12 * time.Second
 )
 
 type IItem interface {
