@@ -1,6 +1,22 @@
-# Simp
+<h2 align="center">Simp</h2>
 
 <img src="./static/img/main_control.png" />
+
+***
+
+**START**
+
+- [介绍](#介绍)
+- [开发目的](#开发目的)
+- [配置文件](#配置文件)
+- [使用](#使用)
+- [发布](#发布)
+
+##### 介绍
+
+Simp是一个快速发布、部署的现代Web平台,类似于[Tars](https://github.com/TarsCloud/Tars),采用[gin](https://github.com/gin-gonic/gin) + [vue](https://github.com/vuejs/vue)进行底层平台的构建。该平台以部署简单，无需MySql,无需安装其他环境,只需要将二进制文件和静态资源部署至云平台即可。同时含有日志系统，日志分为主控和子服务日志，两者可以随时查看。
+
+##### 开发目的
 
 1. 我喜欢TAF Web化的部署方式。
 2. 我喜欢TRPC 简洁的开发模式
@@ -10,28 +26,22 @@
 
 1. 我还是很喜欢TAF的Web化部署方式，重点是，我爱JavaScript！
 2. 部署平台不能过多的涉及业务。TAF平台里所展示的一些东西其实和业务也是有绑定的，这使得开发者得花过多的时间去研究和了解。
-3. 通信我觉得都采用HTTP就可以了，流量带宽的，很多时候并不需要去考虑。
+
+##### 配置文件
 
 配置采用 yaml的形式
 
 ````yaml
 server:
-  name: SimpServer
-  port: 8080
-  type: main
-  staticPath: static # 静态资源
-  storage:  mysql@3306...... # 存储
-  proxy:
-    - server:
-        type: fass # 选择Fass时默认代表本地，并且！，冷启动！，不能包含定时器等玩意，
-        name: FassServer
-    - server:
-        type: http
-        port: 9091
-        name: StudentServer
+  name: SimpServer #服务名
+  port: 8080 
+  host: 0.0.0.0  
+  type: main 
+  staticPath: static # 静态资源路径
+  storage:  mysql@3306...... # 存储，参考sqlx写法
 ````
 
-## START
+##### 使用
 
 ````shell
 # Step 1
@@ -79,7 +89,7 @@ tar -cvf TestServer.tar.gz ./simp.yaml ./service_go
 
 ````
 
-## PRODUCTION
+##### 发布
 
 先编译打包主控服务
 注意：编译前需要定义好环境变量
