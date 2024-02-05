@@ -55,14 +55,24 @@ func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 }
 
 func (e *Encode[T]) WriteStruct(tag int, value interface{}) (bool, error) {
-	t := reflect.TypeOf(value)
+	t := reflect.TypeOf(value) // Use Elem() to get the element type (remove the pointer)
+	if t.Kind() != reflect.Ptr {
+		panic("Error! WriteStruct expects a pointer to a struct")
+	}
 	m, b := t.MethodByName("Encode")
 	if !b {
 		panic(fmt.Sprintf("Error! Struct %s does not have Method Encode", t.Name()))
 	}
-	m.Func.Call([]reflect.Value{reflect.ValueOf(value)})
+	callResp := m.Func.Call([]reflect.Value{reflect.ValueOf(value)})
+	v := callResp[0].Elem()
+	position := v.FieldByName("Position").Interface().(int32)
+	bytes := v.FieldByName("Bytes").Interface().([]byte)
 	e.Current = int32(tag)
-	return false, nil
+	binary.LittleEndian.PutUint32(e.Bytes[e.Position:], uint32(position))
+	e.Position += 4
+	copy(e.Bytes[e.Position:], bytes)
+	e.Position += int32(position)
+	return true, nil
 }
 
 func (d *Encode[T]) WriteList(tag int, className string, value []interface{}) (bool, error) {

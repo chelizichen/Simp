@@ -15,8 +15,8 @@ type BasicInfo struct {
 }
 
 type User struct {
-	UserInfo  UserInfo
-	BasicInfo BasicInfo
+	UserInfo  *UserInfo
+	BasicInfo *BasicInfo
 }
 
 // UserInfo
@@ -62,8 +62,8 @@ func (r *User) Decode(Bytes []byte) *User {
 	d := new(rpc.Decode[User])
 	d.ClassName = "User"
 	d.Bytes = Bytes
-	r.BasicInfo = d.ReadStruct(1, "BasicInfo").(BasicInfo)
-	r.UserInfo = d.ReadStruct(2, "UserInfo").(UserInfo)
+	r.BasicInfo = d.ReadStruct(1, "BasicInfo").(*BasicInfo)
+	r.UserInfo = d.ReadStruct(2, "UserInfo").(*UserInfo)
 	return r
 }
 
@@ -81,13 +81,15 @@ func main() {
 	ui.age = 1
 	ui.name = "chelizichen"
 	ui.birth = 32767
-	e := ui.Encode()
-	ui.Decode(e.Bytes)
-	//bi := new(BasicInfo)
-	//bi.Token = "112213klsfnjiujas0218u321"
-	//
-	//u := new(User)
-	//u.BasicInfo = *bi
-	//u.UserInfo = *ui
+	//e := ui.Encode()
+	//ui.Decode(e.Bytes)
+	bi := new(BasicInfo)
+	bi.Token = "112213klsfnjiujas0218u321"
 
+	u := new(User)
+	u.BasicInfo = bi
+	u.UserInfo = ui
+
+	ue := u.Encode()
+	u.Decode(ue.Bytes)
 }
