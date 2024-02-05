@@ -13,33 +13,27 @@ type Encode[T any] struct {
 	Bytes     []byte
 }
 
-func (e *Encode[T]) WriteInt8(tag int, value int8) (bool, error) {
-	if int(e.Position) >= len(e.Bytes) {
+func (e *Encode[T]) Dilatation(size int) {
+	if int(e.Position)+size >= len(e.Bytes) {
 		// 如果字节切片容量不足，可以进行扩容操作
-		newBytes := make([]byte, 2*len(e.Bytes))
+		newBytes := make([]byte, 2*len(e.Bytes)+size)
 		copy(newBytes, e.Bytes)
 		e.Bytes = newBytes
 	}
+}
 
+func (e *Encode[T]) WriteInt8(tag int, value int8) (bool, error) {
+	e.Dilatation(1)
 	e.Current = int32(tag)
 	e.Bytes[e.Position] = byte(value)
-	e.Position++
-
-	return false, nil
+	e.Position += 1
+	return true, nil
 }
 
 func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 	// 将字符串转换为字节数组
 	stringBytes := []byte(value)
-
-	// 检查字节切片容量是否足够
-	if int(e.Position)+len(stringBytes)+4 >= len(e.Bytes) {
-		// 如果容量不足，进行扩容操作
-		newBytes := make([]byte, 2*(len(e.Bytes)+len(stringBytes)+4))
-		copy(newBytes, e.Bytes)
-		e.Bytes = newBytes
-	}
-
+	e.Dilatation(len(stringBytes) + 4)
 	// 写入字符串长度
 	binary.LittleEndian.PutUint32(e.Bytes[e.Position:], uint32(len(stringBytes)))
 	e.Position += 4
@@ -49,7 +43,7 @@ func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 	e.Position += int32(len(stringBytes))
 
 	e.Current = int32(tag)
-	return false, nil
+	return true, nil
 }
 
 func (e *Encode[T]) WriteStruct(tag int, value interface{}) (bool, error) {
