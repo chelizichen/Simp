@@ -30,6 +30,14 @@ func (e *Encode[T]) WriteInt8(tag int, value int8) (bool, error) {
 	return true, nil
 }
 
+func (e *Encode[T]) WriteInt16(tag int, value int16) (bool, error) {
+	e.Dilatation(2)
+	e.Current = int32(tag)
+	binary.LittleEndian.PutUint16(e.Bytes[e.Position:], uint16(value))
+	e.Position += 2
+	return true, nil
+}
+
 func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 	// 将字符串转换为字节数组
 	stringBytes := []byte(value)

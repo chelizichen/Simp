@@ -2,12 +2,12 @@ package main
 
 import (
 	"Simp/src/rpc"
-	"fmt"
 )
 
 type UserInfo struct {
-	age  int8
-	name string
+	age   int8
+	birth int16
+	name  string
 }
 
 type BasicInfo struct {
@@ -24,11 +24,9 @@ func (r *UserInfo) Decode(Bytes []byte) *UserInfo {
 	d := new(rpc.Decode[UserInfo])
 	d.ClassName = "UserInfo"
 	d.Bytes = Bytes
-	fmt.Println("Byte - ", Bytes)
 	r.name = d.ReadString(1)
-	fmt.Println("r.name - ", r.name)
 	r.age = d.ReadInt8(2)
-	fmt.Println("r.age - ", r.age)
+	r.birth = d.ReadInt16(3)
 	return r
 }
 
@@ -38,6 +36,7 @@ func (r *UserInfo) Encode() *rpc.Encode[UserInfo] {
 	d.Bytes = make([]byte, 1024)
 	d.WriteString(1, r.name)
 	d.WriteInt8(2, r.age)
+	d.WriteInt16(3, r.birth)
 	return d
 }
 
@@ -81,6 +80,7 @@ func main() {
 	ui := new(UserInfo)
 	ui.age = 1
 	ui.name = "chelizichen"
+	ui.birth = 32767
 	e := ui.Encode()
 	ui.Decode(e.Bytes)
 	//bi := new(BasicInfo)

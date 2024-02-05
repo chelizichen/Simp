@@ -24,15 +24,8 @@ func (d *Decode[T]) ReadInt8(tag int) int8 {
 func (d *Decode[T]) ReadInt16(tag int) int16 {
 	d.Current = int32(tag)
 	d.Position += 2
-
-	// 检查字节切片长度是否足够
-	if int(d.Position)+1 > len(d.Bytes) {
-		// 处理越界情况，这里可能需要根据你的具体需求进行处理
-		return 0
-	}
-
-	// 将字节切片转换为int16
 	result := int16(binary.LittleEndian.Uint16(d.Bytes[d.Position-2 : d.Position]))
+	fmt.Println("ReadInt16", result)
 	return result
 }
 
@@ -40,6 +33,7 @@ func (d *Decode[T]) ReadString(tag int) string {
 	d.Current = int32(tag)
 	d.Position += 4
 	valueLength := int32(binary.LittleEndian.Uint32(d.Bytes[d.Position-4 : d.Position]))
+	d.Position += valueLength
 	value := string(d.Bytes[d.Position : d.Position+valueLength])
 	return value
 }
