@@ -136,14 +136,23 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "service_go")
 		storageYmlEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simp.yaml")
 		storageYmlProdPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simpProd.yaml")
-
+		sc, err := config.NewConfig(storageYmlEPath)
+		if err != nil {
+			fmt.Println("Error To Get Config")
+		}
+		s := sc.Server.StaticPath
+		storageStaticPath := filepath.Join(cwd, utils2.PublishPath, serverName, s)
+		err = utils2.IFExistThenRemove(storageStaticPath)
+		if err != nil {
+			fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
+		}
 		err = utils2.IFExistThenRemove(storageExEPath)
 		if err != nil {
-			fmt.Println("remove File Error "+storageExEPath, err.Error())
+			fmt.Println("remove File Error storageExEPath "+storageExEPath, err.Error())
 		}
 		err = utils2.IFExistThenRemove(storageYmlEPath)
 		if err != nil {
-			fmt.Println("remove File Error "+storageYmlEPath, err.Error())
+			fmt.Println("remove File Error storageYmlEPath "+storageYmlEPath, err.Error())
 		}
 
 		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
