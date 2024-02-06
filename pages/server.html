@@ -27,7 +27,10 @@
             padding: 0;
             font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
         }
-
+        .intro a{
+            text-decoration: none;
+            color: rgb(207, 15, 124)
+        }
         .flex-item {
             text-align: center;
             width: 15%;
@@ -218,6 +221,17 @@
                         </div>
                     </el-tab-pane>
                 </el-tabs>
+            </el-card>
+            <el-card>
+                <div class="intro" style="display: flex;align-items: center;justify-content: center;">
+                    <div>created by <a href="/simpserver/static/source/resume.docx">leemulus21@gmail.com</a></div>
+                    <span> &nbsp;&nbsp;&nbsp;&nbsp;- -&nbsp;&nbsp;&nbsp;&nbsp; </span>
+                    <div>built by <span style="color: rgb(113, 214, 113);">vue</span> and <span style="color: rgb(10, 219, 205);">gin</span></div>
+                    <span> &nbsp;&nbsp;&nbsp;&nbsp;- -&nbsp;&nbsp;&nbsp;&nbsp; </span>
+                    <div>at 2024</div>
+                    <span> &nbsp;&nbsp;&nbsp;&nbsp;- -&nbsp;&nbsp;&nbsp;&nbsp; </span>
+                    <div><a href="https://github.com/chelizichen/Simp">star simp</a></div>
+                </div>
             </el-card>
             <!-- 文件上传表单 -->
             <el-dialog append-to-body :visible="uploadVisible" width="50%" title="Release">
@@ -610,6 +624,7 @@
                         message: '添加成功!'
                     });
                     this.createServerVisible = false
+                    this.createServerName = ''
                     this.fetchServerList()
                 },
                 async DeletePackage(hash) {
