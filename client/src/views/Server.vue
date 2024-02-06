@@ -1,8 +1,14 @@
+<script lang="ts">
+export default {
+  name: 'server-component'
+}
+</script>
 <script setup lang="ts">
 import { ElIcon, ElLoading, ElMessage, ElPopconfirm } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
 import API from '../api/server'
-
+import asideComponent from '@/components/aside.vue'
+import mainLogger from '@/components/mainlogger.vue'
 const state = reactive({
   serverList: [],
   packageList: [],
@@ -337,54 +343,13 @@ watch(
   <div>
     <el-container>
       <el-aside width="200px">
-        <h1
-          style="color: rgb(207, 15, 124); text-align: center; font-family: fantasy"
-          class="app-bigger-size"
-        >
-        <el-icon style="color: rgb(207, 90, 124); font-size: 36px"><Help /></el-icon>
-          Simp
-        </h1>
-        <el-menu
-          class="el-menu-vertical-demo"
-          active-text-color="rgb(207, 15, 124)"
-          style="border: none"
-        >
-          <el-menu-item
-            v-for="(item, index) in state.serverList"
-            class="app-text-center"
-            :index="item"
-            :key="index"
-            @click="handleOpen(item)"
-          >
-            <el-icon class="app-not-show"><Menu/></el-icon>
-            <template #title>{{ item }}</template>
-          </el-menu-item>
-        </el-menu>
+        <aside-component
+          :server-list="state.serverList"
+          @handle-open="handleOpen"
+        ></aside-component>
       </el-aside>
       <el-main>
-        <el-card shadow="hover">
-          <div
-            style="height: 70px; display: flex; align-items: center; justify-content: space-around"
-          >
-            <div class="flex-item">
-              <div
-                @click="state.createServerVisible = true"
-                style="color: rgb(207, 15, 124); cursor: pointer"
-              >
-                CreateServer
-              </div>
-            </div>
-            <div class="flex-item">
-              <div @click="GetMainLogList()" style="color: rgb(207, 15, 124); cursor: pointer">
-                CheckLog
-              </div>
-            </div>
-            <div class="flex-item">
-              <div style="font-weight: 700">ServerCounts</div>
-              <div style="color: rgb(207, 15, 124)">{{ state.serverList.length }}</div>
-            </div>
-          </div>
-        </el-card>
+        <main-logger :server-list="state.serverList" :create-server-visible="state.configVisible" @get-main-log-list="GetMainLogList()" @change-visible="(bool:boolean)=>{state.createServerVisible = bool}"></main-logger>
         <el-card shadow="hover" v-if="!state.serverName">
           <div style="display: flex; height: 700px" v-if="state.activeName == 'logger'">
             <div style="width: 13%; margin-right: 2%">
