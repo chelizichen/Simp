@@ -12,5 +12,15 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  server: {
+    port: 3000,
+    proxy: {
+      '/simpserver': {
+        target: 'http://localhost:8511/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/simpserver/, '/simpserver/') // 不可以省略rewrite
+      }
+    }
   }
 })

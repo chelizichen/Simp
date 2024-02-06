@@ -36,7 +36,7 @@ func TOKEN_VALIDATE(ctx *gin.Context) {
 			ctx.Next()
 			return
 		}
-		ctx.JSON(http.StatusBadRequest, handlers.Resp(-2, "Token Error", nil))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, handlers.Resp(-2, "Token Error", nil))
 		return
 	} else {
 		ctx.Next()

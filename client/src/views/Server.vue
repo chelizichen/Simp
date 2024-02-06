@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElLoading, ElMessage, ElPopconfirm } from 'element-plus'
+import { ElIcon, ElLoading, ElMessage, ElPopconfirm } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
 import API from '../api/server'
 
@@ -273,7 +273,7 @@ async function initLogger() {
   formData.append('serverName', state.serverName)
   const data = await API.GetLogList(formData)
   state.loggerList = data.Data || []
-  state.loggerFile = state.loggerList.length ? this.loggerList[0] : ''
+  state.loggerFile = state.loggerList.length ? state.loggerList[0] : ''
 }
 
 onMounted(() => {
@@ -281,355 +281,377 @@ onMounted(() => {
   GetMainLogList()
 })
 
-watch(state, async (newVal, oldVal) => {
-  if (newVal.activeName == 'api') {
-    const formData = new FormData()
-    formData.append('serverName', state.serverName)
-    const data = await API.GetApiJson(formData)
-    state.apis = JSON.parse(data.Data)
-  }
-  if (newVal.activeName == 'doc') {
-    const formData = new FormData()
-    formData.append('serverName', state.serverName)
-    const data = await API.GetDoc(formData)
-    state.doc = data.Data
-  }
-  if (newVal.activeName == 'logger') {
-    await initLogger()
-    // const
-  }
-  if (oldVal.serverName != newVal.serverName) {
-    state.doc = ''
-    state.apis = []
-    state.logger = ''
-    state.packageList = []
-    state.activeName = 'logger'
-    state.pattern = ''
-    //
-    await initLogger()
-  }
-  if (state.releaseVisible == true) {
-    state.selectRelease = ''
-    uploadForm.value = {
-      serverName: state.serverName,
-      file: null,
-      doc: ''
+watch(
+  () => state.activeName,
+  async (newVal) => {
+    if (newVal == 'api') {
+      const formData = new FormData()
+      formData.append('serverName', state.serverName)
+      const data = await API.GetApiJson(formData)
+      state.apis = JSON.parse(data.Data)
+    }
+    if (newVal == 'doc') {
+      const formData = new FormData()
+      formData.append('serverName', state.serverName)
+      const data = await API.GetDoc(formData)
+      state.doc = data.Data
+    }
+    if (newVal == 'logger') {
+      await initLogger()
+      // const
     }
   }
-})
+)
+watch(
+  () => state.serverName,
+  async function (newVal, oldVal) {
+    if (oldVal != newVal) {
+      state.doc = ''
+      state.apis = []
+      state.logger = ''
+      state.packageList = []
+      state.activeName = 'logger'
+      state.pattern = ''
+      //
+      await initLogger()
+    }
+  }
+)
+
+watch(
+  () => state.releaseVisible,
+  function (newVal) {
+    if (newVal) {
+      state.selectRelease = ''
+      uploadForm.value = {
+        serverName: state.serverName,
+        file: null,
+        doc: ''
+      }
+    }
+  }
+)
 </script>
 
 <template>
   <div>
-    <el-col
-      :span="4"
-      style="height: 100vh; box-sizing: border-box; border-right: 1px solid #ebeef5"
-    >
-      <h1
-        style="color: rgb(207, 15, 124); text-align: center; font-family: fantasy"
-        class="app-bigger-size"
-      >
-        <i
-          class="el-icon-help app-bigger-size"
-          style="color: rgb(207, 90, 124); font-size: 36px"
-        ></i
-        >Simp
-      </h1>
-      <el-menu
-        class="el-menu-vertical-demo"
-        active-text-color="rgb(207, 15, 124)"
-        style="border: none"
-      >
-        <el-menu-item
-          v-for="(item, index) in state.serverList"
-          class="app-text-center"
-          :index="item"
-          :key="index"
-          @click="handleOpen(item)"
+    <el-container>
+      <el-aside width="200px">
+        <h1
+          style="color: rgb(207, 15, 124); text-align: center; font-family: fantasy"
+          class="app-bigger-size"
         >
-          <i class="el-icon-menu app-not-show"></i>
-          <span slot="title">{{ item }}</span>
-        </el-menu-item>
-      </el-menu>
-    </el-col>
-    <el-col :span="20">
-      <el-card shadow="hover">
-        <div
-          style="height: 70px; display: flex; align-items: center; justify-content: space-around"
+        <el-icon style="color: rgb(207, 90, 124); font-size: 36px"><Help /></el-icon>
+          Simp
+        </h1>
+        <el-menu
+          class="el-menu-vertical-demo"
+          active-text-color="rgb(207, 15, 124)"
+          style="border: none"
         >
-          <div class="flex-item">
-            <div
-              @click="state.createServerVisible = true"
-              style="color: rgb(207, 15, 124); cursor: pointer"
-            >
-              CreateServer
-            </div>
-          </div>
-          <div class="flex-item">
-            <div @click="GetMainLogList()" style="color: rgb(207, 15, 124); cursor: pointer">
-              CheckLog
-            </div>
-          </div>
-          <div class="flex-item">
-            <div style="font-weight: 700">ServerCounts</div>
-            <div style="color: rgb(207, 15, 124)">{{ state.serverList.length }}</div>
-          </div>
-        </div>
-      </el-card>
-      <el-card shadow="hover" v-if="!state.serverName">
-        <div style="display: flex; height: 700px" v-if="state.activeName == 'logger'">
-          <div style="width: 13%; margin-right: 2%">
-            <el-select v-model="state.loggerFile">
-              <el-option
-                v-for="item in state.mainLogList"
-                :key="item"
-                :value="item"
-                :label="item"
-              ></el-option>
-            </el-select>
-            <br />
-            <br />
-            <el-input v-model="state.pattern"></el-input>
-            <br />
-            <br />
-            <el-button @click="GetServerLogger()" type="primary">Search</el-button>
-          </div>
-          <div
-            class="resu"
-            style="
-              background-color: black;
-              height: 700px;
-              padding: 5px 10px;
-              width: 85%;
-              overflow: scroll;
-            "
+          <el-menu-item
+            v-for="(item, index) in state.serverList"
+            class="app-text-center"
+            :index="item"
+            :key="index"
+            @click="handleOpen(item)"
           >
-            <div style="color: aliceblue">
-              SimpMainControlLogServer :: {{ state.serverName }} :: created By leeks
-            </div>
-            <div style="color: aliceblue; margin: 2px" v-for="item in state.logger" :key="item">
-              {{ item }}
-            </div>
-          </div>
-        </div>
-      </el-card>
-      <el-card shadow="hover" v-if="state.serverName">
-        <div
-          style="height: 70px; display: flex; align-items: center; justify-content: space-around"
-        >
-          <div class="flex-item">
-            <div style="font-weight: 700">PackageCounts</div>
-            <div style="color: rgb(207, 15, 124)">{{ state.packageList.length }}</div>
-          </div>
-          <div class="flex-item">
-            <div style="font-weight: 700">ServerName</div>
-            <div style="color: rgb(207, 15, 124); cursor: pointer" @click="showConfig()">
-              {{ state.serverName || '--' }}
-            </div>
-          </div>
-          <div class="flex-item">
-            <div style="font-weight: 700">Pid</div>
-            <div style="color: rgb(207, 15, 124)">{{ state.status.pid || '--' }}</div>
-          </div>
-          <div class="flex-item">
-            <div style="font-weight: 700">Status</div>
-            <div style="color: rgb(207, 15, 124)">{{ state.status.status || '--' }}</div>
-          </div>
-          <div class="flex-item">
-            <div
-              @click="state.uploadVisible = true"
-              style="color: rgb(207, 15, 124); cursor: pointer"
-            >
-              Upload
-            </div>
-          </div>
-          <div class="flex-item">
-            <div @click="ShutDownServer()" style="color: rgb(207, 15, 124); cursor: pointer">
-              Shutdown
-            </div>
-          </div>
-
-          <div class="flex-item">
-            <div
-              @click="state.releaseVisible = true"
-              style="color: rgb(207, 15, 124); cursor: pointer"
-            >
-              Release
-            </div>
-          </div>
-        </div>
-      </el-card>
-      <el-card shadow="hover" v-if="state.serverName" style="padding: 0">
-        <el-tabs v-model="state.activeName">
-          <el-tab-pane label="logger" name="logger">
-            <div style="display: flex; height: 700px" v-if="state.activeName == 'logger'">
-              <div style="width: 13%; margin-right: 2%">
-                <el-select v-model="state.loggerFile">
-                  <el-option
-                    v-for="item in state.loggerList"
-                    :key="item"
-                    :value="item"
-                    :label="item"
-                  ></el-option>
-                </el-select>
-                <br />
-                <br />
-                <el-input v-model="state.pattern"></el-input>
-                <br />
-                <br />
-                <el-button @click="GetServerLogger()" type="primary">Search</el-button>
-              </div>
+            <el-icon class="app-not-show"><Menu/></el-icon>
+            <template #title>{{ item }}</template>
+          </el-menu-item>
+        </el-menu>
+      </el-aside>
+      <el-main>
+        <el-card shadow="hover">
+          <div
+            style="height: 70px; display: flex; align-items: center; justify-content: space-around"
+          >
+            <div class="flex-item">
               <div
-                class="resu"
-                style="
-                  background-color: black;
-                  height: 700px;
-                  padding: 5px 10px;
-                  width: 85%;
-                  overflow: scroll;
-                "
+                @click="state.createServerVisible = true"
+                style="color: rgb(207, 15, 124); cursor: pointer"
               >
-                <div style="color: aliceblue">
-                  SimpLogServer :: {{ state.serverName }} :: created By leeks
-                </div>
-                <div style="color: aliceblue; margin: 2px" v-for="item in state.logger" :key="item">
-                  {{ item }}
-                </div>
+                CreateServer
               </div>
             </div>
-          </el-tab-pane>
-          <el-tab-pane label="api" name="api">
-            <div v-if="state.activeName == 'api'">
-              <div v-for="item in state.apis" :key="item">
+            <div class="flex-item">
+              <div @click="GetMainLogList()" style="color: rgb(207, 15, 124); cursor: pointer">
+                CheckLog
+              </div>
+            </div>
+            <div class="flex-item">
+              <div style="font-weight: 700">ServerCounts</div>
+              <div style="color: rgb(207, 15, 124)">{{ state.serverList.length }}</div>
+            </div>
+          </div>
+        </el-card>
+        <el-card shadow="hover" v-if="!state.serverName">
+          <div style="display: flex; height: 700px" v-if="state.activeName == 'logger'">
+            <div style="width: 13%; margin-right: 2%">
+              <el-select v-model="state.loggerFile">
+                <el-option
+                  v-for="item in state.mainLogList"
+                  :key="item"
+                  :value="item"
+                  :label="item"
+                ></el-option>
+              </el-select>
+              <br />
+              <br />
+              <el-input v-model="state.pattern"></el-input>
+              <br />
+              <br />
+              <el-button @click="GetServerLogger()" type="primary">Search</el-button>
+            </div>
+            <div
+              class="resu"
+              style="
+                background-color: black;
+                height: 700px;
+                padding: 5px 10px;
+                width: 85%;
+                overflow: scroll;
+              "
+            >
+              <div style="color: aliceblue">
+                SimpMainControlLogServer :: {{ state.serverName }} :: created By leeks
+              </div>
+              <div style="color: aliceblue; margin: 2px" v-for="item in state.logger" :key="item">
+                {{ item }}
+              </div>
+            </div>
+          </div>
+        </el-card>
+        <el-card shadow="hover" v-if="state.serverName">
+          <div
+            style="height: 70px; display: flex; align-items: center; justify-content: space-around"
+          >
+            <div class="flex-item">
+              <div style="font-weight: 700">PackageCounts</div>
+              <div style="color: rgb(207, 15, 124)">{{ state.packageList.length }}</div>
+            </div>
+            <div class="flex-item">
+              <div style="font-weight: 700">ServerName</div>
+              <div style="color: rgb(207, 15, 124); cursor: pointer" @click="showConfig()">
+                {{ state.serverName || '--' }}
+              </div>
+            </div>
+            <div class="flex-item">
+              <div style="font-weight: 700">Pid</div>
+              <div style="color: rgb(207, 15, 124)">{{ state.status.pid || '--' }}</div>
+            </div>
+            <div class="flex-item">
+              <div style="font-weight: 700">Status</div>
+              <div style="color: rgb(207, 15, 124)">{{ state.status.status || '--' }}</div>
+            </div>
+            <div class="flex-item">
+              <div
+                @click="state.uploadVisible = true"
+                style="color: rgb(207, 15, 124); cursor: pointer"
+              >
+                Upload
+              </div>
+            </div>
+            <div class="flex-item">
+              <div @click="ShutDownServer()" style="color: rgb(207, 15, 124); cursor: pointer">
+                Shutdown
+              </div>
+            </div>
+
+            <div class="flex-item">
+              <div
+                @click="state.releaseVisible = true"
+                style="color: rgb(207, 15, 124); cursor: pointer"
+              >
+                Release
+              </div>
+            </div>
+          </div>
+        </el-card>
+        <el-card shadow="hover" v-if="state.serverName" style="padding: 0">
+          <el-tabs v-model="state.activeName">
+            <el-tab-pane label="logger" name="logger">
+              <div style="display: flex; height: 700px" v-if="state.activeName == 'logger'">
+                <div style="width: 13%; margin-right: 2%">
+                  <el-select v-model="state.loggerFile">
+                    <el-option
+                      v-for="item in state.loggerList"
+                      :key="item"
+                      :value="item"
+                      :label="item"
+                    ></el-option>
+                  </el-select>
+                  <br />
+                  <br />
+                  <el-input v-model="state.pattern"></el-input>
+                  <br />
+                  <br />
+                  <el-button @click="GetServerLogger()" type="primary">Search</el-button>
+                </div>
                 <div
+                  class="resu"
                   style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin: 5px;
+                    background-color: black;
+                    height: 700px;
+                    padding: 5px 10px;
+                    width: 85%;
+                    overflow: scroll;
                   "
                 >
-                  <el-button type="text">{{ item.method }} | {{ item.path }}</el-button>
-                  <el-button type="primary">invoke</el-button>
+                  <div style="color: aliceblue">
+                    SimpLogServer :: {{ state.serverName }} :: created By leeks
+                  </div>
+                  <div
+                    style="color: aliceblue; margin: 2px"
+                    v-for="item in state.logger"
+                    :key="item"
+                  >
+                    {{ item }}
+                  </div>
                 </div>
               </div>
-            </div>
-          </el-tab-pane>
-          <el-tab-pane label="doc" name="doc">
-            <div v-if="state.activeName == 'doc'">
-              <div>
-                {{ state.doc }}
+            </el-tab-pane>
+            <el-tab-pane label="api" name="api">
+              <div v-if="state.activeName == 'api'">
+                <div v-for="item in state.apis" :key="item">
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      margin: 5px;
+                    "
+                  >
+                    <el-button type="text">{{ item.method }} | {{ item.path }}</el-button>
+                    <el-button type="primary">invoke</el-button>
+                  </div>
+                </div>
               </div>
+            </el-tab-pane>
+            <el-tab-pane label="doc" name="doc">
+              <div v-if="state.activeName == 'doc'">
+                <div>
+                  {{ state.doc }}
+                </div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+        </el-card>
+        <!-- 文件上传表单 -->
+        <el-dialog append-to-body v-model="state.uploadVisible" width="50%" title="Release">
+          <el-form :model="uploadForm" label-width="150px">
+            <el-form-item label="Server Name" required>
+              <el-input v-model="uploadForm.serverName" disabled></el-input>
+            </el-form-item>
+            <el-form-item label="Document" required>
+              <el-input v-model="uploadForm.doc" type="textarea" row="5"></el-input>
+            </el-form-item>
+            <el-form-item label="File" required>
+              <el-upload
+                :show-file-list="true"
+                :on-change="handleFileChange"
+                :auto-upload="false"
+                action="/upload"
+              >
+                <el-button slot="trigger" size="small">Choose File</el-button>
+              </el-upload>
+            </el-form-item>
+          </el-form>
+          <span slot="footer">
+            <div style="display: flex; align-items: center; justify-content: center">
+              <el-button type="primary" @click="state.uploadVisible = false">Close</el-button>
+              <el-button type="success" @click="uploadFile">Upload</el-button>
             </div>
-          </el-tab-pane>
-        </el-tabs>
-      </el-card>
-      <!-- 文件上传表单 -->
-      <el-dialog append-to-body :visible="state.uploadVisible" width="50%" title="Release">
-        <el-form :model="uploadForm" label-width="150px">
-          <el-form-item label="Server Name" required>
-            <el-input v-model="uploadForm.serverName" disabled></el-input>
-          </el-form-item>
-          <el-form-item label="Document" required>
-            <el-input v-model="uploadForm.doc" type="textarea" row="5"></el-input>
-          </el-form-item>
-          <el-form-item label="File" required>
-            <el-upload
-              :show-file-list="true"
-              :on-change="handleFileChange"
-              :auto-upload="false"
-              action="/upload"
+          </span>
+        </el-dialog>
+        <el-dialog
+          append-to-body
+          v-model="state.configVisible"
+          title="Server Configuration"
+          width="60%"
+        >
+          <el-form :model="config" label-width="100px">
+            <el-form-item label="Name">
+              <el-input v-model="config.Name" disabled></el-input>
+            </el-form-item>
+            <el-form-item label="Host">
+              <el-input v-model="config.Host"></el-input>
+            </el-form-item>
+            <el-form-item label="Port">
+              <el-input v-model="config.Port" disabled></el-input>
+            </el-form-item>
+            <el-form-item label="Type">
+              <el-input v-model="config.Type" disabled></el-input>
+            </el-form-item>
+            <el-form-item label="Static Path">
+              <el-input v-model="config.StaticPath"></el-input>
+            </el-form-item>
+            <el-form-item label="Storage">
+              <el-input v-model="config.Storage"></el-input>
+            </el-form-item>
+          </el-form>
+          <span slot="footer">
+            <div style="display: flex; align-items: center; justify-content: center">
+              <el-button type="primary" @click="state.configVisible = false">Close</el-button>
+              <el-button type="success" @click="previewSubServer()">Preivew</el-button>
+              <el-button type="danger" @click="uploadConfig()">Upload</el-button>
+            </div>
+          </span>
+        </el-dialog>
+
+        <el-dialog
+          append-to-body
+          v-model="state.createServerVisible"
+          title="Create Server"
+          width="60%"
+        >
+          <el-form :model="config" label-width="100px">
+            <el-form-item label="Name">
+              <el-input v-model="state.createServerName"></el-input>
+            </el-form-item>
+          </el-form>
+          <span slot="footer">
+            <div style="display: flex; align-items: center; justify-content: center">
+              <el-button type="primary" @click="state.createServerVisible = false">Close</el-button>
+              <el-button type="success" @click="createServer()">Create</el-button>
+            </div>
+          </span>
+        </el-dialog>
+
+        <el-dialog append-to-body v-model="state.releaseVisible" title="Release Server" width="60%">
+          <el-select v-model="state.selectRelease" placeholder="请选择" style="width: 100%">
+            <el-option
+              v-for="item in state.packageList"
+              :key="item.Hash"
+              :label="state.serverName + '_' + item.Hash + '.tar.gz'"
+              :value="state.serverName + '_' + item.Hash + '.tar.gz'"
             >
-              <el-button slot="trigger" size="small">Choose File</el-button>
-            </el-upload>
-          </el-form-item>
-        </el-form>
-        <span slot="footer">
-          <div style="display: flex; align-items: center; justify-content: center">
-            <el-button type="primary" @click="state.uploadVisible = false">Close</el-button>
-            <el-button type="success" @click="uploadFile">Upload</el-button>
-          </div>
-        </span>
-      </el-dialog>
-      <el-dialog
-        append-to-body
-        :visible="state.configVisible"
-        title="Server Configuration"
-        width="60%"
-      >
-        <el-form :model="config" label-width="100px">
-          <el-form-item label="Name">
-            <el-input v-model="config.Name" disabled></el-input>
-          </el-form-item>
-          <el-form-item label="Host">
-            <el-input v-model="config.Host"></el-input>
-          </el-form-item>
-          <el-form-item label="Port">
-            <el-input v-model="config.Port" disabled></el-input>
-          </el-form-item>
-          <el-form-item label="Type">
-            <el-input v-model="config.Type" disabled></el-input>
-          </el-form-item>
-          <el-form-item label="Static Path">
-            <el-input v-model="config.StaticPath"></el-input>
-          </el-form-item>
-          <el-form-item label="Storage">
-            <el-input v-model="config.Storage"></el-input>
-          </el-form-item>
-        </el-form>
-        <span slot="footer">
-          <div style="display: flex; align-items: center; justify-content: center">
-            <el-button type="primary" @click="state.configVisible = false">Close</el-button>
-            <el-button type="success" @click="previewSubServer()">Preivew</el-button>
-            <el-button type="danger" @click="uploadConfig()">Upload</el-button>
-          </div>
-        </span>
-      </el-dialog>
-
-      <el-dialog
-        append-to-body
-        :visible="state.createServerVisible"
-        title="Create Server"
-        width="60%"
-      >
-        <el-form :model="config" label-width="100px">
-          <el-form-item label="Name">
-            <el-input v-model="state.createServerName"></el-input>
-          </el-form-item>
-        </el-form>
-        <span slot="footer">
-          <div style="display: flex; align-items: center; justify-content: center">
-            <el-button type="primary" @click="state.createServerVisible = false">Close</el-button>
-            <el-button type="success" @click="createServer()">Create</el-button>
-          </div>
-        </span>
-      </el-dialog>
-
-      <el-dialog append-to-body :visible="state.releaseVisible" title="Release Server" width="60%">
-        <el-select v-model="state.selectRelease" placeholder="请选择" style="width: 100%">
-          <el-option
-            v-for="item in state.packageList"
-            :key="item.Hash"
-            :label="state.serverName + '_' + item.Hash + '.tar.gz'"
-            :value="state.serverName + '_' + item.Hash + '.tar.gz'"
-          >
-            <span style="float: left">{{ state.serverName }}</span>
-            <span style="float: right" @click="DeletePackage(item.Hash)">
-              <i class="el-icon-remove" style="color: crimson; cursor: pointer"></i>
-            </span>
-            <span style="float: right; color: #8492a6; font-size: 13px">
-              {{ item.Hash }} &nbsp;
-            </span>
-          </el-option>
-        </el-select>
-        <span slot="footer">
-          <div style="display: flex; align-items: center; justify-content: center">
-            <el-button type="primary" @click="state.releaseVisible = false">Close</el-button>
-            <el-button type="success" @click="restartServer()">Release</el-button>
-            <el-button type="danger" @click="state.uploadVisible = true">Upload</el-button>
-          </div>
-        </span>
-      </el-dialog>
-    </el-col>
+              <span style="float: left">{{ state.serverName }}</span>
+              <span style="float: right" @click="DeletePackage(item.Hash)">
+                <i class="el-icon-remove" style="color: crimson; cursor: pointer"></i>
+              </span>
+              <span style="float: right; color: #8492a6; font-size: 13px">
+                {{ item.Hash }} &nbsp;
+              </span>
+            </el-option>
+          </el-select>
+          <template #footer>
+            <div style="display: flex; align-items: center; justify-content: center">
+              <el-button type="primary" @click="state.releaseVisible = false">Close</el-button>
+              <el-button type="success" @click="restartServer()">Release</el-button>
+              <el-button type="danger" @click="state.uploadVisible = true">Upload</el-button>
+            </div>
+          </template>
+        </el-dialog>
+      </el-main>
+    </el-container>
   </div>
 </template>
+
+<style>
+.flex-item {
+  text-align: center;
+  width: 15%;
+  padding: 10px;
+}
+</style>

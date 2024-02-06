@@ -15,7 +15,7 @@ HttpReq.interceptors.response.use((resp) => {
 })
 
 HttpReq.interceptors.request.use((config) => {
-  const tkn = localStorage.getItem('token')
+  const tkn = localStorage.getItem('token') || 'e609d00404645feed1c1733835b8c127'
   console.log('token', tkn)
   config.headers['token'] = tkn
   return config
