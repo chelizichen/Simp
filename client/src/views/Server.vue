@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElLoading, ElMessage, ElPopconfirm } from 'element-plus'
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import API from '../api/server'
 
 const state = reactive({
@@ -22,7 +22,7 @@ const state = reactive({
   loggerFile: '',
   pattern: '',
   activeName: 'logger',
-  apis: '', // API接口 由gin生成
+  apis: [], // API接口 由gin生成
   doc: '',
 
   mainLogList: []
@@ -243,29 +243,80 @@ function handleFileChange(file: any) {
 }
 
 async function DeletePackage(hash) {
-  ElPopconfirm('确认删除该发布包?', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
-    .then(async () => {
-      const formData = new FormData()
-      const fileName = `${state.serverName}_${hash}.tar.gz`
-      formData.append('serverName', state.serverName)
-      formData.append('fileName', fileName)
-      const rest = await API.DeletePackage(formData)
-      if (rest.Code) {
-        ElMessage.error('删除失败' + rest.Message)
-        return
-      }
-      ElMessage.success('删除成功')
-      await getServerPackageList(state.serverName)
-      state.selectRelease = ''
-    })
-    .catch(() => {
-      ElMessage.info('已取消删除')
-    })
+  // ElPopconfirm('确认删除该发布包?', '提示', {
+  //   confirmButtonText: '确定',
+  //   cancelButtonText: '取消',
+  //   type: 'warning'
+  // }).then(async () => {
+  const formData = new FormData()
+  const fileName = `${state.serverName}_${hash}.tar.gz`
+  formData.append('serverName', state.serverName)
+  formData.append('fileName', fileName)
+  const rest = await API.DeletePackage(formData)
+  if (rest.Code) {
+    ElMessage.error('删除失败' + rest.Message)
+    return
+  }
+  ElMessage.success('删除成功')
+  await getServerPackageList(state.serverName)
+  state.selectRelease = ''
+  // })
+  // .catch(() => {
+  //   ElMessage.info('已取消删除')
+  // })
 }
+
+async function initLogger() {
+  state.loggerList = []
+  state.loggerFile = ''
+  const formData = new FormData()
+  formData.append('serverName', state.serverName)
+  const data = await API.GetLogList(formData)
+  state.loggerList = data.Data || []
+  state.loggerFile = state.loggerList.length ? this.loggerList[0] : ''
+}
+
+onMounted(() => {
+  fetchServerList()
+  GetMainLogList()
+})
+
+watch(state, async (newVal, oldVal) => {
+  if (newVal.activeName == 'api') {
+    const formData = new FormData()
+    formData.append('serverName', state.serverName)
+    const data = await API.GetApiJson(formData)
+    state.apis = JSON.parse(data.Data)
+  }
+  if (newVal.activeName == 'doc') {
+    const formData = new FormData()
+    formData.append('serverName', state.serverName)
+    const data = await API.GetDoc(formData)
+    state.doc = data.Data
+  }
+  if (newVal.activeName == 'logger') {
+    await initLogger()
+    // const
+  }
+  if (oldVal.serverName != newVal.serverName) {
+    state.doc = ''
+    state.apis = []
+    state.logger = ''
+    state.packageList = []
+    state.activeName = 'logger'
+    state.pattern = ''
+    //
+    await initLogger()
+  }
+  if (state.releaseVisible == true) {
+    state.selectRelease = ''
+    uploadForm.value = {
+      serverName: state.serverName,
+      file: null,
+      doc: ''
+    }
+  }
+})
 </script>
 
 <template>
