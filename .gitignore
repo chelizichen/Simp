@@ -28,3 +28,9 @@ nginx.conf
 .vscode/*
 
 .idea/*
+
+client/.vscode
+
+client/node_modules
+
+client/package-lock.json
