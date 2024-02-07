@@ -8,9 +8,10 @@ server:
   storage:  mysql@3306...... # 存储
   proxy:
     - server:
-        type: fass # 选择Fass时默认代表本地，并且！，冷启动！，不能包含定时器等玩意，
-        name: FassServer
+        name: CalcServer
+        port: 8512
+        type: tcp
     - server:
-        type: http
-        port: 9091
-        name: StudentServer
+        name: PoolServer
+        port: 8513
+        type: tcp

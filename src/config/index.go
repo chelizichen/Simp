@@ -22,7 +22,8 @@ type SimpConfig struct {
 		Proxy      []struct {
 			Server struct {
 				Type string `yaml:"type"`
-				Name string `yaml:"name" `
+				Name string `yaml:"name"`
+				Port string `yaml:"port"`
 			} `yaml:"server"`
 		} `yaml:"proxy"`
 	} `yaml:"server"`

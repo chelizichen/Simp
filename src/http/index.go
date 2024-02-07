@@ -26,6 +26,13 @@ type SimpHttpServerCtx struct {
 	StoragePath string
 	StaticPath  string
 	CacheSvr    cache.ICache
+	Proxy       *[]struct {
+		Server struct {
+			Type string `yaml:"type"`
+			Name string `yaml:"name"`
+			Port string `yaml:"port"`
+		} `yaml:"server"`
+	} `yaml:"proxy"`
 }
 
 func Resp(code int, message string, data interface{}) *gin.H {
@@ -160,6 +167,7 @@ func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
 		StoragePath: conf.Server.Storage,
 		StaticPath:  conf.Server.StaticPath,
 		Storage:     ST,
+		Proxy:       &conf.Server.Proxy,
 	}
 	return ctx
 }
