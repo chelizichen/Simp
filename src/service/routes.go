@@ -23,12 +23,9 @@ const TOKEN = "e609d00404645feed1c1733835b8c127"
 func TOKEN_VALIDATE(ctx *gin.Context) {
 	s := ctx.Request.Header.Get("token")
 	fmt.Println("TokenValidate", s)
+	fmt.Println("ctx.url", ctx.Request.URL)
 	if s != TOKEN {
-		if strings.HasSuffix(ctx.Request.URL.Path, "web/login.html") {
-			ctx.Next()
-			return
-		}
-		if strings.HasSuffix(ctx.Request.URL.Path, "web/server.html") {
+		if strings.HasPrefix(ctx.Request.URL.Path, "/simpserver/web") {
 			ctx.Next()
 			return
 		}
