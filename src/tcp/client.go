@@ -32,12 +32,19 @@ func ClientListen(ctx *h.SimpHttpServerCtx) {
 	}
 	for serverName, conn := range Servants {
 		// 读取服务器的响应内容
-		buffer := make([]byte, 1024) // 创建缓冲区用于存储响应内容
-		n, err := conn.Read(buffer)
-		fmt.Println("Read From ServerName ", serverName, " size ", n)
-		if err != nil {
-			fmt.Println("Error reading response:", err)
-			return
-		}
+		// 启动一个 goroutine 读取数据并发送到通道
+		go func() {
+			buffer := make([]byte, 1024)
+			_, err := conn.Read(buffer)
+			handleBuffer(serverName, buffer)
+			if err != nil {
+				fmt.Println("Error reading response:", err)
+				return
+			}
+		}()
 	}
+}
+
+func handleBuffer(serverName string, buf []byte) {
+
 }
