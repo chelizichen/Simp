@@ -25,14 +25,13 @@ func (d *Decode[T]) ReadInt16(tag int) int16 {
 	d.Current = int32(tag)
 	d.Position += 2
 	result := int16(binary.LittleEndian.Uint16(d.Bytes[d.Position-2 : d.Position]))
-	fmt.Println("ReadInt16", result)
 	return result
 }
 
 func (d *Decode[T]) ReadString(tag int) string {
 	d.Current = int32(tag)
 	d.Position += 4
-	valueLength := int32(binary.LittleEndian.Uint32(d.Bytes[d.Position-4 : d.Position]))
+	valueLength := queryStructLen(d.Bytes[d.Position-4 : d.Position])
 	d.Position += valueLength
 	value := string(d.Bytes[d.Position : d.Position+valueLength])
 	return value
@@ -44,18 +43,22 @@ func (d *Decode[T]) ReadList(tag int, className string) *[]interface{} {
 	return ret
 }
 
-func (d *Decode[T]) ReadStruct(tag int, className string) interface{} {
-	clazz := Get(className)
-	instance := reflect.New(clazz).Interface()
-	name, b := clazz.MethodByName("Decode")
-	valLen := d.Bytes[d.Position : d.Position+4]
-	val := d.Bytes[d.Position+4 : len(valLen)]
-	d.Position += int32(4 + len(valLen))
-	if !b {
-		panic(fmt.Sprintf("Error! Struct %s does not have Method Decode", className))
+func (d *Decode[T]) ReadStruct(tag int, resp interface{}) {
+	d.Current = int32(tag)
+	t := reflect.TypeOf(resp)
+	if t.Kind() != reflect.Ptr {
+		panic("Error! WriteStruct expects a pointer to a struct")
 	}
-	call := name.Func.Call([]reflect.Value{reflect.ValueOf(instance), reflect.ValueOf(val)})
+	d.Position += 4
+	bytes := d.Bytes[d.Position-4 : d.Position]
+	valLen := queryStructLen(bytes)
+	m, b := t.MethodByName("Decode")
+	if !b {
+		panic(fmt.Sprintf("Error! Struct %s does not have Method Decode", resp))
+	}
+	BytesVal := d.Bytes[d.Position : d.Position+valLen]
+	callResp := m.Func.Call([]reflect.Value{reflect.ValueOf(resp), reflect.ValueOf(BytesVal)})
+	d.Position += valLen
 	// 使用类型断言将结果转换为泛型类型 T
-	result := call[0]
-	return result
+	resp = callResp[0]
 }

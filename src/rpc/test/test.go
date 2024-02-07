@@ -2,16 +2,40 @@ package main
 
 import (
 	"Simp/src/rpc"
+	"fmt"
 )
+
+func main() {
+	ui := new(UserInfo)
+	ui.age = 1
+	ui.name = "chelizichen"
+	ui.birth = 32767
+	//e := ui.Encode()
+	//ui.Decode(e.Bytes)
+	bi := new(BasicInfo)
+	bi.Token = "112213klsfnjiujas0218u321"
+
+	u := new(User)
+	u.BasicInfo = bi
+	u.UserInfo = ui
+	ue := u.Encode()
+	u.Decode(ue.Bytes)
+	us := new(User)
+	us.Decode(ue.Bytes)
+	fmt.Println("main res", us.UserInfo.birth)
+	fmt.Println("main res", us.UserInfo.age)
+	fmt.Println("main res", us.UserInfo.name)
+	fmt.Println("main res", us.BasicInfo.Token)
+}
+
+type BasicInfo struct {
+	Token string
+}
 
 type UserInfo struct {
 	age   int8
 	birth int16
 	name  string
-}
-
-type BasicInfo struct {
-	Token string
 }
 
 type User struct {
@@ -62,8 +86,12 @@ func (r *User) Decode(Bytes []byte) *User {
 	d := new(rpc.Decode[User])
 	d.ClassName = "User"
 	d.Bytes = Bytes
-	r.BasicInfo = d.ReadStruct(1, "BasicInfo").(*BasicInfo)
-	r.UserInfo = d.ReadStruct(2, "UserInfo").(*UserInfo)
+	_basicInfo := new(BasicInfo)
+	d.ReadStruct(1, _basicInfo)
+	r.BasicInfo = _basicInfo
+	_userInfo := new(UserInfo)
+	d.ReadStruct(2, _userInfo)
+	r.UserInfo = _userInfo
 	return r
 }
 
@@ -74,22 +102,4 @@ func (r *User) Encode() *rpc.Encode[User] {
 	d.WriteStruct(1, r.BasicInfo)
 	d.WriteStruct(2, r.UserInfo)
 	return d
-}
-
-func main() {
-	ui := new(UserInfo)
-	ui.age = 1
-	ui.name = "chelizichen"
-	ui.birth = 32767
-	//e := ui.Encode()
-	//ui.Decode(e.Bytes)
-	bi := new(BasicInfo)
-	bi.Token = "112213klsfnjiujas0218u321"
-
-	u := new(User)
-	u.BasicInfo = bi
-	u.UserInfo = ui
-
-	ue := u.Encode()
-	u.Decode(ue.Bytes)
 }

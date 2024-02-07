@@ -71,7 +71,7 @@ func (e *Encode[T]) WriteStruct(tag int, value interface{}) (bool, error) {
 	binary.LittleEndian.PutUint32(e.Bytes[e.Position:], uint32(position))
 	e.Position += 4
 	copy(e.Bytes[e.Position:], bytes)
-	e.Position += int32(position)
+	e.Position += position
 	return true, nil
 }
 
