@@ -13,9 +13,11 @@ import (
 type ExpiredCallback func(k string, v interface{}) error
 
 type SimpCacheItem struct {
-	Key   string      `json:"k" db:"k"`
-	Table string      `json:"t" db:"t"`
-	Value interface{} `json:"v" db:"v"`
+	Key    string `json:"k" db:"k"`
+	Table  string `json:"t" db:"t"`
+	Value  []byte `json:"v" db:"v"`
+	Status int    `json:"s" db:"s"`
+	Id     int    `json:"id" db:"id"`
 }
 
 type DBCacheKey struct {
@@ -66,12 +68,12 @@ func (c *memCacheShard) get(k string) (interface{}, bool) {
 	c.lock.RLock()
 	item, exist := c.hashmap[k]
 	c.lock.RUnlock()
-	value, exist := c.getWhenExpire(k)
-	if exist && item.status == ITEM_STATUS_DEFAULT {
+	value, existFromDB := c.getWhenExpire(k)
+	if existFromDB && !exist {
 		c.set(k, &Item{v: value, status: ITEM_STATUS_FROM_CACHE})
 		return value, true
 	}
-	if !exist {
+	if !exist && !existFromDB {
 		return nil, false
 	}
 	if !item.Expired() {

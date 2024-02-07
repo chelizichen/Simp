@@ -55,16 +55,23 @@ func (s *SimpHttpGateway) Use(svr *gin.RouterGroup, ctx *SimpHttpServerCtx) {
 			return
 		}
 		s := &ServantProvider{}
-		ServantProviders[serverName] = s
 		// 对接生产Path
 		servantConfigPath := filepath.Join(ctx.StaticPath, utils.PublishPath, serverName, "simpProd.yaml")
+		b := utils.IsExist(servantConfigPath)
+		if !b {
+			return
+		}
 		conf, err := config.NewConfig("", servantConfigPath)
 		if err != nil {
 			fmt.Println(NewConfig_Error + servantConfigPath)
 			panic(NewConfig_Error + servantConfigPath)
 		}
 		ApisPath := filepath.Join(ctx.StaticPath, utils.PublishPath, serverName, "API.json")
-
+		b = utils.IsExist(ApisPath)
+		if !b {
+			return
+		}
+		ServantProviders[serverName] = s
 		var apis *Apis
 		Content, err := os.ReadFile(ApisPath)
 		if err != nil {

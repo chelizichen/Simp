@@ -41,23 +41,25 @@ func TableExists(db *sqlx.DB, tableName string) bool {
 }
 
 func GetCache(db *sqlx.DB, k string) (interface{}, bool) {
-	var sci cache.DBCacheKey // Initialize the pointer
+	var sci cache.DBCacheKey
 	query := "select t,k from simp_caches_set  where k = ?"
 	err := db.Get(&sci, query, k)
 	fmt.Println("")
 	if err != nil {
 		fmt.Println("Error to Get ", err.Error())
+		return nil, false
 	}
-	fmt.Println("sci ", sci.Key, sci.Table)
-	before := "select v from [t] st where st.k = ? and st.s = ？ limit 1"
-	queryString := strings.Replace(before, "[t]", sci.Table, 0)
-	var row cache.SimpCacheItem // Initialize the pointer
-	err = db.Get(&row, queryString, k, cache.ITEM_STATUS_DEFAULT)
-	fmt.Println("Value ", row)
+	before := "SELECT  * from `[t]` scs where scs.s  = ? and scs.k  = ? ORDER  BY  scs.t DESC  limit 1"
+	queryString := strings.Replace(before, "[t]", sci.Table, -1)
+	var row cache.SimpCacheItem
+	err = db.Get(&row, queryString, cache.ITEM_STATUS_DEFAULT, k)
+	fmt.Println("row", string(row.Value))
 	if err != nil {
-		return row.Value, true
+		fmt.Println("Error to Get ", err.Error())
+		return nil, false
 	}
-	return nil, false
+	return string(row.Value), true
+
 }
 
 // 创建集合表
