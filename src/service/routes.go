@@ -375,25 +375,24 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
 
-	GROUP.POST("/deleteAllPackage", func(c *gin.Context) {
+	GROUP.POST("/deleteServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		ErrorToRemoveAll := "Error To Remove All"
-		ErrorToMakeAServer := "Error To Make A Sever"
+		ErrorToGetServerName := "Error To Get ServerName"
+		if serverName == "" {
+			c.AbortWithStatusJSON(200, handlers.Resp(-1, ErrorToGetServerName, nil))
+			return
+		}
 		cwd, err := os.Getwd()
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
 		serverPath := filepath.Join(cwd, utils2.PublishPath, serverName)
-		err = os.RemoveAll(serverPath)
+		fmt.Println("DeleteDirectory", serverPath)
+		err = utils2.DeleteDirectory(serverPath)
 		if err != nil {
 			fmt.Println(ErrorToRemoveAll, err.Error())
-			c.JSON(200, handlers.Resp(-1, ErrorToRemoveAll, nil))
-			return
-		}
-		err = os.Mkdir(serverPath, os.ModePerm)
-		if err != nil {
-			fmt.Println(ErrorToMakeAServer, err.Error())
-			c.JSON(200, handlers.Resp(-1, ErrorToMakeAServer, nil))
+			c.AbortWithStatusJSON(200, handlers.Resp(-1, ErrorToRemoveAll, nil))
 			return
 		}
 		c.JSON(200, handlers.Resp(0, "ok", nil))

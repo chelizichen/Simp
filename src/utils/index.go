@@ -326,3 +326,37 @@ func Join(pre string) func(t string) string {
 		return path.Join(pre, target)
 	}
 }
+
+func DeleteDirectory(path string) error {
+	// 获取目录中的文件和子目录
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		var currentPath string
+		if file.IsDir() {
+			// 如果是子目录，递归调用 DeleteDirectory 函数
+			currentPath = fmt.Sprintf("%s/%s", path, file.Name())
+			if err := DeleteDirectory(currentPath); err != nil {
+				fmt.Printf("Error deleting directory: %v\n", err)
+			}
+		} else {
+			// 如果是文件，直接删除文件
+			currentPath = fmt.Sprintf("%s/%s", path, file.Name())
+			err := os.Remove(currentPath)
+			if err != nil {
+				fmt.Printf("Error deleting file: %v\n", err)
+			}
+		}
+	}
+
+	// 删除目录本身
+	err = os.Remove(path)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

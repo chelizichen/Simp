@@ -4,11 +4,12 @@ export default {
 }
 </script>
 <script setup lang="ts">
-import { ElIcon, ElLoading, ElMessage, ElPopconfirm } from 'element-plus'
+import { ElLoading, ElMessage, ElPopconfirm } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
 import API from '../api/server'
 import asideComponent from '@/components/aside.vue'
 import mainLogger from '@/components/mainlogger.vue'
+import { InfoFilled, Remove } from '@element-plus/icons-vue'
 const state = reactive({
   serverList: [],
   packageList: [],
@@ -268,8 +269,20 @@ async function DeletePackage(hash) {
   state.selectRelease = ''
   // })
   // .catch(() => {
-  //   ElMessage.info('已取消删除')
+  //   ElMessage.info('delete failed')
   // })
+}
+
+async function DeleteServer() {
+  const serverName = state.serverName
+  const Data = new FormData()
+  Data.append('serverName', serverName)
+  const data = await API.DeleteServer(Data)
+  if (data.Code) {
+    ElMessage.error('delete error |' + data.Message)
+    return
+  }
+  ElMessage.success('delete success')
 }
 
 async function initLogger() {
@@ -349,7 +362,16 @@ watch(
         ></aside-component>
       </el-aside>
       <el-main>
-        <main-logger :server-list="state.serverList" :create-server-visible="state.configVisible" @get-main-log-list="GetMainLogList()" @change-visible="(bool:boolean)=>{state.createServerVisible = bool}"></main-logger>
+        <main-logger
+          :server-list="state.serverList"
+          :create-server-visible="state.configVisible"
+          @get-main-log-list="GetMainLogList()"
+          @change-visible="
+            (bool: boolean) => {
+              state.createServerVisible = bool
+            }
+          "
+        ></main-logger>
         <el-card shadow="hover" v-if="!state.serverName">
           <div style="display: flex; height: 700px" v-if="state.activeName == 'logger'">
             <div style="width: 13%; margin-right: 2%">
@@ -422,7 +444,6 @@ watch(
                 Shutdown
               </div>
             </div>
-
             <div class="flex-item">
               <div
                 @click="state.releaseVisible = true"
@@ -430,6 +451,21 @@ watch(
               >
                 Release
               </div>
+            </div>
+            <div class="flex-item">
+              <el-popconfirm
+                confirm-button-text="Yes"
+                cancel-button-text="No"
+                :icon="InfoFilled"
+                icon-color="#626AEF"
+                title="Are you sure to delete this?"
+                @confirm="DeleteServer()"
+                @cancel="ElMessage.info('delete failed')"
+              >
+                <template #reference>
+                  <div style="cursor: pointer; color: red">Delete</div>
+                </template>
+              </el-popconfirm>
             </div>
           </div>
         </el-card>
@@ -592,9 +628,21 @@ watch(
               :value="state.serverName + '_' + item.Hash + '.tar.gz'"
             >
               <span style="float: left">{{ state.serverName }}</span>
-              <span style="float: right" @click="DeletePackage(item.Hash)">
-                <i class="el-icon-remove" style="color: crimson; cursor: pointer"></i>
-              </span>
+              <el-popconfirm
+                confirm-button-text="Yes"
+                cancel-button-text="No"
+                :icon="InfoFilled"
+                icon-color="#626AEF"
+                title="Are you sure to delete this?"
+                @confirm="DeletePackage(item.Hash)"
+                @cancel="ElMessage.info('delete failed')"
+              >
+                <template #reference>
+                  <span style="float: right" @click="DeletePackage(item.Hash)">
+                    <el-icon style="color: crimson; cursor: pointer"><Remove /></el-icon>
+                  </span>
+                </template>
+              </el-popconfirm>
               <span style="float: right; color: #8492a6; font-size: 13px">
                 {{ item.Hash }} &nbsp;
               </span>
