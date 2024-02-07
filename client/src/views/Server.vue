@@ -249,7 +249,7 @@ function handleFileChange(file: any) {
   uploadForm.value.file = file.raw
 }
 
-async function DeletePackage(hash) {
+async function DeletePackage(hash:string) {
   // ElPopconfirm('确认删除该发布包?', '提示', {
   //   confirmButtonText: '确定',
   //   cancelButtonText: '取消',
