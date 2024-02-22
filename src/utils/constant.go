@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -15,15 +16,24 @@ func ServantMonitor() {
 	go func() {
 		c := cron.New()
 
-		// 4小时执行一次，更换日志文件指定目录
-		spec := "1 * * * * *"
+		// 3分钟执行一次
+		spec := "*/3 * * * * *"
 		// 添加定时任务
 		err := c.AddFunc(spec, func() {
 			d := time.Now().Format(time.DateTime)
 			for serverName, pid := range ServantAlives {
 				b := IsPidAlive(pid, serverName)
 				if b {
+					mis := GetProcessMemoryInfo(pid)
 					fmt.Println(d, "| IsAlive | ", serverName)
+					if mis != nil {
+						data, err := json.Marshal(mis)
+						if err != nil {
+							fmt.Println("json Marshal Error ", data)
+							return
+						}
+						fmt.Println(d, "| Memoryinfo |", data)
+					}
 				} else {
 					fmt.Println(d, "| IsNotAlive | ", serverName)
 				}

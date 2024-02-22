@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	p "github.com/shirou/gopsutil/process"
+
 	"github.com/c4milo/unpackit"
 )
 
@@ -191,7 +193,7 @@ func IsPidAlive(pid int, serverName string) bool {
 	if err == nil {
 		pid1 := ServantAlives[serverName]
 		// 判断是否为同一个服务
-		if pid1 == pid1 {
+		if pid == pid1 {
 			return true // 进程存在
 		}
 	}
@@ -202,6 +204,19 @@ func IsPidAlive(pid int, serverName string) bool {
 
 	fmt.Printf("Error signaling process: %v\n", err)
 	return false
+}
+func GetProcessMemoryInfo(pid int) *p.MemoryInfoStat {
+	process, err := p.NewProcess(int32(pid))
+	if err != nil {
+		fmt.Println("Error creating new process:", err)
+		return nil
+	}
+	memoryInfo, err := process.MemoryInfo()
+	if err != nil {
+		fmt.Println("Error getting memory info:", err)
+		return nil
+	}
+	return memoryInfo
 }
 
 func MoveAndRemove(sourcePath, destPath string) error {
