@@ -1,3 +1,4 @@
+// todo 2024.2.25 解码会出现乱码问题
 package main
 
 import (
@@ -8,10 +9,17 @@ import (
 func main() {
 	ui := new(UserInfo)
 	ui.age = 1
-	ui.name = "chelizichen"
+	ui.name = "chelizichenc"
 	ui.birth = 32767
-	//e := ui.Encode()
-	//ui.Decode(e.Bytes)
+	e := ui.Encode()
+	//
+	//n_ui := new(UserInfo)
+	//n_ui.Decode(e.Bytes)
+	//fmt.Println(n_ui.birth)
+	//fmt.Println(n_ui.age)
+	//fmt.Println(n_ui.name)
+
+	ui.Decode(e.Bytes)
 	bi := new(BasicInfo)
 	bi.Token = "112213klsfnjiujas0218u321"
 
@@ -20,6 +28,7 @@ func main() {
 	u.UserInfo = ui
 	ue := u.Encode()
 	u.Decode(ue.Bytes)
+	//// 解码
 	us := new(User)
 	us.Decode(ue.Bytes)
 	fmt.Println("main res", us.UserInfo.birth)

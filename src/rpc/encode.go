@@ -38,6 +38,22 @@ func (e *Encode[T]) WriteInt16(tag int, value int16) (bool, error) {
 	return true, nil
 }
 
+func (e *Encode[T]) WriteInt32(tag int, value int16) (bool, error) {
+	e.Dilatation(2)
+	e.Current = int32(tag)
+	binary.LittleEndian.PutUint32(e.Bytes[e.Position:], uint32(value))
+	e.Position += 4
+	return true, nil
+}
+
+func (e *Encode[T]) WriteInt64(tag int, value int16) (bool, error) {
+	e.Dilatation(2)
+	e.Current = int32(tag)
+	binary.LittleEndian.PutUint64(e.Bytes[e.Position:], uint64(value))
+	e.Position += 8
+	return true, nil
+}
+
 func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 	// 将字符串转换为字节数组
 	stringBytes := []byte(value)
@@ -47,7 +63,7 @@ func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 	e.Position += 4
 
 	// 写入字符串内容
-	copy(e.Bytes[e.Position:], stringBytes)
+	copy(e.Bytes[e.Position:e.Position+int32(len(stringBytes))], stringBytes)
 	e.Position += int32(len(stringBytes))
 
 	e.Current = int32(tag)

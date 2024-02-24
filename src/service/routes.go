@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron"
 	"gopkg.in/yaml.v2"
 )
 
@@ -171,12 +172,38 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		cmd := exec.Command(storageExEPath)
 		stdoutPipe, err := cmd.StdoutPipe()
+		if err != nil {
+			fmt.Println("Error Get StdoutPiper", err.Error())
+		}
 		// 设置环境变量
 		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
 		sm, err := utils2.NewSimpMonitor(serverName, "")
+		if err != nil {
+			fmt.Println("Error To New Monitor", err.Error())
+		}
 		err = cmd.Start()
 		// 启动一个协程，用于读取并打印命令的输出
 		go func() {
+			c := cron.New()
+
+			// 4小时执行一次，更换日志文件指定目录
+			spec := "* * */4 * * *"
+
+			// 添加定时任务
+			err := c.AddFunc(spec, func() {
+				newSM, err := utils2.NewSimpMonitor(serverName, "")
+				if err != nil {
+					fmt.Println("Error To New Monitor", err.Error())
+					return
+				}
+				sm = newSM
+			})
+			if err != nil {
+				fmt.Println("AddFuncErr", err)
+			}
+			// 启动Cron调度器
+			go c.Start()
+
 			for {
 				// 读取输出
 				buf := make([]byte, 1024)

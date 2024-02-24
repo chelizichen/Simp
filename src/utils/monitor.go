@@ -52,7 +52,7 @@ func NewSimpMonitor(serverName string, date string) (s SimpMonitor, e error) {
 	// 没有则传当天
 	// path = static/serverName/log_date.log
 	now := time.Now().Format(time.DateOnly)
-
+	fmt.Println("Today", now)
 	if date == "" {
 		date = now
 	} else {

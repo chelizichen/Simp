@@ -28,12 +28,26 @@ func (d *Decode[T]) ReadInt16(tag int) int16 {
 	return result
 }
 
+func (d *Decode[T]) ReadInt32(tag int) int32 {
+	d.Current = int32(tag)
+	d.Position += 4
+	result := int32(binary.LittleEndian.Uint32(d.Bytes[d.Position-4 : d.Position]))
+	return result
+}
+
+func (d *Decode[T]) ReadInt64(tag int) int64 {
+	d.Current = int32(tag)
+	d.Position += 8
+	result := int64(binary.LittleEndian.Uint64(d.Bytes[d.Position-8 : d.Position]))
+	return result
+}
+
 func (d *Decode[T]) ReadString(tag int) string {
 	d.Current = int32(tag)
 	d.Position += 4
 	valueLength := queryStructLen(d.Bytes[d.Position-4 : d.Position])
-	d.Position += valueLength
 	value := string(d.Bytes[d.Position : d.Position+valueLength])
+	d.Position += valueLength
 	return value
 }
 
