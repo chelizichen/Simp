@@ -5,6 +5,7 @@ import (
 	handlers "Simp/src/http"
 	utils2 "Simp/src/utils"
 	"bufio"
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,10 +43,16 @@ func TOKEN_VALIDATE(ctx *gin.Context) {
 	}
 }
 
+type ServerCtx struct {
+	context context.Context
+	cancel  context.CancelFunc
+}
+
 func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 	f := utils2.Join(pre)
 	G := ctx.Engine
+	var RegistrhServicesCtx = make(map[string]ServerCtx)
 
 	G.GET(f("/web"), func(c *gin.Context) {
 		c.Redirect(http.StatusPermanentRedirect, "/web/login.html")
@@ -115,6 +122,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		isAlive := utils2.ServantAlives[serverName]
 		if isAlive != 0 {
 			cmd := exec.Command("kill", "-9", strconv.Itoa(isAlive))
+			RegistrhServicesCtx[serverName].cancel()
 			// 执行命令
 			err := cmd.Run()
 			if err != nil {
@@ -182,40 +190,56 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error To New Monitor", err.Error())
 		}
 		err = cmd.Start()
+		serverContext, serverCancelFunc := context.WithCancel(context.Background())
+		RegistrhServicesCtx[serverName] = ServerCtx{
+			context: serverContext,
+			cancel:  serverCancelFunc,
+		}
 		// 启动一个协程，用于读取并打印命令的输出
 		go func() {
-			c := cron.New()
-
-			// 4小时执行一次，更换日志文件指定目录
-			spec := "* * */4 * * *"
-
-			// 添加定时任务
-			err := c.AddFunc(spec, func() {
-				newSM, err := utils2.NewSimpMonitor(serverName, "")
-				if err != nil {
-					fmt.Println("Error To New Monitor", err.Error())
+			select {
+			case <-RegistrhServicesCtx[serverName].context.Done():
+				{
+					fmt.Println("ServerName |", serverName, " is Done")
 					return
 				}
-				sm = newSM
-			})
-			if err != nil {
-				fmt.Println("AddFuncErr", err)
-			}
-			// 启动Cron调度器
-			go c.Start()
+			default:
+				{
+					c := cron.New()
 
-			for {
-				// 读取输出
-				buf := make([]byte, 1024)
-				s := time.Now().Format(time.TimeOnly)
-				n, err := stdoutPipe.Read(buf)
-				if err != nil {
-					break
+					// 4小时执行一次，更换日志文件指定目录
+					spec := "* * */4 * * *"
+
+					// 添加定时任务
+					err := c.AddFunc(spec, func() {
+						newSM, err := utils2.NewSimpMonitor(serverName, "")
+						if err != nil {
+							fmt.Println("Error To New Monitor", err.Error())
+							return
+						}
+						sm = newSM
+					})
+					if err != nil {
+						fmt.Println("AddFuncErr", err)
+					}
+					// 启动Cron调度器
+					go c.Start()
+
+					for {
+						// 读取输出
+						buf := make([]byte, 1024)
+						s := time.Now().Format(time.TimeOnly)
+						n, err := stdoutPipe.Read(buf)
+						if err != nil {
+							break
+						}
+						// 打印输出
+						content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+						sm.AppendLogger(content)
+					}
 				}
-				// 打印输出
-				content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
-				sm.AppendLogger(content)
 			}
+
 		}()
 		if err != nil {
 			fmt.Println("Error To Err", err.Error())
@@ -441,6 +465,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			return
 		}
 		utils2.ServantAlives[serverName] = 0
+		RegistrhServicesCtx[serverName].cancel()
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
 
