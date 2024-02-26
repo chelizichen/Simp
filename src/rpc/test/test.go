@@ -27,7 +27,7 @@ func main() {
 	u.BasicInfo = bi
 	u.UserInfo = ui
 	ue := u.Encode()
-	u.Decode(ue.Bytes)
+	// u.Decode(ue.Bytes)
 	//// 解码
 	us := new(User)
 	us.Decode(ue.Bytes)
@@ -95,12 +95,10 @@ func (r *User) Decode(Bytes []byte) *User {
 	d := new(rpc.Decode[User])
 	d.ClassName = "User"
 	d.Bytes = Bytes
-	_basicInfo := new(BasicInfo)
-	d.ReadStruct(1, _basicInfo)
-	r.BasicInfo = _basicInfo
-	_userInfo := new(UserInfo)
-	d.ReadStruct(2, _userInfo)
-	r.UserInfo = _userInfo
+	r.BasicInfo = new(BasicInfo)
+	d.ReadStruct(1, r.BasicInfo)
+	r.UserInfo = new(UserInfo)
+	d.ReadStruct(2, r.UserInfo)
 	return r
 }
 
