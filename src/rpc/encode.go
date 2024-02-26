@@ -91,7 +91,22 @@ func (e *Encode[T]) WriteStruct(tag int, value interface{}) (bool, error) {
 	return true, nil
 }
 
-func (d *Encode[T]) WriteList(tag int, className string, value []interface{}) (bool, error) {
+func (d *Encode[T]) WriteList(tag int, value interface{}) (bool, error) {
 	d.Current = int32(tag)
+	// 使用类型开关检查 value 的类型并进行相应处理
+	switch v := value.(type) {
+	case []int32:
+		// value 是一个 []int32 类型的切片，可以进行相应的处理
+		// 例如，您可以遍历切片或执行其他操作
+		for _, item := range v {
+			fmt.Println("item", item)
+			// 处理每个 int32 项
+		}
+	case []string:
+	case []float64:
+	default:
+		return false, fmt.Errorf("unsupported type %T for WriteList", value)
+	}
+
 	return false, nil
 }

@@ -110,3 +110,28 @@ func (r *User) Encode() *rpc.Encode[User] {
 	d.WriteStruct(2, r.UserInfo)
 	return d
 }
+
+type QueryIds struct {
+	BasicInfo *BasicInfo
+	Ids       []int32
+}
+
+func (r *QueryIds) Decode(Bytes []byte) *QueryIds {
+	d := new(rpc.Decode[QueryIds])
+	d.ClassName = "QueryIds"
+	d.Bytes = Bytes
+	r.BasicInfo = new(BasicInfo)
+	d.ReadStruct(1, r.BasicInfo)
+	r.Ids = []int32{}
+	d.ReadList(2, r.Ids)
+	return r
+}
+
+func (r *QueryIds) Encode() *rpc.Encode[QueryIds] {
+	d := new(rpc.Encode[QueryIds])
+	d.ClassName = "QueryIds"
+	d.Bytes = make([]byte, 1024)
+	d.WriteStruct(1, r.BasicInfo)
+	d.WriteList(2, r.Ids)
+	return d
+}

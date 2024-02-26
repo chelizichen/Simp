@@ -51,10 +51,8 @@ func (d *Decode[T]) ReadString(tag int) string {
 	return value
 }
 
-func (d *Decode[T]) ReadList(tag int, className string) *[]interface{} {
+func (d *Decode[T]) ReadList(tag int, value interface{}) {
 	d.Current = int32(tag)
-	ret := new([]interface{})
-	return ret
 }
 
 func (d *Decode[T]) ReadStruct(tag int, resp interface{}) {
