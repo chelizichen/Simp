@@ -24,7 +24,9 @@ func (e *Encode[T]) Dilatation(size int) {
 
 func (e *Encode[T]) WriteInt8(tag int, value int8) (bool, error) {
 	e.Dilatation(1)
-	e.Current = int32(tag)
+	if tag != -1 {
+		e.Current = int32(tag)
+	}
 	e.Bytes[e.Position] = byte(value)
 	e.Position += 1
 	return true, nil
@@ -32,23 +34,29 @@ func (e *Encode[T]) WriteInt8(tag int, value int8) (bool, error) {
 
 func (e *Encode[T]) WriteInt16(tag int, value int16) (bool, error) {
 	e.Dilatation(2)
-	e.Current = int32(tag)
+	if tag != -1 {
+		e.Current = int32(tag)
+	}
 	binary.LittleEndian.PutUint16(e.Bytes[e.Position:], uint16(value))
 	e.Position += 2
 	return true, nil
 }
 
-func (e *Encode[T]) WriteInt32(tag int, value int16) (bool, error) {
+func (e *Encode[T]) WriteInt32(tag int, value int32) (bool, error) {
 	e.Dilatation(2)
-	e.Current = int32(tag)
+	if tag != -1 {
+		e.Current = int32(tag)
+	}
 	binary.LittleEndian.PutUint32(e.Bytes[e.Position:], uint32(value))
 	e.Position += 4
 	return true, nil
 }
 
-func (e *Encode[T]) WriteInt64(tag int, value int16) (bool, error) {
+func (e *Encode[T]) WriteInt64(tag int, value int64) (bool, error) {
 	e.Dilatation(2)
-	e.Current = int32(tag)
+	if tag != -1 {
+		e.Current = int32(tag)
+	}
 	binary.LittleEndian.PutUint64(e.Bytes[e.Position:], uint64(value))
 	e.Position += 8
 	return true, nil
@@ -58,6 +66,9 @@ func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 	// 将字符串转换为字节数组
 	stringBytes := []byte(value)
 	e.Dilatation(len(stringBytes) + 4)
+	if tag != -1 {
+		e.Current = int32(tag)
+	}
 	// 写入字符串长度
 	binary.LittleEndian.PutUint32(e.Bytes[e.Position:], uint32(len(stringBytes)))
 	e.Position += 4
@@ -66,7 +77,6 @@ func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 	copy(e.Bytes[e.Position:e.Position+int32(len(stringBytes))], stringBytes)
 	e.Position += int32(len(stringBytes))
 
-	e.Current = int32(tag)
 	return true, nil
 }
 
@@ -91,22 +101,37 @@ func (e *Encode[T]) WriteStruct(tag int, value interface{}) (bool, error) {
 	return true, nil
 }
 
-func (d *Encode[T]) WriteList(tag int, value interface{}) (bool, error) {
-	d.Current = int32(tag)
+func (e *Encode[T]) WriteList(tag int, value interface{}) (bool, error) {
+	e.Current = int32(tag)
+	beforeEncodePosition := e.Position
+	e.Position += 4
 	// 使用类型开关检查 value 的类型并进行相应处理
 	switch v := value.(type) {
-	case []int32:
-		// value 是一个 []int32 类型的切片，可以进行相应的处理
-		// 例如，您可以遍历切片或执行其他操作
+	case []int8:
 		for _, item := range v {
-			fmt.Println("item", item)
-			// 处理每个 int32 项
+			e.WriteInt8(-1, item)
 		}
+	case []int16:
+		for _, item := range v {
+			e.WriteInt16(-1, item)
+		}
+	case []int32:
+		for _, item := range v {
+			e.WriteInt32(-1, item)
+		}
+	case []int64:
+		for _, item := range v {
+			e.WriteInt64(-1, item)
+		}
+
 	case []string:
-	case []float64:
+		for _, item := range v {
+			e.WriteString(-1, item)
+		}
 	default:
 		return false, fmt.Errorf("unsupported type %T for WriteList", value)
 	}
-
+	listBytes := e.Position - beforeEncodePosition
+	binary.LittleEndian.PutUint32(e.Bytes[beforeEncodePosition:], uint32(listBytes))
 	return false, nil
 }

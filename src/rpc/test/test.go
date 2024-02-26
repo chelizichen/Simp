@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func main() {
+func structTest() {
 	ui := new(UserInfo)
 	ui.age = 1
 	ui.name = "chelizichenc"
@@ -122,8 +122,7 @@ func (r *QueryIds) Decode(Bytes []byte) *QueryIds {
 	d.Bytes = Bytes
 	r.BasicInfo = new(BasicInfo)
 	d.ReadStruct(1, r.BasicInfo)
-	r.Ids = []int32{}
-	d.ReadList(2, r.Ids)
+	r.Ids = d.ReadList(2, []int32{}).([]int32)
 	return r
 }
 
@@ -134,4 +133,23 @@ func (r *QueryIds) Encode() *rpc.Encode[QueryIds] {
 	d.WriteStruct(1, r.BasicInfo)
 	d.WriteList(2, r.Ids)
 	return d
+}
+
+func main() {
+	bi := new(BasicInfo)
+	bi.Token = "lllll11111"
+	qi := new(QueryIds)
+	qi.BasicInfo = bi
+	qi.Ids = []int32{1, 2, 3, 4, 5}
+	e := qi.Encode()
+
+	{
+		fmt.Printf("e.Bytes: %v\n", e.Bytes)
+		tt := new(QueryIds)
+		tt.Decode(e.Bytes)
+		fmt.Printf("tt.BasicInfo.Token: %v\n", tt.BasicInfo.Token)
+		fmt.Printf("tt.Ids: %v\n", tt.Ids)
+	}
+
+	// structTest()
 }

@@ -14,6 +14,9 @@ type Decode[T any] struct {
 }
 
 func (d *Decode[T]) ReadInt8(tag int) int8 {
+	if tag != -1 {
+		d.Current = int32(tag)
+	}
 	d.Current = int32(tag)
 	d.Position += 1
 	bytes := d.Bytes[d.Position-1 : d.Position]
@@ -22,6 +25,9 @@ func (d *Decode[T]) ReadInt8(tag int) int8 {
 }
 
 func (d *Decode[T]) ReadInt16(tag int) int16 {
+	if tag != -1 {
+		d.Current = int32(tag)
+	}
 	d.Current = int32(tag)
 	d.Position += 2
 	result := int16(binary.LittleEndian.Uint16(d.Bytes[d.Position-2 : d.Position]))
@@ -29,13 +35,20 @@ func (d *Decode[T]) ReadInt16(tag int) int16 {
 }
 
 func (d *Decode[T]) ReadInt32(tag int) int32 {
+	if tag != -1 {
+		d.Current = int32(tag)
+	}
 	d.Current = int32(tag)
 	d.Position += 4
 	result := int32(binary.LittleEndian.Uint32(d.Bytes[d.Position-4 : d.Position]))
+	fmt.Println("Result", result)
 	return result
 }
 
 func (d *Decode[T]) ReadInt64(tag int) int64 {
+	if tag != -1 {
+		d.Current = int32(tag)
+	}
 	d.Current = int32(tag)
 	d.Position += 8
 	result := int64(binary.LittleEndian.Uint64(d.Bytes[d.Position-8 : d.Position]))
@@ -43,7 +56,9 @@ func (d *Decode[T]) ReadInt64(tag int) int64 {
 }
 
 func (d *Decode[T]) ReadString(tag int) string {
-	d.Current = int32(tag)
+	if tag != -1 {
+		d.Current = int32(tag)
+	}
 	d.Position += 4
 	valueLength := queryStructLen(d.Bytes[d.Position-4 : d.Position])
 	value := string(d.Bytes[d.Position : d.Position+valueLength])
@@ -51,11 +66,57 @@ func (d *Decode[T]) ReadString(tag int) string {
 	return value
 }
 
-func (d *Decode[T]) ReadList(tag int, value interface{}) {
+func (d *Decode[T]) ReadList(tag int, value interface{}) interface{} {
 	d.Current = int32(tag)
+	d.Position += 4
+	valueLength := queryStructLen(d.Bytes[d.Position-4 : d.Position])
+	currPosition := d.Position
+	switch v := value.(type) {
+	case []int8:
+		length := int(valueLength/1) - 1
+		for i := 0; i < length; i++ {
+			r := d.ReadInt8(-1)
+			v = append(v, r)
+		}
+		return v
+	case []int16:
+		length := int(valueLength/2) - 1
+		for i := 0; i < length; i++ {
+			r := d.ReadInt16(-1)
+			v = append(v, r)
+		}
+		return v
+	case []int32:
+		length := int(valueLength/4) - 1
+		fmt.Println("length", length)
+		for i := 0; i < length; i++ {
+			r := d.ReadInt32(-1)
+			v = append(v, r)
+		}
+		fmt.Println("v", v)
+		return v
+	case []int64:
+		length := int(valueLength/8) - 1
+		for i := 0; i < length; i++ {
+			r := d.ReadInt64(-1)
+			v = append(v, r)
+		}
+		return v
+	case []string:
+		for {
+			s := d.ReadString(-1)
+			v = append(v, s)
+			if d.Position == currPosition+valueLength {
+				break
+			}
+		}
+		return v
+	default:
+		return nil
+	}
 }
 
-func (d *Decode[T]) ReadStruct(tag int, resp interface{}) {
+func (d *Decode[T]) ReadStruct(tag int, resp interface{}) interface{} {
 	d.Current = int32(tag)
 	t := reflect.TypeOf(resp)
 	if t.Kind() != reflect.Ptr {
@@ -73,4 +134,5 @@ func (d *Decode[T]) ReadStruct(tag int, resp interface{}) {
 	d.Position += valLen
 	// 使用类型断言将结果转换为泛型类型 T
 	resp = callResp[0]
+	return resp
 }
