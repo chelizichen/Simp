@@ -112,7 +112,18 @@ func (d *Decode[T]) ReadList(tag int, value interface{}) interface{} {
 		}
 		return v
 	default:
-		return nil
+		length := reflect.ValueOf(v).Len()
+		val := reflect.ValueOf(v)
+		var resp []interface{}
+		if length != 0 {
+			for i := 0; i < length; i++ {
+				s := val.Index(i)
+				fmt.Println("s", s)
+				d.ReadStruct(-1, s)
+				resp = append(resp, s.Interface())
+			}
+		}
+		return resp
 	}
 }
 
