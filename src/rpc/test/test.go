@@ -4,6 +4,7 @@ package main
 import (
 	"Simp/src/rpc"
 	"fmt"
+	"reflect"
 )
 
 func structTest() {
@@ -35,6 +36,38 @@ func structTest() {
 	fmt.Println("main res", us.UserInfo.age)
 	fmt.Println("main res", us.UserInfo.name)
 	fmt.Println("main res", us.BasicInfo.Token)
+}
+
+func baseArrTest() {
+	{
+		bi := new(BasicInfo)
+		bi.Token = "lllll11111"
+		qi := new(QueryIds)
+		qi.BasicInfo = bi
+		qi.Ids = []int32{1, 2, 3, 4, 5}
+		e := qi.Encode()
+
+		{
+			fmt.Printf("e.Bytes: %v\n", e.Bytes)
+			tt := new(QueryIds)
+			tt.Decode(e.Bytes)
+			fmt.Printf("tt.BasicInfo.Token: %v\n", tt.BasicInfo.Token)
+			fmt.Printf("tt.Ids: %v\n", tt.Ids)
+		}
+	}
+}
+
+func structArrTest() {
+	{
+		ui := new(UserInfo)
+		ui.age = 1
+		ui.name = "chelizichenc"
+		ui.birth = 32767
+
+		usp := new(UserResp)
+		usp.UserInfo = []UserInfo{*ui}
+		usp.Encode()
+	}
 }
 
 type BasicInfo struct {
@@ -106,8 +139,8 @@ func (r *User) Encode() *rpc.Encode[User] {
 	d := new(rpc.Encode[User])
 	d.ClassName = "User"
 	d.Bytes = make([]byte, 1024)
-	d.WriteStruct(1, r.BasicInfo)
-	d.WriteStruct(2, r.UserInfo)
+	d.WriteStruct(1, reflect.ValueOf(r.BasicInfo))
+	d.WriteStruct(2, reflect.ValueOf(r.UserInfo))
 	return d
 }
 
@@ -130,26 +163,31 @@ func (r *QueryIds) Encode() *rpc.Encode[QueryIds] {
 	d := new(rpc.Encode[QueryIds])
 	d.ClassName = "QueryIds"
 	d.Bytes = make([]byte, 1024)
-	d.WriteStruct(1, r.BasicInfo)
+	d.WriteStruct(1, reflect.ValueOf(r.BasicInfo))
 	d.WriteList(2, r.Ids)
 	return d
 }
 
+type UserResp struct {
+	UserInfo []UserInfo
+}
+
+func (r *UserResp) Decode(Bytes []byte) *UserResp {
+	d := new(rpc.Decode[UserResp])
+	d.ClassName = "UserResp"
+	d.Bytes = Bytes
+	r.UserInfo = d.ReadList(1, []UserInfo{}).([]UserInfo)
+	return r
+}
+
+func (r *UserResp) Encode() *rpc.Encode[UserResp] {
+	d := new(rpc.Encode[UserResp])
+	d.ClassName = "UserResp"
+	d.Bytes = make([]byte, 1024)
+	d.WriteList(1, r.UserInfo)
+	return d
+}
+
 func main() {
-	bi := new(BasicInfo)
-	bi.Token = "lllll11111"
-	qi := new(QueryIds)
-	qi.BasicInfo = bi
-	qi.Ids = []int32{1, 2, 3, 4, 5}
-	e := qi.Encode()
-
-	{
-		fmt.Printf("e.Bytes: %v\n", e.Bytes)
-		tt := new(QueryIds)
-		tt.Decode(e.Bytes)
-		fmt.Printf("tt.BasicInfo.Token: %v\n", tt.BasicInfo.Token)
-		fmt.Printf("tt.Ids: %v\n", tt.Ids)
-	}
-
-	// structTest()
+	baseArrTest()
 }

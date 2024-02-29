@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 )
 
 type TarsusStruct[T any] struct {
@@ -36,7 +37,7 @@ func (r *TarsusStruct[T]) Encode() *rpc.Encode[TarsusStruct[T]] {
 	d.WriteString(1, r.Module)
 	d.WriteString(2, r.Method)
 	d.WriteString(3, r.Request)
-	d.WriteStruct(4, r.Body)
+	d.WriteStruct(4, reflect.ValueOf(r.Body))
 	return d
 }
 

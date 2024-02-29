@@ -80,20 +80,21 @@ func (e *Encode[T]) WriteString(tag int, value string) (bool, error) {
 	return true, nil
 }
 
-func (e *Encode[T]) WriteStruct(tag int, value interface{}) (bool, error) {
-	t := reflect.TypeOf(value) // Use Elem() to get the element type (remove the pointer)
-	if t.Kind() != reflect.Ptr {
-		panic("Error! WriteStruct expects a pointer to a struct")
+func (e *Encode[T]) WriteStruct(tag int, value reflect.Value) (bool, error) {
+	fmt.Println("value", value.Kind())
+	if tag != -1 {
+		e.Current = int32(tag)
 	}
-	m, b := t.MethodByName("Encode")
-	if !b {
-		panic(fmt.Sprintf("Error! Struct %s does not have Method Encode", t.Name()))
+	var encodeFunc reflect.Value
+	if value.Kind() == reflect.Ptr {
+		encodeFunc = value.MethodByName("Encode")
+	} else {
+		encodeFunc = value.Addr().MethodByName("Encode")
 	}
-	callResp := m.Func.Call([]reflect.Value{reflect.ValueOf(value)})
+	callResp := encodeFunc.Call([]reflect.Value{})
 	v := callResp[0].Elem()
 	position := v.FieldByName("Position").Interface().(int32)
 	bytes := v.FieldByName("Bytes").Interface().([]byte)
-	e.Current = int32(tag)
 	binary.LittleEndian.PutUint32(e.Bytes[e.Position:], uint32(position))
 	e.Position += 4
 	copy(e.Bytes[e.Position:], bytes)
@@ -129,7 +130,15 @@ func (e *Encode[T]) WriteList(tag int, value interface{}) (bool, error) {
 			e.WriteString(-1, item)
 		}
 	default:
-		return false, fmt.Errorf("unsupported type %T for WriteList", value)
+		length := reflect.ValueOf(v).Len()
+		val := reflect.ValueOf(v)
+		if length != 0 {
+			for i := 0; i < length; i++ {
+				v := val.Index(i)
+				fmt.Println("v", v)
+				e.WriteStruct(-1, v)
+			}
+		}
 	}
 	listBytes := e.Position - beforeEncodePosition
 	binary.LittleEndian.PutUint32(e.Bytes[beforeEncodePosition:], uint32(listBytes))
