@@ -67,7 +67,9 @@ func (d *Decode[T]) ReadString(tag int) string {
 }
 
 func (d *Decode[T]) ReadList(tag int, value interface{}) interface{} {
-	d.Current = int32(tag)
+	if tag != -1 {
+		d.Current = int32(tag)
+	}
 	d.Position += 4
 	valueLength := queryStructLen(d.Bytes[d.Position-4 : d.Position])
 	currPosition := d.Position
@@ -88,12 +90,10 @@ func (d *Decode[T]) ReadList(tag int, value interface{}) interface{} {
 		return v
 	case []int32:
 		length := int(valueLength/4) - 1
-		fmt.Println("length", length)
 		for i := 0; i < length; i++ {
 			r := d.ReadInt32(-1)
 			v = append(v, r)
 		}
-		fmt.Println("v", v)
 		return v
 	case []int64:
 		length := int(valueLength/8) - 1
@@ -104,44 +104,38 @@ func (d *Decode[T]) ReadList(tag int, value interface{}) interface{} {
 		return v
 	case []string:
 		for {
-			s := d.ReadString(-1)
-			v = append(v, s)
 			if d.Position == currPosition+valueLength {
 				break
 			}
+			s := d.ReadString(-1)
+			v = append(v, s)
 		}
 		return v
 	default:
-		length := reflect.ValueOf(v).Len()
-		val := reflect.ValueOf(v)
-		var resp []interface{}
-		if length != 0 {
-			for i := 0; i < length; i++ {
-				s := val.Index(i)
-				fmt.Println("s", s)
-				d.ReadStruct(-1, s)
-				resp = append(resp, s.Interface())
+		target := reflect.ValueOf(v).Type()
+		resp := reflect.MakeSlice(target, 0, 0)
+		for {
+			if d.Position == currPosition+valueLength-4 {
+				break
 			}
+			t := reflect.New(reflect.ValueOf(v).Type().Elem())
+			s := d.ReadStruct(-1, t)
+			resp = reflect.Append(resp, s.Elem())
 		}
-		return resp
+		return resp.Interface()
 	}
 }
 
-func (d *Decode[T]) ReadStruct(tag int, resp interface{}) interface{} {
-	d.Current = int32(tag)
-	t := reflect.TypeOf(resp)
-	if t.Kind() != reflect.Ptr {
-		panic("Error! WriteStruct expects a pointer to a struct")
+func (d *Decode[T]) ReadStruct(tag int, resp reflect.Value) reflect.Value {
+	if tag != -1 {
+		d.Current = int32(tag)
 	}
 	d.Position += 4
 	bytes := d.Bytes[d.Position-4 : d.Position]
 	valLen := queryStructLen(bytes)
-	m, b := t.MethodByName("Decode")
-	if !b {
-		panic(fmt.Sprintf("Error! Struct %s does not have Method Decode", resp))
-	}
+	m := resp.MethodByName("Decode")
 	BytesVal := d.Bytes[d.Position : d.Position+valLen]
-	callResp := m.Func.Call([]reflect.Value{reflect.ValueOf(resp), reflect.ValueOf(BytesVal)})
+	callResp := m.Call([]reflect.Value{reflect.ValueOf(BytesVal)})
 	d.Position += valLen
 	// 使用类型断言将结果转换为泛型类型 T
 	resp = callResp[0]

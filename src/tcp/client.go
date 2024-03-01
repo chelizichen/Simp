@@ -24,9 +24,7 @@ func (r *TarsusStruct[T]) Decode(Bytes []byte) *TarsusStruct[T] {
 	r.Module = d.ReadString(1)
 	r.Method = d.ReadString(2)
 	r.Request = d.ReadString(3)
-	_body := new(T)
-	d.ReadStruct(4, _body)
-	r.Body = _body
+	r.Body = d.ReadStruct(4, reflect.ValueOf(new(T))).Interface().(*T)
 	return r
 }
 

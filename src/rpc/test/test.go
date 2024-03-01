@@ -66,7 +66,12 @@ func structArrTest() {
 
 		usp := new(UserResp)
 		usp.UserInfo = []UserInfo{*ui}
-		usp.Encode()
+		e := usp.Encode()
+
+		ur := new(UserResp)
+		// fmt.Printf("e.Bytes: %v\n", e.Bytes)
+		ur.Decode(e.Bytes)
+		// fmt.Println("ur", ur.UserInfo[0])
 	}
 }
 
@@ -128,10 +133,8 @@ func (r *User) Decode(Bytes []byte) *User {
 	d := new(rpc.Decode[User])
 	d.ClassName = "User"
 	d.Bytes = Bytes
-	r.BasicInfo = new(BasicInfo)
-	d.ReadStruct(1, r.BasicInfo)
-	r.UserInfo = new(UserInfo)
-	d.ReadStruct(2, r.UserInfo)
+	r.BasicInfo = d.ReadStruct(1, reflect.ValueOf(new(BasicInfo))).Interface().(*BasicInfo)
+	r.UserInfo = d.ReadStruct(2, reflect.ValueOf(new(UserInfo))).Interface().(*UserInfo)
 	return r
 }
 
@@ -153,8 +156,7 @@ func (r *QueryIds) Decode(Bytes []byte) *QueryIds {
 	d := new(rpc.Decode[QueryIds])
 	d.ClassName = "QueryIds"
 	d.Bytes = Bytes
-	r.BasicInfo = new(BasicInfo)
-	d.ReadStruct(1, r.BasicInfo)
+	r.BasicInfo = d.ReadStruct(1, reflect.ValueOf(new(BasicInfo))).Interface().(*BasicInfo)
 	r.Ids = d.ReadList(2, []int32{}).([]int32)
 	return r
 }
@@ -189,5 +191,7 @@ func (r *UserResp) Encode() *rpc.Encode[UserResp] {
 }
 
 func main() {
-	baseArrTest()
+	// baseArrTest()
+	// structArrTest()
+	// structTest()
 }
