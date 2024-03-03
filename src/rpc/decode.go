@@ -66,6 +66,22 @@ func (d *Decode[T]) ReadString(tag int) string {
 	return value
 }
 
+func (d *Decode[T]) ReadStruct(tag int, resp reflect.Value) reflect.Value {
+	if tag != -1 {
+		d.Current = int32(tag)
+	}
+	d.Position += 4
+	bytes := d.Bytes[d.Position-4 : d.Position]
+	valLen := queryStructLen(bytes)
+	m := resp.MethodByName("Decode")
+	BytesVal := d.Bytes[d.Position : d.Position+valLen]
+	callResp := m.Call([]reflect.Value{reflect.ValueOf(BytesVal)})
+	d.Position += valLen
+	// 使用类型断言将结果转换为泛型类型 T
+	resp = callResp[0]
+	return resp
+}
+
 func (d *Decode[T]) ReadList(tag int, value interface{}) interface{} {
 	if tag != -1 {
 		d.Current = int32(tag)
@@ -126,18 +142,25 @@ func (d *Decode[T]) ReadList(tag int, value interface{}) interface{} {
 	}
 }
 
-func (d *Decode[T]) ReadStruct(tag int, resp reflect.Value) reflect.Value {
+func (d *Decode[T]) ReadAny() reflect.Value {
+
+	return reflect.ValueOf(nil)
+}
+
+func (d *Decode[T]) ReadMap(tag int) map[string]interface{} {
 	if tag != -1 {
 		d.Current = int32(tag)
 	}
 	d.Position += 4
 	bytes := d.Bytes[d.Position-4 : d.Position]
 	valLen := queryStructLen(bytes)
-	m := resp.MethodByName("Decode")
 	BytesVal := d.Bytes[d.Position : d.Position+valLen]
-	callResp := m.Call([]reflect.Value{reflect.ValueOf(BytesVal)})
-	d.Position += valLen
-	// 使用类型断言将结果转换为泛型类型 T
-	resp = callResp[0]
-	return resp
+	resp := make(map[string]interface{})
+	for true {
+		k := d.ReadString(-1)
+		v := d.ReadAny()
+		resp[k] = v.Interface()
+	}
+	fmt.Println(BytesVal)
+	return nil
 }

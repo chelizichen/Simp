@@ -120,6 +120,10 @@ func (e *Encode[T]) WriteList(tag int, value interface{}) (bool, error) {
 		for _, item := range v {
 			e.WriteInt32(-1, item)
 		}
+	case []int:
+		for _, item := range v {
+			e.WriteInt32(-1, int32(item))
+		}
 	case []int64:
 		for _, item := range v {
 			e.WriteInt64(-1, item)
@@ -143,4 +147,40 @@ func (e *Encode[T]) WriteList(tag int, value interface{}) (bool, error) {
 	listBytes := e.Position - beforeEncodePosition
 	binary.LittleEndian.PutUint32(e.Bytes[beforeEncodePosition:], uint32(listBytes))
 	return false, nil
+}
+
+func (e *Encode[T]) WriteAny(value interface{}) {
+	t := reflect.TypeOf(value)
+	fmt.Println(t.Kind())
+	switch t.Kind() {
+	case reflect.String:
+		e.WriteString(-1, value.(string))
+	case reflect.Int16:
+		e.WriteInt16(-1, value.(int16))
+	case reflect.Int32:
+		e.WriteInt32(-1, value.(int32))
+	case reflect.Int:
+		e.WriteInt32(-1, value.(int32))
+	case reflect.Int64:
+		e.WriteInt64(-1, value.(int64))
+	case reflect.Slice:
+		e.WriteList(-1, value)
+	case reflect.Struct:
+		e.WriteStruct(-1, reflect.ValueOf(value))
+	default:
+	}
+}
+
+func (e *Encode[T]) WriteMap(tag int, value map[string]interface{}) {
+	if tag != -1 {
+		e.Current = int32(tag)
+	}
+	beforeEncodePosition := e.Position
+	e.Position += 4
+	for k, v := range value {
+		e.WriteString(-1, k)
+		e.WriteAny(v)
+	}
+	currentPosition := e.Position - beforeEncodePosition
+	binary.LittleEndian.PutUint32(e.Bytes[beforeEncodePosition:], uint32(currentPosition))
 }

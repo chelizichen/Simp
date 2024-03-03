@@ -190,8 +190,40 @@ func (r *UserResp) Encode() *rpc.Encode[UserResp] {
 	return d
 }
 
+type HashMapTest struct {
+	HashTest map[string]interface{}
+}
+
+func (r *HashMapTest) Decode(Bytes []byte) *HashMapTest {
+	d := new(rpc.Decode[HashMapTest])
+	d.ClassName = "HashMapTest"
+	d.Bytes = Bytes
+	r.HashTest = d.ReadMap(1)
+	return r
+}
+
+func (r *HashMapTest) Encode() *rpc.Encode[HashMapTest] {
+	d := new(rpc.Encode[HashMapTest])
+	d.ClassName = "HashMapTest"
+	d.Bytes = make([]byte, 1024)
+	d.WriteMap(1, r.HashTest)
+	return d
+}
+
+func StructTest() {
+	h := new(HashMapTest)
+	h.HashTest = make(map[string]interface{})
+	h.HashTest["greet"] = []int{1, 2, 3, 4, 5}
+	h.HashTest["foo"] = []int{2, 3, 4, 5, 6, 2, 3, 4, 5}
+	//h.HashTest["greet"] = "hello"
+	//h.HashTest["foo"] = "bar"
+	h.Encode()
+
+}
+
 func main() {
 	// baseArrTest()
 	// structArrTest()
 	// structTest()
+	StructTest()
 }
