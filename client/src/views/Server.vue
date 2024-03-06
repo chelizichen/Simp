@@ -62,9 +62,16 @@ async function getServerPackageList(serverName: string) {
   if (state.packageList.length) {
     const resp = await API.CheckServer(formData)
     const ret = resp.Data
+    console.log('ret',ret);
+    
     state.status = {
       status: ret.status ? 'online' : 'offline',
       pid: ret.pid
+    }
+  }else{
+    state.status = {
+      status: 'offline',
+      pid: 0
     }
   }
 }
@@ -141,6 +148,11 @@ async function showConfig() {
 }
 
 async function ShutDownServer() {
+  const pid = state.status.pid
+  console.log('pid',pid);
+  if(pid == 0){
+    return ElMessage.error("关闭失败！该服务并未启动")
+  }
   const formData = new FormData()
   formData.append('serverName', state.serverName)
   const data = await API.ShutDownServer(formData)

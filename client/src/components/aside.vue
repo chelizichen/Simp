@@ -1,27 +1,24 @@
 <script lang="ts">
 export default {
-  name: 'aside-component'
-}
+  name: "aside-component",
+};
 </script>
 <script lang="ts" setup>
 const props = defineProps<{
-  serverList: any[]
-}>()
-const emits = defineEmits(['handleOpen'])
+  serverList: any[];
+}>();
+const emits = defineEmits(["handleOpen"]);
 function handleOpen(item: string) {
-  emits('handleOpen', item)
+  emits("handleOpen", item);
 }
 </script>
 
 <template>
   <div>
-    <h1
-      style="color: rgb(207, 15, 124); text-align: center; font-family: fantasy"
-      class="app-bigger-size"
-    >
+    <div class="app-bigger-size title">
       <el-icon style="color: rgb(207, 90, 124); font-size: 36px"><Help /></el-icon>
       Simp
-    </h1>
+    </div>
     <el-menu
       class="el-menu-vertical-demo"
       active-text-color="rgb(207, 15, 124)"
@@ -40,3 +37,15 @@ function handleOpen(item: string) {
     </el-menu>
   </div>
 </template>
+
+<style>
+.title {
+  color: rgb(207, 15, 124);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  font-size: 30px;
+  width: 200px;
+  justify-content: center;
+}
+</style>

@@ -40,11 +40,26 @@ func Static(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.Next()
 	})
 	staticRoot := filepath.Join(wd, "static")
-	webRoot := filepath.Join(wd, "pages")
+	webRoot := filepath.Join(wd, "dist")
+	// webSPAAssets := filepath.Join(wd, "dist/assets")
 	G.Use(CORSMiddleware())
 	G.Static(f("/static"), staticRoot)
-	G.Static(f("/web"), webRoot)
-	// G.GET("/", func(ctx *gin.Context) {
-	// 	ctx.Redirect(304, "/web")
-	// })
+	G.GET(f("/web/*path"), func(ctx *gin.Context) {
+		// 获取请求的路径
+		requestPath := ctx.Param("path")
+
+		// 拼接请求的文件路径
+		filePath := filepath.Join(webRoot, requestPath)
+
+		// 检查文件是否存在
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			// 文件不存在，返回 404
+			// ctx.Status(http.StatusNotFound)
+			filePath = filepath.Join(webRoot, "index.html")
+			ctx.File(filePath)
+			return
+		}
+		// 返回文件
+		ctx.File(filePath)
+	})
 }

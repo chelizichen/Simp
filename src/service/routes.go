@@ -54,9 +54,9 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 	G := ctx.Engine
 	var RegistrhServicesCtx = make(map[string]ServerCtx)
 
-	G.GET(f("/web"), func(c *gin.Context) {
-		c.Redirect(http.StatusPermanentRedirect, "/web/login.html")
-	})
+	// G.GET(f("/web"), func(c *gin.Context) {
+	// 	c.Redirect(http.StatusPermanentRedirect, "/web/login.html")
+	// })
 	G.POST(f("/login"), func(c *gin.Context) {
 		token := c.PostForm("token")
 		if token == TOKEN {
