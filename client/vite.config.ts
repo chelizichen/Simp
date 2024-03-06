@@ -3,6 +3,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig, splitVendorChunkPlugin,loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import viteCompression from 'vite-plugin-compression'
+import { chunkSplitPlugin } from 'vite-plugin-chunk-split';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode })=>{
@@ -11,6 +12,7 @@ export default defineConfig(({ command, mode })=>{
     plugins: [
       vue(),
       splitVendorChunkPlugin(),
+      chunkSplitPlugin(),
     ],
     resolve: {
       alias: {
@@ -29,6 +31,7 @@ export default defineConfig(({ command, mode })=>{
     },
     base:env.BASE,
     build:{
+      minify:true,
       terserOptions:{
         compress: {
           drop_console: true,
@@ -43,7 +46,7 @@ export default defineConfig(({ command, mode })=>{
           algorithm: 'gzip', // 压缩算法，可选['gzip'，' brotliccompress '，'deflate '，'deflateRaw']
           ext: '.gz',
           deleteOriginFile: true // 源文件压缩后是否删除(我为了看压缩后的效果，先选择了true)
-        })
+        }),
       ]
     }
   }
