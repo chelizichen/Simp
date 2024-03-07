@@ -10,6 +10,7 @@ import API from '../api/server'
 import asideComponent from '@/components/aside.vue'
 import mainLogger from '@/components/mainlogger.vue'
 import { InfoFilled, Remove } from '@element-plus/icons-vue'
+import { reverse } from 'lodash'
 const state = reactive({
   serverList: [],
   packageList: [],
@@ -62,13 +63,13 @@ async function getServerPackageList(serverName: string) {
   if (state.packageList.length) {
     const resp = await API.CheckServer(formData)
     const ret = resp.Data
-    console.log('ret',ret);
-    
+    console.log('ret', ret)
+
     state.status = {
       status: ret.status ? 'online' : 'offline',
       pid: ret.pid
     }
-  }else{
+  } else {
     state.status = {
       status: 'offline',
       pid: 0
@@ -119,6 +120,7 @@ async function GetMainLogList() {
   const List = await API.GetMainLogList()
   const Data = List.Data
   state.mainLogList = Data
+  reverse(state.mainLogList)
   state.loggerFile = Data.length ? Data[0] : ''
 }
 
@@ -149,9 +151,9 @@ async function showConfig() {
 
 async function ShutDownServer() {
   const pid = state.status.pid
-  console.log('pid',pid);
-  if(pid == 0){
-    return ElMessage.error("关闭失败！该服务并未启动")
+  console.log('pid', pid)
+  if (pid == 0) {
+    return ElMessage.error('关闭失败！该服务并未启动')
   }
   const formData = new FormData()
   formData.append('serverName', state.serverName)
@@ -261,7 +263,7 @@ function handleFileChange(file: any) {
   uploadForm.value.file = file.raw
 }
 
-async function DeletePackage(hash:string) {
+async function DeletePackage(hash: string) {
   // ElPopconfirm('确认删除该发布包?', '提示', {
   //   confirmButtonText: '确定',
   //   cancelButtonText: '取消',
@@ -291,10 +293,11 @@ async function DeleteServer() {
   Data.append('serverName', serverName)
   const data = await API.DeleteServer(Data)
   if (data.Code) {
-    ElMessage.error('delete error |' + data.Message)
-    return
+    return ElMessage.error('delete error |' + data.Message)
   }
   ElMessage.success('delete success')
+  fetchServerList()
+  GetMainLogList()
 }
 
 async function initLogger() {
@@ -305,6 +308,7 @@ async function initLogger() {
   const data = await API.GetLogList(formData)
   state.loggerList = data.Data || []
   state.loggerFile = state.loggerList.length ? state.loggerList[0] : ''
+  reverse(state.loggerList)
 }
 
 onMounted(() => {
@@ -325,7 +329,20 @@ watch(
       const formData = new FormData()
       formData.append('serverName', state.serverName)
       const data = await API.GetDoc(formData)
-      state.doc = data.Data
+      state.doc = data.Data.split('\n').reduce(
+        (pre: Array<{ hash: string; doc: string }>, curr: string, index: number) => {
+          if (index % 2 == 0) {
+            pre.push({
+              hash: curr,
+              doc: ''
+            })
+          } else {
+            pre[pre.length - 1].doc = curr
+          }
+          return pre
+        },
+        []
+      )
     }
     if (newVal == 'logger') {
       await initLogger()
@@ -337,7 +354,7 @@ watch(
   () => state.serverName,
   async function (newVal, oldVal) {
     if (oldVal != newVal) {
-      state.doc = ''
+      state.doc = []
       state.apis = []
       state.logger = ''
       state.packageList = []
@@ -543,9 +560,10 @@ watch(
             </el-tab-pane>
             <el-tab-pane label="doc" name="doc">
               <div v-if="state.activeName == 'doc'">
-                <div>
-                  {{ state.doc }}
-                </div>
+                <el-table :data="state.doc" stripe style="width: 100%" border>
+                  <el-table-column prop="doc" label="doc" width="180" align="center" />
+                  <el-table-column prop="hash" label="hash" align="center" />
+                </el-table>
               </div>
             </el-tab-pane>
           </el-tabs>
@@ -668,6 +686,14 @@ watch(
             </div>
           </template>
         </el-dialog>
+        <el-footer>
+          <el-divider content-position="center">
+            <div style="color: rgb(207, 15, 124); font-size: 18px">
+              Copyright©2023-2024 <el-divider direction="vertical" /> SimpServer Started on
+              AliCloud Platform
+            </div>
+          </el-divider>
+        </el-footer>
       </el-main>
     </el-container>
   </div>
@@ -678,5 +704,8 @@ watch(
   text-align: center;
   width: 15%;
   padding: 10px;
+}
+.el-container {
+  min-height: 100vh;
 }
 </style>

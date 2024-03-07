@@ -1,21 +1,24 @@
 <script lang="ts">
 export default {
-  name: "aside-component",
-};
+  name: 'aside-component'
+}
 </script>
 <script lang="ts" setup>
 const props = defineProps<{
-  serverList: any[];
-}>();
-const emits = defineEmits(["handleOpen"]);
+  serverList: any[]
+}>()
+const emits = defineEmits(['handleOpen'])
 function handleOpen(item: string) {
-  emits("handleOpen", item);
+  emits('handleOpen', item)
+}
+function toGit() {
+  window.open('https://github.com/chelizichen/Simp')
 }
 </script>
 
 <template>
   <div>
-    <div class="app-bigger-size title">
+    <div class="app-bigger-size title" @click="toGit()">
       <el-icon style="color: rgb(207, 90, 124); font-size: 36px"><Help /></el-icon>
       Simp
     </div>
@@ -47,5 +50,6 @@ function handleOpen(item: string) {
   font-size: 30px;
   width: 200px;
   justify-content: center;
+  cursor: pointer;
 }
 </style>
