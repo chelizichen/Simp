@@ -8,18 +8,19 @@ import API from '@/api/server'
 import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-
+import { md5 } from 'js-md5'
 const router = useRouter()
 const token = ref('')
 async function saveToken() {
   const data = new FormData()
-  data.append('token', token.value)
+  const tkn = md5(token.value)
+  data.append('token', tkn)
   const ret = await API.Login(data)
   if (ret.Data) {
     ElMessage.error('Please enter a valid token.')
   } else {
     router.push('/server')
-    localStorage.setItem('token', token.value)
+    localStorage.setItem('token', tkn)
   }
 }
 </script>
@@ -37,6 +38,16 @@ async function saveToken() {
       </el-form>
     </div>
   </div>
+  <el-footer>
+    <el-divider content-position="center">
+      <div style="color: rgb(207, 15, 124); font-size: 18px">Copyright©2023-2024</div>
+    </el-divider>
+    <el-divider content-position="center">
+      <div style="color: rgb(207, 15, 124); font-size: 18px">
+        SimpServer Started on AliCloud Platform
+      </div>
+    </el-divider>
+  </el-footer>
 </template>
 
 <style lang="less">
@@ -44,8 +55,8 @@ async function saveToken() {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #f1f1f1;
+  height: 90vh;
+  background-color: #ffffff;
   .container {
     text-align: center;
     width: 25vw;

@@ -688,9 +688,11 @@ watch(
         </el-dialog>
         <el-footer>
           <el-divider content-position="center">
+            <div style="color: rgb(207, 15, 124); font-size: 18px">Copyright©2023-2024</div>
+          </el-divider>
+          <el-divider content-position="center">
             <div style="color: rgb(207, 15, 124); font-size: 18px">
-              Copyright©2023-2024 <el-divider direction="vertical" /> SimpServer Started on
-              AliCloud Platform
+              SimpServer Started on AliCloud Platform
             </div>
           </el-divider>
         </el-footer>
