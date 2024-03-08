@@ -40,7 +40,7 @@ async function saveToken() {
   </div>
   <el-footer>
     <el-divider content-position="center">
-      <div style="color: rgb(207, 15, 124); font-size: 18px">Copyright©2023-2024</div>
+      <div style="color: rgb(207, 15, 124); font-size: 18px">Copyright © 2023-2024</div>
     </el-divider>
     <el-divider content-position="center">
       <div style="color: rgb(207, 15, 124); font-size: 18px">

@@ -64,14 +64,13 @@ async function getServerPackageList(serverName: string) {
     const resp = await API.CheckServer(formData)
     const ret = resp.Data
     console.log('ret', ret)
-
     state.status = {
-      status: ret.status ? 'online' : 'offline',
+      status: ret.status ? '<div style="color:green">online</div>' : '<div style="color: rgb(207, 15, 124)">offline</div>',
       pid: ret.pid
     }
   } else {
     state.status = {
-      status: 'offline',
+      status: '<div style="color: rgb(207, 15, 124)">offline</div>',
       pid: 0
     }
   }
@@ -97,7 +96,7 @@ async function restartServer() {
 
   const resp = await API.RestartServer(formData)
   state.status = {
-    status: resp.Data.status ? 'online' : 'offline',
+    status: resp.Data.status ? '<div style="color:green">online</div>' : '<div style="color: rgb(207, 15, 124)">offline</div>',
     pid: resp.Data.pid
   }
   if (resp.Code) {
@@ -316,8 +315,8 @@ async function initLogger() {
   formData.append('serverName', state.serverName)
   const data = await API.GetLogList(formData)
   state.loggerList = data.Data || []
-  state.loggerFile = state.loggerList.length ? state.loggerList[0] : ''
   reverse(state.loggerList)
+  state.loggerFile = state.loggerList.length ? state.loggerList[0] : ''
 }
 
 onMounted(() => {
@@ -467,7 +466,7 @@ watch(
             </div>
             <div class="flex-item">
               <div style="font-weight: 700">Status</div>
-              <div style="color: rgb(207, 15, 124)">{{ state.status.status || '--' }}</div>
+              <div v-html="state.status.status"></div>
             </div>
             <div class="flex-item">
               <div
@@ -698,7 +697,7 @@ watch(
         </el-dialog>
         <el-footer>
           <el-divider content-position="center">
-            <div style="color: rgb(207, 15, 124); font-size: 18px">Copyright©2023-2024</div>
+            <div style="color: rgb(207, 15, 124); font-size: 18px">Copyright © 2023-2024</div>
           </el-divider>
           <el-divider content-position="center">
             <div style="color: rgb(207, 15, 124); font-size: 18px">
