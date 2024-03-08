@@ -4,7 +4,7 @@ export default {
 }
 </script>
 <script setup lang="ts">
-import { ElLoading, ElMessage, ElPopconfirm } from 'element-plus'
+import { ElLoading, ElMessage, ElPopconfirm, type UploadUserFile } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
 import API from '../api/server'
 import asideComponent from '@/components/aside.vue'
@@ -259,8 +259,17 @@ async function uploadConfig() {
   state.configVisible = false
 }
 
+const fileList = ref<UploadUserFile[]>([])
+
 function handleFileChange(file: any) {
-  uploadForm.value.file = file.raw
+  if(!file.name.includes(uploadForm.value.serverName)){
+    ElMessage.error(`请上传正确的服务包 [ ${uploadForm.value.serverName} ] `)
+    uploadForm.value.file = null
+    fileList.value = []
+  }else{
+    uploadForm.value.file = file.raw
+    fileList.value = [file]
+  }
 }
 
 async function DeletePackage(hash: string) {
@@ -579,6 +588,7 @@ watch(
             </el-form-item>
             <el-form-item label="File" required>
               <el-upload
+                :file-list="fileList"
                 :show-file-list="true"
                 :on-change="handleFileChange"
                 :auto-upload="false"
