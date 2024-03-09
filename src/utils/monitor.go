@@ -52,8 +52,8 @@ func NewSimpMonitor(serverName string, date string) (s SimpMonitor, e error) {
 	// 没有则传当天
 	// path = static/serverName/log_date.log
 	now := time.Now().Format(time.DateOnly)
-	fmt.Println("Today", now)
 	if date == "" {
+		fmt.Println("Today", now)
 		date = now
 	} else {
 		t, err2 := time.Parse(time.DateOnly, date)
@@ -70,10 +70,10 @@ func NewSimpMonitor(serverName string, date string) (s SimpMonitor, e error) {
 	}
 
 	path := path.Join(cwd, PublishPath, serverName, fileName)
-	fmt.Println("Logger Path", path)
 	s.LogPath = path
 	b := IsExist(path)
 	if !b {
+		fmt.Println("Logger Path", path)
 		F, err := os.Create(path)
 		if err != nil {
 			fmt.Println("Error creating log file:", err)
