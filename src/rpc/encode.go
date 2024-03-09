@@ -171,15 +171,19 @@ func (e *Encode[T]) WriteAny(value interface{}) {
 	}
 }
 
-func (e *Encode[T]) WriteMap(tag int, value map[string]interface{}) {
+func (e *Encode[T]) WriteMap(tag int, value reflect.Value) {
 	if tag != -1 {
 		e.Current = int32(tag)
 	}
 	beforeEncodePosition := e.Position
 	e.Position += 4
-	for k, v := range value {
-		e.WriteString(-1, k)
-		e.WriteAny(v)
+	fmt.Println("value | ", value.MapRange())
+	iter := value.MapRange()
+	for iter.Next() {
+		k := iter.Key()
+		v := iter.Value()
+		e.WriteString(-1, k.String())
+		e.WriteAny(v.Interface())
 	}
 	currentPosition := e.Position - beforeEncodePosition
 	binary.LittleEndian.PutUint32(e.Bytes[beforeEncodePosition:], uint32(currentPosition))

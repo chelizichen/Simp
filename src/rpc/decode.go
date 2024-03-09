@@ -142,25 +142,49 @@ func (d *Decode[T]) ReadList(tag int, value interface{}) interface{} {
 	}
 }
 
-func (d *Decode[T]) ReadAny() reflect.Value {
-
-	return reflect.ValueOf(nil)
+func (d *Decode[T]) ReadAny(t ...reflect.Type) reflect.Value {
+	if len(t) == 1 {
+		switch t[0].Kind() {
+		case reflect.String:
+			return reflect.ValueOf(d.ReadString(-1))
+		case reflect.Int16:
+			return reflect.ValueOf(d.ReadInt16(-1))
+		case reflect.Int32:
+			return reflect.ValueOf(d.ReadInt32(-1))
+		case reflect.Int64:
+			return reflect.ValueOf(d.ReadInt64(-1))
+		default:
+			return reflect.ValueOf(nil)
+		}
+	} else {
+		switch t[0].Kind() {
+		case reflect.Slice:
+			reflect.ValueOf(d.ReadList(-1, t[1]))
+		default:
+			return reflect.ValueOf(nil)
+		}
+		return reflect.ValueOf(nil)
+	}
 }
 
-func (d *Decode[T]) ReadMap(tag int) map[string]interface{} {
+func (d *Decode[T]) ReadMap(tag int, t ...reflect.Type) reflect.Value {
 	if tag != -1 {
 		d.Current = int32(tag)
 	}
 	d.Position += 4
+	currPosition := d.Position
 	bytes := d.Bytes[d.Position-4 : d.Position]
 	valLen := queryStructLen(bytes)
 	BytesVal := d.Bytes[d.Position : d.Position+valLen]
 	resp := make(map[string]interface{})
-	for true {
+	for {
 		k := d.ReadString(-1)
-		v := d.ReadAny()
+		v := d.ReadAny(t...)
 		resp[k] = v.Interface()
+		if d.Position-valLen > currPosition {
+			break
+		}
 	}
 	fmt.Println(BytesVal)
-	return nil
+	return reflect.ValueOf(resp)
 }

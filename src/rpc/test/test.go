@@ -191,14 +191,16 @@ func (r *UserResp) Encode() *rpc.Encode[UserResp] {
 }
 
 type HashMapTest struct {
-	HashTest map[string]interface{}
+	SliceTest  map[string][]int
+	StringTest map[string]string
 }
 
 func (r *HashMapTest) Decode(Bytes []byte) *HashMapTest {
 	d := new(rpc.Decode[HashMapTest])
 	d.ClassName = "HashMapTest"
 	d.Bytes = Bytes
-	r.HashTest = d.ReadMap(1)
+	r.SliceTest = d.ReadMap(1, reflect.TypeOf(r.SliceTest)).Interface().(map[string][]int)
+	r.StringTest = d.ReadMap(2, reflect.TypeOf(r.StringTest)).Interface().(map[string]string)
 	return r
 }
 
@@ -206,19 +208,21 @@ func (r *HashMapTest) Encode() *rpc.Encode[HashMapTest] {
 	d := new(rpc.Encode[HashMapTest])
 	d.ClassName = "HashMapTest"
 	d.Bytes = make([]byte, 1024)
-	d.WriteMap(1, r.HashTest)
+	d.WriteMap(1, reflect.ValueOf(r.SliceTest))
+	d.WriteMap(2, reflect.ValueOf(r.StringTest))
 	return d
 }
 
 func StructTest() {
 	h := new(HashMapTest)
-	h.HashTest = make(map[string]interface{})
-	h.HashTest["greet"] = []int{1, 2, 3, 4, 5}
-	h.HashTest["foo"] = []int{2, 3, 4, 5, 6, 2, 3, 4, 5}
-	//h.HashTest["greet"] = "hello"
-	//h.HashTest["foo"] = "bar"
-	h.Encode()
-
+	h.SliceTest = make(map[string][]int)
+	h.SliceTest["greet"] = []int{1, 2, 3, 4, 5}
+	h.SliceTest["foo"] = []int{2, 3, 4, 5, 6, 2, 3, 4, 5}
+	h.StringTest = make(map[string]string)
+	h.StringTest["greet"] = "hello"
+	h.StringTest["foo"] = "bar"
+	encode := h.Encode()
+	fmt.Println("encode.Bytes", encode.Bytes)
 }
 
 func main() {
