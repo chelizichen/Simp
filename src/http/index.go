@@ -99,6 +99,40 @@ func (c *SimpHttpServerCtx) Get(realPath string, handle gin.HandlerFunc) {
 	c.Engine.GET(realPath, handle)
 }
 
+func (c *SimpHttpServerCtx) UseSPA(path string, root string) {
+	wd, _ := os.Getwd()
+	SIMP_PRODUCTION := os.Getenv("SIMP_PRODUCTION")
+	s := c.Name
+	pre := strings.ToLower(s)
+	f := utils.Join(pre)
+	if SIMP_PRODUCTION == "Yes" {
+		SIMP_SERVER_PATH := os.Getenv("SIMP_SERVER_PATH")
+		c.Engine.GET(f(path)+"/*path", func(ctx *gin.Context) {
+			requestPath := ctx.Param("path")
+			webRoot := filepath.Join(SIMP_SERVER_PATH, root)
+			targetPath := filepath.Join(SIMP_SERVER_PATH, root, requestPath)
+			if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+				targetPath = filepath.Join(webRoot, "index.html")
+				ctx.File(targetPath)
+				return
+			}
+			ctx.File(targetPath)
+		})
+	} else {
+		c.Engine.GET(f(path)+"/*path", func(ctx *gin.Context) {
+			requestPath := ctx.Param("path")
+			webRoot := filepath.Join(wd, root)
+			targetPath := filepath.Join(wd, root, requestPath)
+			if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+				targetPath = filepath.Join(webRoot, "index.html")
+				ctx.File(targetPath)
+				return
+			}
+			ctx.File(targetPath)
+		})
+	}
+}
+
 func (c *SimpHttpServerCtx) Static(realPath string, args ...string) {
 	s := c.Name
 	pre := strings.ToLower(s)
