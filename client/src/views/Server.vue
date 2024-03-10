@@ -677,7 +677,7 @@ watch(
                 @cancel="ElMessage.info('delete failed')"
               >
                 <template #reference>
-                  <span style="float: right" @click="DeletePackage(item.Hash)">
+                  <span style="float: right">
                     <el-icon style="color: crimson; cursor: pointer"><Remove /></el-icon>
                   </span>
                 </template>
