@@ -4,7 +4,7 @@ export default {
 }
 </script>
 <script setup lang="ts">
-import { ElLoading, ElMessage, ElPopconfirm, type UploadUserFile } from 'element-plus'
+import { ElLoading, ElMessage, ElMessageBox, ElPopconfirm, type UploadUserFile } from 'element-plus'
 import { onMounted, reactive, ref, watch } from 'vue'
 import API from '../api/server'
 import asideComponent from '@/components/aside.vue'
@@ -32,7 +32,7 @@ const state = reactive({
   activeName: 'logger',
   apis: [], // API接口 由gin生成
   doc: '',
-  rows:'',
+  rows: '',
   mainLogList: []
 })
 const uploadForm = ref({
@@ -47,10 +47,10 @@ const config = ref({
   StaticPath: '',
   Storage: '',
   Proxy: null,
-  Host: '',
+  Host: ''
 })
 
-const rowList = [50,100,500,1000]
+const rowList = [50, 100, 500, 1000]
 
 async function handleOpen(serverName: string) {
   state.serverName = serverName
@@ -68,7 +68,9 @@ async function getServerPackageList(serverName: string) {
     const ret = resp.Data
     console.log('ret', ret)
     state.status = {
-      status: ret.status ? '<div style="color:green">online</div>' : '<div style="color: rgb(207, 15, 124)">offline</div>',
+      status: ret.status
+        ? '<div style="color:green">online</div>'
+        : '<div style="color: rgb(207, 15, 124)">offline</div>',
       pid: ret.pid
     }
   } else {
@@ -99,7 +101,9 @@ async function restartServer() {
 
   const resp = await API.RestartServer(formData)
   state.status = {
-    status: resp.Data.status ? '<div style="color:green">online</div>' : '<div style="color: rgb(207, 15, 124)">offline</div>',
+    status: resp.Data.status
+      ? '<div style="color:green">online</div>'
+      : '<div style="color: rgb(207, 15, 124)">offline</div>',
     pid: resp.Data.pid
   }
   if (resp.Code) {
@@ -266,51 +270,78 @@ async function uploadConfig() {
 const fileList = ref<UploadUserFile[]>([])
 
 function handleFileChange(file: any) {
-  if(!file.name.includes(uploadForm.value.serverName)){
+  if (!file.name.includes(uploadForm.value.serverName)) {
     ElMessage.error(`请上传正确的服务包 [ ${uploadForm.value.serverName} ] `)
     uploadForm.value.file = null
     fileList.value = []
-  }else{
+  } else {
     uploadForm.value.file = file.raw
     fileList.value = [file]
   }
 }
 
 async function DeletePackage(hash: string) {
-  // ElPopconfirm('确认删除该发布包?', '提示', {
-  //   confirmButtonText: '确定',
-  //   cancelButtonText: '取消',
-  //   type: 'warning'
-  // }).then(async () => {
-  const formData = new FormData()
-  const fileName = `${state.serverName}_${hash}.tar.gz`
-  formData.append('serverName', state.serverName)
-  formData.append('fileName', fileName)
-  const rest = await API.DeletePackage(formData)
-  if (rest.Code) {
-    ElMessage.error('删除失败' + rest.Message)
-    return
-  }
-  ElMessage.success('删除成功')
-  await getServerPackageList(state.serverName)
-  state.selectRelease = ''
-  // })
-  // .catch(() => {
-  //   ElMessage.info('delete failed')
-  // })
+  ElMessageBox.prompt('Are you sure to delete this package', 'Confirm', {
+    confirmButtonText: 'OK',
+    cancelButtonText: 'Cancel',
+    inputPlaceholder:'input password'
+  })
+    .then(async ({ value }) => {
+      if (value != '0504') {
+        return false
+      }
+      const formData = new FormData()
+      const fileName = `${state.serverName}_${hash}.tar.gz`
+      formData.append('serverName', state.serverName)
+      formData.append('fileName', fileName)
+      const rest = await API.DeletePackage(formData)
+      if (rest.Code) {
+        ElMessage.error('删除失败' + rest.Message)
+        return
+      }
+      ElMessage.success('删除成功')
+      await getServerPackageList(state.serverName)
+      state.selectRelease = ''
+      ElMessage({
+        type: 'success',
+        message: `Delete Success`
+      })
+    })
+    .catch(() => {
+      ElMessage({
+        type: 'info',
+        message: 'Delete canceled'
+      })
+    })
 }
 
 async function DeleteServer() {
-  const serverName = state.serverName
-  const Data = new FormData()
-  Data.append('serverName', serverName)
-  const data = await API.DeleteServer(Data)
-  if (data.Code) {
-    return ElMessage.error('delete error |' + data.Message)
-  }
-  ElMessage.success('delete success')
-  fetchServerList()
-  GetMainLogList()
+  ElMessageBox.prompt('Are you sure to delete this package', 'Confirm', {
+    confirmButtonText: 'OK',
+    cancelButtonText: 'Cancel',
+    inputPlaceholder:'input password'
+  })
+    .then(async ({ value }) => {
+      if(value != '0504'){
+        return false
+      }
+      const serverName = state.serverName
+      const Data = new FormData()
+      Data.append('serverName', serverName)
+      const data = await API.DeleteServer(Data)
+      if (data.Code) {
+        return ElMessage.error('delete error |' + data.Message)
+      }
+      ElMessage.success('delete success')
+      fetchServerList()
+      GetMainLogList()
+    })
+    .catch(() => {
+      ElMessage({
+        type: 'info',
+        message: 'Delete canceled'
+      })
+    })
 }
 
 async function initLogger() {
@@ -505,19 +536,7 @@ watch(
               </div>
             </div>
             <div class="flex-item">
-              <el-popconfirm
-                confirm-button-text="Yes"
-                cancel-button-text="No"
-                :icon="InfoFilled"
-                icon-color="#626AEF"
-                title="Are you sure to delete this?"
-                @confirm="DeleteServer()"
-                @cancel="ElMessage.info('delete failed')"
-              >
-                <template #reference>
-                  <div style="cursor: pointer; color: red">Delete</div>
-                </template>
-              </el-popconfirm>
+              <div style="cursor: pointer; color: red" @click="DeleteServer">Delete</div>
             </div>
           </div>
         </el-card>
@@ -692,21 +711,9 @@ watch(
               :value="state.serverName + '_' + item.Hash + '.tar.gz'"
             >
               <span style="float: left">{{ state.serverName }}</span>
-              <el-popconfirm
-                confirm-button-text="Yes"
-                cancel-button-text="No"
-                :icon="InfoFilled"
-                icon-color="#626AEF"
-                title="Are you sure to delete this?"
-                @confirm="DeletePackage(item.Hash)"
-                @cancel="ElMessage.info('delete failed')"
-              >
-                <template #reference>
-                  <span style="float: right">
-                    <el-icon style="color: crimson; cursor: pointer"><Remove /></el-icon>
-                  </span>
-                </template>
-              </el-popconfirm>
+              <span style="float: right" @click="DeletePackage(item.Hash)">
+                <el-icon style="color: crimson; cursor: pointer"><Remove /></el-icon>
+              </span>
               <span style="float: right; color: #8492a6; font-size: 13px">
                 {{ item.Hash }} &nbsp;
               </span>

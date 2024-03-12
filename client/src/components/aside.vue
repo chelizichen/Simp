@@ -4,8 +4,8 @@ export default {
 }
 </script>
 <script lang="ts" setup>
-import { Search } from '@element-plus/icons-vue';
-import {  computed, ref } from 'vue';
+import { Search } from '@element-plus/icons-vue'
+import { computed, ref } from 'vue'
 const props = defineProps<{
   serverList: any[]
 }>()
@@ -14,8 +14,8 @@ function handleOpen(item: string) {
   emits('handleOpen', item)
 }
 const keyword = ref('')
-const serverList = computed(()=>{
-   return props.serverList.filter(v=>v.match(keyword.value))
+const serverList = computed(() => {
+  return props.serverList.filter((v) => v.match(keyword.value))
 })
 
 function toGit() {
@@ -34,7 +34,7 @@ function toGit() {
       active-text-color="rgb(207, 15, 124)"
       style="border: none"
     >
-      <el-menu-item  class="app-text-center">
+      <el-menu-item class="app-text-center">
         <el-icon class="app-not-show"><Search /></el-icon>
         <el-input v-model="keyword"></el-input>
       </el-menu-item>
