@@ -469,6 +469,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
 
+	// tail -n rows log_file | grep "pattern"
 	GROUP.POST("/getServerLog", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		fileName := c.PostForm("fileName")
