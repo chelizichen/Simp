@@ -474,11 +474,12 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		serverName := c.PostForm("serverName")
 		fileName := c.PostForm("fileName")
 		pattern := c.DefaultPostForm("pattern", "")
+		rows := c.DefaultPostForm("rows", "100")
 		sm, err := utils2.NewSearchLogMonitor(serverName, fileName)
 		if err != nil {
 			fmt.Println("Error To New SimMonitor", err.Error())
 		}
-		s, err := sm.GetLogger(pattern)
+		s, err := sm.GetLogger(pattern, rows)
 		if err != nil {
 			fmt.Println("Error To GetLogger", err.Error())
 		}
@@ -561,13 +562,14 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 	GROUP.POST("/main/getServerLog", func(c *gin.Context) {
 		logFile := c.PostForm("logFile")
 		pattern := c.DefaultPostForm("pattern", "")
+		rows := c.DefaultPostForm("rows", "100")
 		sm, err := utils2.NewMainSearchLogMonitor(logFile)
 		if err != nil {
 			fmt.Println("Error To New SimMonitor", err.Error())
 			c.JSON(200, handlers.Resp(-2, err.Error(), nil))
 			return
 		}
-		s, err := sm.GetLogger(pattern)
+		s, err := sm.GetLogger(pattern, rows)
 		if err != nil {
 			fmt.Println("Error To GetLogger", err.Error())
 			c.JSON(200, handlers.Resp(-1, err.Error(), nil))

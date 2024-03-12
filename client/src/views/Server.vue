@@ -32,7 +32,7 @@ const state = reactive({
   activeName: 'logger',
   apis: [], // API接口 由gin生成
   doc: '',
-
+  rows:'',
   mainLogList: []
 })
 const uploadForm = ref({
@@ -47,8 +47,11 @@ const config = ref({
   StaticPath: '',
   Storage: '',
   Proxy: null,
-  Host: ''
+  Host: '',
 })
+
+const rowList = [50,100,500,1000]
+
 async function handleOpen(serverName: string) {
   state.serverName = serverName
   await getServerPackageList(serverName)
@@ -129,12 +132,14 @@ async function GetServerLogger() {
     formData.append('serverName', state.serverName)
     formData.append('fileName', state.loggerFile)
     formData.append('pattern', state.pattern)
+    formData.append('rows', state.rows)
     const rest = await API.GetLogger(formData)
     state.logger = rest.Data.split('\n')
   } else {
     const formData = new FormData()
     formData.append('logFile', state.loggerFile)
     formData.append('pattern', state.pattern)
+    formData.append('rows', state.rows)
     const rest = await API.GetMainLogger(formData)
     state.logger = rest.Data.split('\n')
   }
@@ -422,6 +427,16 @@ watch(
               </el-select>
               <br />
               <br />
+              <el-select v-model="state.rows" placeholder="select row">
+                <el-option
+                  v-for="item in rowList"
+                  :key="item"
+                  :value="item"
+                  :label="item"
+                ></el-option>
+              </el-select>
+              <br />
+              <br />
               <el-input v-model="state.pattern"></el-input>
               <br />
               <br />
@@ -514,6 +529,16 @@ watch(
                   <el-select v-model="state.loggerFile">
                     <el-option
                       v-for="item in state.loggerList"
+                      :key="item"
+                      :value="item"
+                      :label="item"
+                    ></el-option>
+                  </el-select>
+                  <br />
+                  <br />
+                  <el-select v-model="state.rows" placeholder="select row">
+                    <el-option
+                      v-for="item in rowList"
                       :key="item"
                       :value="item"
                       :label="item"

@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -84,19 +86,17 @@ func NewSimpMonitor(serverName string, date string) (s SimpMonitor, e error) {
 }
 
 // 返回一个Logger
-func (s *SimpMonitor) GetLogger(pattern string) (string, error) {
-	cmd := exec.Command("grep", pattern, s.LogPath)
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
+// tail -n rows log_file | grep "pattern"
+func (s *SimpMonitor) GetLogger(pattern string, rows string) (string, error) {
+	cmdString := "tail" + " -n " + rows + " " + s.LogPath + " | grep " + pattern
+	fmt.Println("cmdString", cmdString)
+	n, _ := strconv.Atoi(rows)
+	output, err := TailAndGrep(s.LogPath, n, pattern)
 	if err != nil {
-		return stderr.String(), err
+		fmt.Println("执行命令失败:", err)
+		return output, err
 	}
-
-	return stdout.String(), nil
+	return output, err
 }
 
 // 返回一个Logger
@@ -218,4 +218,48 @@ func AutoSetLogWriter() {
 
 	// 重定向标准输出到自定义的写入器
 	os.Stdout = logWriter.File
+}
+
+func TailAndGrep(filename string, n int, pattern string) (string, error) {
+	// 构造命令
+	cmdTail := exec.Command("tail", fmt.Sprintf("-n%d", n), filename)
+	cmdGrep := exec.Command("grep", pattern)
+
+	// 创建管道
+	r, w := io.Pipe()
+	defer r.Close()
+
+	// 将 tail 的输出连接到 grep 的输入
+	cmdTail.Stdout = w
+	cmdGrep.Stdin = r
+
+	// 创建缓冲区用于存储 grep 的输出
+	var output bytes.Buffer
+	cmdGrep.Stdout = &output
+
+	// 启动命令
+	errTail := cmdTail.Start()
+	if errTail != nil {
+		return "", errTail
+	}
+
+	errGrep := cmdGrep.Start()
+	if errGrep != nil {
+		return "", errGrep
+	}
+
+	// 等待命令执行完成
+	errTailWait := cmdTail.Wait()
+	if errTailWait != nil {
+		return "", errTailWait
+	}
+
+	w.Close()
+
+	errGrepWait := cmdGrep.Wait()
+	if errGrepWait != nil {
+		return "", errGrepWait
+	}
+
+	return output.String(), nil
 }
