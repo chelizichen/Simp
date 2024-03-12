@@ -296,10 +296,12 @@ async function DeletePackage(hash: string) {
       formData.append('fileName', fileName)
       const rest = await API.DeletePackage(formData)
       if (rest.Code) {
-        ElMessage.error('删除失败' + rest.Message)
+        ElMessage({
+          type: 'info',
+          message: 'Delete canceled'
+        })
         return
       }
-      ElMessage.success('删除成功')
       await getServerPackageList(state.serverName)
       state.selectRelease = ''
       ElMessage({
