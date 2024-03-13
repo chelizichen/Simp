@@ -1,4 +1,4 @@
-module Simp
+module github.com/chelizichen/Simp
 
 go 1.21
 
