@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -105,32 +106,39 @@ func (c *SimpHttpServerCtx) UseSPA(path string, root string) {
 	s := c.Name
 	pre := strings.ToLower(s)
 	f := utils.Join(pre)
-	if SIMP_PRODUCTION == "Yes" {
-		SIMP_SERVER_PATH := os.Getenv("SIMP_SERVER_PATH")
-		c.Engine.GET(f(path)+"/*path", func(ctx *gin.Context) {
-			requestPath := ctx.Param("path")
-			webRoot := filepath.Join(SIMP_SERVER_PATH, root)
-			targetPath := filepath.Join(SIMP_SERVER_PATH, root, requestPath)
-			if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-				targetPath = filepath.Join(webRoot, "index.html")
-				ctx.File(targetPath)
-				return
-			}
-			ctx.File(targetPath)
-		})
-	} else {
-		c.Engine.GET(f(path)+"/*path", func(ctx *gin.Context) {
-			requestPath := ctx.Param("path")
-			webRoot := filepath.Join(wd, root)
-			targetPath := filepath.Join(wd, root, requestPath)
-			if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-				targetPath = filepath.Join(webRoot, "index.html")
-				ctx.File(targetPath)
-				return
-			}
-			ctx.File(targetPath)
-		})
+
+	// 设置缓存
+	setCacheHeaders := func(ctx *gin.Context, fileInfo os.FileInfo) {
+		ctx.Header("Cache-Control", "public, max-age=2592000")
+		expires := time.Now().Add(time.Hour * 24 * 30)
+		ctx.Header("Expires", expires.Format(time.RFC1123))
+		lastModified := fileInfo.ModTime()
+		ctx.Header("Last-Modified", lastModified.Format(time.RFC1123))
 	}
+
+	c.Engine.GET(f(path)+"/*path", func(ctx *gin.Context) {
+		requestPath := ctx.Param("path")
+		var webRoot, targetPath string
+
+		if SIMP_PRODUCTION == "Yes" {
+			SIMP_SERVER_PATH := os.Getenv("SIMP_SERVER_PATH")
+			webRoot = filepath.Join(SIMP_SERVER_PATH, root)
+			targetPath = filepath.Join(SIMP_SERVER_PATH, root, requestPath)
+		} else {
+			webRoot = filepath.Join(wd, root)
+			targetPath = filepath.Join(wd, root, requestPath)
+		}
+
+		if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+			targetPath = filepath.Join(webRoot, "index.html")
+		} else if fileInfo, err := os.Stat(targetPath); err == nil {
+			if strings.HasSuffix(targetPath, ".js") || strings.HasSuffix(targetPath, ".css") {
+				setCacheHeaders(ctx, fileInfo)
+			}
+		}
+
+		ctx.File(targetPath)
+	})
 }
 
 func (c *SimpHttpServerCtx) Static(realPath string, args ...string) {
