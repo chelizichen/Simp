@@ -3,7 +3,6 @@ module Simp
 go 1.21
 
 require (
-	github.com/chelizichen/Simp v0.0.0-20240313080642-d8fe6a80b501
 	github.com/gin-gonic/gin v1.9.1
 	gopkg.in/yaml.v2 v2.4.0
 )

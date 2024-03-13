@@ -10,8 +10,6 @@ github.com/bytedance/sonic v1.11.3 h1:jRN+yEjakWh8aK5FzrciUHG8OFXK+4/KrAX/ysEtHA
 github.com/bytedance/sonic v1.11.3/go.mod h1:iZcSUejdk5aukTND/Eu/ivjQuEL0Cu9/rf50Hi0u/g4=
 github.com/c4milo/unpackit v1.0.0 h1:Umce1lwtFvEHNFQev+xENObYiiYxdSmKhvGlkcufUGE=
 github.com/c4milo/unpackit v1.0.0/go.mod h1:0cXRaRz5pMcJm7o9jYQmPAeBl6y1na9BKy3K+og0UJY=
-github.com/chelizichen/Simp v0.0.0-20240313080642-d8fe6a80b501 h1:OCXTfABkTpxtjNJhpOqP/gs8mkJSs7s+kjU6iBvv+Xg=
-github.com/chelizichen/Simp v0.0.0-20240313080642-d8fe6a80b501/go.mod h1:RGOgS0LM81UuAAb6r0DnVlhym+NczgMFICeRK2NzLmU=
 github.com/chenzhuoyu/base64x v0.0.0-20211019084208-fb5309c8db06/go.mod h1:DH46F32mSOjUmXrMHnKwZdA8wcEefY7UVqBKYGjpdQY=
 github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 h1:qSGYFH7+jGhDF8vLC+iwCD4WpbV1EBDSzWkJODFLams=
 github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311/go.mod h1:b583jCggY9gE99b6G5LEC39OIiVsWj+R97kbl5odCEk=
