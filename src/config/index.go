@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	jsonToYaml "github.com/ghodss/yaml"
 	"gopkg.in/yaml.v2"
@@ -73,25 +74,48 @@ func NewConfig(path string, args ...string) (conf SimpConfig, err error) {
 				// 转换失败，处理错误情况
 			}
 		} else {
-			configPath = filepath.Join(wd, path)
-			// 读取 YAML 文件
-			yamlFile, err := os.ReadFile(configPath)
-			fmt.Println("Get FilePath from ", configPath)
-			if err != nil {
-				fmt.Println("Error reading YAML file:", err)
-				return conf, err
+			if !strings.HasPrefix(path, wd) {
+				configPath = filepath.Join(wd, path)
+				// 读取 YAML 文件
+				yamlFile, err := os.ReadFile(configPath)
+				fmt.Println("Get FilePath from ", configPath)
+				if err != nil {
+					fmt.Println("Error reading YAML file:", err)
+					return conf, err
+				}
+
+				// 解析 YAML 数据
+				err = yaml.Unmarshal(yamlFile, &conf)
+				if err != nil {
+					fmt.Println("Error unmarshalling YAML:", err)
+					return conf, err
+				}
+
+				// 打印解析后的配置
+				fmt.Printf("%+v\n", conf)
+				return conf, nil
+			} else {
+				configPath = path
+				// 读取 YAML 文件
+				yamlFile, err := os.ReadFile(configPath)
+				fmt.Println("Get FilePath from ", configPath)
+				if err != nil {
+					fmt.Println("Error reading YAML file:", err)
+					return conf, err
+				}
+
+				// 解析 YAML 数据
+				err = yaml.Unmarshal(yamlFile, &conf)
+				if err != nil {
+					fmt.Println("Error unmarshalling YAML:", err)
+					return conf, err
+				}
+
+				// 打印解析后的配置
+				fmt.Printf("%+v\n", conf)
+				return conf, nil
 			}
 
-			// 解析 YAML 数据
-			err = yaml.Unmarshal(yamlFile, &conf)
-			if err != nil {
-				fmt.Println("Error unmarshalling YAML:", err)
-				return conf, err
-			}
-
-			// 打印解析后的配置
-			fmt.Printf("%+v\n", conf)
-			return conf, nil
 		}
 	} else {
 		// 特殊情况下使用args

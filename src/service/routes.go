@@ -138,8 +138,10 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
+
 		storagePath := filepath.Join(cwd, utils2.PublishPath, serverName, fileName)
 		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "service_go")
+		storageNodePath := filepath.Join(cwd, utils2.PublishPath, serverName, "app.js")
 		storageYmlEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simp.yaml")
 		storageYmlProdPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simpProd.yaml")
 		sc, err := config.NewConfig(storageYmlEPath)
@@ -161,6 +163,11 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("remove File Error storageYmlEPath "+storageYmlEPath, err.Error())
 		}
 
+		err = utils2.IFExistThenRemove(storageNodePath)
+		if err != nil {
+			fmt.Println("remove File Error storageNodePath "+storageNodePath, err.Error())
+		}
+
 		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
 
 		err = utils2.Unzip(storagePath, dest)
@@ -178,10 +185,26 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 				fmt.Println("utils.CopyFile ", storageYmlEPath, err.Error())
 			}
 		}
-		cmd := exec.Command(storageExEPath)
+		var cmd *exec.Cmd
+		fmt.Println("sc.Server.Type", sc.Server.Type)
+		switch sc.Server.Type {
+		case "node-http":
+			{
+				cmd = exec.Command("node", storageNodePath)
+			}
+		default:
+			{
+				cmd = exec.Command(storageExEPath)
+			}
+		}
+
 		stdoutPipe, err := cmd.StdoutPipe()
 		if err != nil {
 			fmt.Println("Error Get StdoutPiper", err.Error())
+		}
+		stderrPipe, err := cmd.StderrPipe()
+		if err != nil {
+			fmt.Println("Error Get stderrPipe", err.Error())
 		}
 		// 设置环境变量
 		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
@@ -190,6 +213,10 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error To New Monitor", err.Error())
 		}
 		err = cmd.Start()
+		if err != nil {
+			fmt.Println("Error To EXEC Cmd Start", err.Error())
+			fmt.Println("Cmd", cmd.Args)
+		}
 		serverContext, serverCancelFunc := context.WithCancel(context.Background())
 		RegistrhServicesCtx[serverName] = ServerCtx{
 			context: serverContext,
@@ -225,18 +252,34 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 					// 启动Cron调度器
 					go c.Start()
 
-					for {
-						// 读取输出
-						buf := make([]byte, 1024)
-						s := time.Now().Format(time.TimeOnly)
-						n, err := stdoutPipe.Read(buf)
-						if err != nil {
-							break
+					go func() {
+						for {
+							// 读取输出
+							buf := make([]byte, 1024)
+							s := time.Now().Format(time.TimeOnly)
+							n, err := stdoutPipe.Read(buf)
+							if err != nil {
+								break
+							}
+							// 打印输出
+							content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+							sm.AppendLogger(content)
 						}
-						// 打印输出
-						content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
-						sm.AppendLogger(content)
-					}
+					}()
+					go func() {
+						for {
+							// 读取输出
+							buf := make([]byte, 1024)
+							s := time.Now().Format(time.TimeOnly)
+							n, err := stderrPipe.Read(buf)
+							if err != nil {
+								break
+							}
+							// 打印输出
+							content := s + "Error : ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+							fmt.Println(content)
+						}
+					}()
 				}
 			}
 
@@ -264,7 +307,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
 		err = utils2.Unzip(storagePath, dest)
 
-		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "build/app.js")
+		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "app.js")
 		cmd := exec.Command("node", storageExEPath)
 		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
 		stdoutPipe, _ := cmd.StdoutPipe()

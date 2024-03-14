@@ -52,6 +52,7 @@ func (c *SimpHttpServerCtx) Use(callback func(engine *SimpHttpServerCtx, pre str
 
 // 主控服务需要做日志系统与监控
 func (c *SimpHttpServerCtx) DefineMain() {
+	// return
 	cwd, err := os.Getwd()
 	if err != nil {
 		Err_Message := "Error To Get Wd" + err.Error()

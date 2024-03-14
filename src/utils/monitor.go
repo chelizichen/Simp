@@ -218,6 +218,7 @@ func AutoSetLogWriter() {
 
 	// 重定向标准输出到自定义的写入器
 	os.Stdout = logWriter.File
+	os.Stderr = logWriter.File
 }
 
 func TailAndGrep(filename string, n int, pattern string) (string, error) {
