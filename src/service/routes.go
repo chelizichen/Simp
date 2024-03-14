@@ -253,6 +253,59 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
 	})
 
+	GROUP.POST("/testnode", func(c *gin.Context) {
+		fileName := c.DefaultPostForm("fileName", "TestNodeServer.tar.gz")
+		serverName := c.DefaultPostForm("serverName", "TestNodeServer")
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error To GetWd", err.Error())
+		}
+		storagePath := filepath.Join(cwd, utils2.PublishPath, serverName, fileName)
+		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
+		err = utils2.Unzip(storagePath, dest)
+
+		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "build/app.js")
+		cmd := exec.Command("node", storageExEPath)
+		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
+		stdoutPipe, _ := cmd.StdoutPipe()
+		rc, _ := cmd.StderrPipe()
+		go func() {
+
+			for {
+				// 读取输出
+				buf := make([]byte, 1024)
+				s := time.Now().Format(time.TimeOnly)
+				n, err := stdoutPipe.Read(buf)
+				if err != nil {
+					break
+				}
+				// 打印输出
+				content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+				fmt.Println(content)
+			}
+			for {
+				// 读取输出
+				buf := make([]byte, 1024)
+				s := time.Now().Format(time.TimeOnly)
+				n, err := rc.Read(buf)
+				if err != nil {
+					break
+				}
+				// 打印输出
+				content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+				fmt.Println(content)
+			}
+		}()
+		err = cmd.Start()
+
+		if err != nil {
+			fmt.Println("storageExEPath", storageExEPath)
+			fmt.Println("err", err.Error())
+		}
+
+		c.AbortWithStatus(200)
+	})
+
 	GROUP.POST("/test/restart", func(c *gin.Context) {
 		cwd, err := os.Getwd()
 		if err != nil {
