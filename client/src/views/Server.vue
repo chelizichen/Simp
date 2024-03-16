@@ -69,7 +69,7 @@ async function getServerPackageList(serverName: string) {
     console.log('ret', ret)
     state.status = {
       status: ret.status
-        ? '<div style="color:green">online</div>'
+        ? '<div style="color:#55bd55">online</div>'
         : '<div style="color: rgb(207, 15, 124)">offline</div>',
       pid: ret.pid
     }
@@ -102,7 +102,7 @@ async function restartServer() {
   const resp = await API.RestartServer(formData)
   state.status = {
     status: resp.Data.status
-      ? '<div style="color:green">online</div>'
+      ? '<div style="color:#55bd55">online</div>'
       : '<div style="color: rgb(207, 15, 124)">offline</div>',
     pid: resp.Data.pid
   }
@@ -135,15 +135,15 @@ async function GetServerLogger() {
     const formData = new FormData()
     formData.append('serverName', state.serverName)
     formData.append('fileName', state.loggerFile)
-    formData.append('pattern', state.pattern)
-    formData.append('rows', state.rows)
+    formData.append('pattern', state.pattern || '')
+    formData.append('rows', state.rows || '50')
     const rest = await API.GetLogger(formData)
     state.logger = rest.Data.split('\n')
   } else {
     const formData = new FormData()
     formData.append('logFile', state.loggerFile)
-    formData.append('pattern', state.pattern)
-    formData.append('rows', state.rows)
+    formData.append('pattern', state.pattern || '')
+    formData.append('rows', state.rows || '50')
     const rest = await API.GetMainLogger(formData)
     state.logger = rest.Data.split('\n')
   }
@@ -406,6 +406,7 @@ watch(
       state.packageList = []
       state.activeName = 'logger'
       state.pattern = ''
+      fileList.value = []
       //
       await initLogger()
     }
