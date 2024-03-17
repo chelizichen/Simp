@@ -8,9 +8,18 @@ export function getProxyList() {
   }) as unknown as BasicResp<any>
 }
 
-export function nginxExpansion(){
+export function nginxExpansion(data) {
   return HttpReq({
     url: '/nginxExpansion',
-    method: 'post'
+    method: 'post',
+    data
+  }) as unknown as BasicResp<any>
+}
+
+export function nginxExpansionPreview(data) {
+  return HttpReq({
+    url: '/nginxExpansionPreview',
+    method: 'post',
+    data
   }) as unknown as BasicResp<any>
 }
