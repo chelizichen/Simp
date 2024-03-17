@@ -11,6 +11,7 @@ import asideComponent from '@/components/aside.vue'
 import mainLogger from '@/components/mainlogger.vue'
 import { InfoFilled, Remove } from '@element-plus/icons-vue'
 import { reverse } from 'lodash'
+import expansionComponent from '@/components/expansion.vue'
 const state = reactive({
   serverList: [],
   packageList: [],
@@ -33,7 +34,8 @@ const state = reactive({
   apis: [], // API接口 由gin生成
   doc: '',
   rows: '',
-  mainLogList: []
+  mainLogList: [],
+  expansionVisible: false
 })
 const uploadForm = ref({
   serverName: '',
@@ -284,7 +286,7 @@ async function DeletePackage(hash: string) {
   ElMessageBox.prompt('Are you sure to delete this package', 'Confirm', {
     confirmButtonText: 'OK',
     cancelButtonText: 'Cancel',
-    inputPlaceholder:'input password'
+    inputPlaceholder: 'input password'
   })
     .then(async ({ value }) => {
       if (value != '0504') {
@@ -321,10 +323,10 @@ async function DeleteServer() {
   ElMessageBox.prompt('Are you sure to delete this package', 'Confirm', {
     confirmButtonText: 'OK',
     cancelButtonText: 'Cancel',
-    inputPlaceholder:'input password'
+    inputPlaceholder: 'input password'
   })
     .then(async ({ value }) => {
-      if(value != '0504'){
+      if (value != '0504') {
         return false
       }
       const serverName = state.serverName
@@ -516,6 +518,14 @@ watch(
             <div class="flex-item">
               <div style="font-weight: 700">Status</div>
               <div v-html="state.status.status"></div>
+            </div>
+            <div class="flex-item">
+              <div
+                style="font-weight: 700; color: rgb(207, 15, 124); cursor: pointer"
+                @click="state.expansionVisible = true"
+              >
+                Expansion
+              </div>
             </div>
             <div class="flex-item">
               <div
@@ -730,6 +740,11 @@ watch(
             </div>
           </template>
         </el-dialog>
+        <expansionComponent
+          :expansion-visible="state.expansionVisible"
+          :server-name="state.serverName"
+          @close-dialog="()=>state.expansionVisible = false"
+        ></expansionComponent>
         <el-footer>
           <el-divider content-position="center">
             <div style="color: rgb(207, 15, 124); font-size: 18px">Copyright © 2023-2024</div>
