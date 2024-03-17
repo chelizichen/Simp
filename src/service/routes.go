@@ -119,6 +119,8 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 	GROUP.POST("/restartServer", func(c *gin.Context) {
 		fileName := c.PostForm("fileName")
 		serverName := c.PostForm("serverName")
+		// targetPort 为扩容时指定的端口
+		targetPort := c.PostForm("targetPort")
 		isAlive := utils2.ServantAlives[serverName]
 		if isAlive != 0 {
 			cmd := exec.Command("kill", "-9", strconv.Itoa(isAlive))
@@ -208,6 +210,9 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		// 设置环境变量
 		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
+		if targetPort != "" {
+			cmd.Env = append(cmd.Env, "SIMP_TARGET_PORT="+targetPort)
+		}
 		sm, err := utils2.NewSimpMonitor(serverName, "")
 		if err != nil {
 			fmt.Println("Error To New Monitor", err.Error())

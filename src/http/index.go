@@ -239,7 +239,18 @@ func NewSimpHttpServer(ctx *SimpHttpServerCtx) {
 		fmt.Println("CreateAPIFile |", ctx.Name)
 		utils.CreateAPIFile(ctx.Engine, ctx.Name)
 	}
-
+	SIMP_TARGET_PORT := os.Getenv("SIMP_TARGET_PORT")
+	if SIMP_TARGET_PORT != "" {
+		port, err := strconv.Atoi(SIMP_TARGET_PORT)
+		if err != nil {
+			fmt.Println("Error !" + string(port) + "| is not a number value")
+			panic(err.Error())
+		}
+		err = ctx.Engine.Run(":" + SIMP_TARGET_PORT)
+		if err != nil {
+			panic(err)
+		}
+	}
 	err = ctx.Engine.Run(ctx.Port)
 	if err != nil {
 		return
