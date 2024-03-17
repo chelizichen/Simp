@@ -743,7 +743,7 @@ watch(
         <expansionComponent
           :expansion-visible="state.expansionVisible"
           :server-name="state.serverName"
-          @close-dialog="()=>state.expansionVisible = false"
+          @close-dialog="() => (state.expansionVisible = false)"
         ></expansionComponent>
         <el-footer>
           <el-divider content-position="center">

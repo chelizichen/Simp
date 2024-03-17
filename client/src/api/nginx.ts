@@ -7,3 +7,10 @@ export function getProxyList() {
     method: 'get'
   }) as unknown as BasicResp<any>
 }
+
+export function nginxExpansion(){
+  return HttpReq({
+    url: '/nginxExpansion',
+    method: 'post'
+  }) as unknown as BasicResp<any>
+}
