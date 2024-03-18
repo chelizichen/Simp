@@ -120,7 +120,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		fileName := c.PostForm("fileName")
 		serverName := c.PostForm("serverName")
 		// targetPort 为扩容时指定的端口
-		targetPort := c.PostForm("targetPort")
+		targetPort := c.DefaultPostForm("targetPort", "")
 		isAlive := utils2.ServantAlives[serverName]
 		if isAlive != 0 {
 			cmd := exec.Command("kill", "-9", strconv.Itoa(isAlive))
@@ -209,11 +209,11 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error Get stderrPipe", err.Error())
 		}
 		// 设置环境变量
-		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
+		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest, "SIMP_SERVER_INDEX=1")
 		if targetPort != "" {
-			cmd.Env = append(cmd.Env, "SIMP_TARGET_PORT="+targetPort)
+			cmd.Env = append(cmd.Env, "SIMP_TARGET_PORT="+targetPort, "SIMP_SERVER_INDEX="+targetPort)
 		}
-		sm, err := utils2.NewSimpMonitor(serverName, "")
+		sm, err := utils2.NewSimpMonitor(serverName, "", targetPort)
 		if err != nil {
 			fmt.Println("Error To New Monitor", err.Error())
 		}
@@ -244,7 +244,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 					// 添加定时任务
 					err := c.AddFunc(spec, func() {
-						newSM, err := utils2.NewSimpMonitor(serverName, "")
+						newSM, err := utils2.NewSimpMonitor(serverName, "", targetPort)
 						if err != nil {
 							fmt.Println("Error To New Monitor", err.Error())
 							return

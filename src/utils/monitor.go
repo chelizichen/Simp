@@ -49,7 +49,7 @@ func NewMainSearchLogMonitor(fileName string) (s SimpMonitor, e error) {
 	return s, nil
 }
 
-func NewSimpMonitor(serverName string, date string) (s SimpMonitor, e error) {
+func NewSimpMonitor(serverName string, date string, port string) (s SimpMonitor, e error) {
 	// 判断date是否有值
 	// 没有则传当天
 	// path = static/serverName/log_date.log
@@ -66,6 +66,9 @@ func NewSimpMonitor(serverName string, date string) (s SimpMonitor, e error) {
 	}
 
 	fileName := "log_" + date + ".log"
+	if port != "" {
+		fileName = "log_" + date + "_" + port + ".log"
+	}
 	cwd, err := os.Getwd()
 	if err != nil {
 		fmt.Println("Error To GetWd", err.Error())
