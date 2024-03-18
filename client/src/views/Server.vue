@@ -563,7 +563,6 @@ watch(
     if (!newVal || newVal == SingleNode) {
       multpieNodesState.hosts = []
       multpieNodesState.selectHosts = []
-      multpieNodesState.selectUpstream = ''
       multpieNodesState.upstreams = []
       return
     }
@@ -899,7 +898,7 @@ watch(
               :value="item.key"
             >
               <div v-if="item.key == SingleNode" style="color: blue; font-weight: 700">
-                Release {{ item.key }}
+                Release
               </div>
               <div v-else>{{ item.key }}</div>
             </el-option>
