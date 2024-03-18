@@ -12,9 +12,11 @@ import mainLogger from '@/components/mainlogger.vue'
 import { InfoFilled, Remove } from '@element-plus/icons-vue'
 import { reverse } from 'lodash'
 import expansionComponent from '@/components/expansion.vue'
+import { getProxyList } from '@/api/nginx'
 const state = reactive({
   serverList: [],
   packageList: [],
+  packagePortList:[],
   serverName: '',
   uploadVisible: false,
   status: {
@@ -84,6 +86,8 @@ async function getServerPackageList(serverName: string) {
 }
 
 async function restartServer() {
+
+
   if (!state.selectRelease || !state.serverName) {
     ElMessage({
       type: 'info',
@@ -97,30 +101,82 @@ async function restartServer() {
     spinner: 'el-icon-loading',
     background: 'rgba(0, 0, 0, 0.7)'
   })
-  const formData = new FormData()
-  formData.append('fileName', state.selectRelease)
-  formData.append('serverName', state.serverName)
 
-  const resp = await API.RestartServer(formData)
-  state.status = {
-    status: resp.Data.status
-      ? '<div style="color:#55bd55">online</div>'
-      : '<div style="color: rgb(207, 15, 124)">offline</div>',
-    pid: resp.Data.pid
+  if(multpieNodesState.selectUpstream == SingleNode){
+    const formData = new FormData()
+    formData.append('fileName', state.selectRelease)
+    formData.append('serverName', state.serverName)
+    const resp = await API.RestartServer(formData)
+    state.status = {
+      status: resp.Data.status
+        ? '<div style="color:#55bd55">online</div>'
+        : '<div style="color: rgb(207, 15, 124)">offline</div>',
+      pid: resp.Data.pid
+    }
+    if (resp.Code) {
+      ElMessage({
+        type: 'error',
+        message: '发布失败' + resp.Message
+      })
+    } else {
+      ElMessage({
+        type: 'success',
+        message: '发布成功'
+      })
+      state.releaseVisible = false
+    }
+    loading.close()
+  }else{
+    console.log('multipie',multpieNodesState.selectHosts);
+    if(!multpieNodesState.selectHosts.length){
+      return ElMessage.error("请选择至少一个节点进行发布")
+    }
+    const portRegex = /:(\d+)/;
+    let ports = multpieNodesState.selectHosts.map((v:string)=>{
+      const port = Number(v.match(portRegex)[1])
+      return port
+    })    
+    const formData = new FormData()
+    formData.append('serverName', state.serverName)
+    const resp = await API.CheckConfig(formData)
+    const mainPort = resp.Data.Server.Port
+    console.log('mainPort',mainPort);
+    console.log('ports',ports);
+    const hasMainPort = ports.indexOf(mainPort)
+    if(hasMainPort == -1){
+      ElMessage.error('必须包含主控节点')
+      return loading.close()
+    }
+    ports.splice(hasMainPort,1)
+    {
+      const formData = new FormData()
+      formData.append('serverName', state.serverName)
+      formData.append('fileName', state.selectRelease)
+      const resp = await API.RestartServer(formData)
+      state.status = {
+        status: resp.Data.status
+          ? '<div style="color:#55bd55">online</div>'
+          : '<div style="color: rgb(207, 15, 124)">offline</div>',
+        pid: resp.Data.pid
+      }
+    }
+    if(!ports.length){
+      return loading.close()
+    }
+    {
+      await Promise.all(ports.map(async targetPort=>{
+        const formData = new FormData()
+        formData.append('serverName', state.serverName)
+        formData.append('fileName', state.selectRelease)
+        formData.append('targetPort', String(targetPort))
+        const resp = await API.RestartServer(formData)
+        return resp
+      }))
+    }
+    loading.close()
+
+    // formData.append('targetPort',)
   }
-  if (resp.Code) {
-    ElMessage({
-      type: 'error',
-      message: '发布失败' + resp.Message
-    })
-  } else {
-    ElMessage({
-      type: 'success',
-      message: '发布成功'
-    })
-    state.releaseVisible = false
-  }
-  loading.close()
 }
 
 async function GetMainLogList() {
@@ -428,6 +484,43 @@ watch(
     }
   }
 )
+
+const multpieNodesState = reactive({
+  upstreams:[] as any[],
+  selectUpstream:'',
+  hosts:[],
+  selectHosts:[],
+})
+
+const SingleNode = "SingleNode"
+watch(()=>state.selectRelease,async function(newVal){
+  if(!newVal){
+    return
+  }
+  const data = await getProxyList()
+  console.log('data',data.Data);
+  multpieNodesState.upstreams = [{key:SingleNode}].concat(data.Data.upstreams)
+})
+watch(()=>multpieNodesState.selectUpstream,async function(newVal){
+  if(!newVal || newVal == SingleNode){
+    multpieNodesState.hosts = []
+    multpieNodesState.selectHosts = []
+    multpieNodesState.selectUpstream = ""
+    multpieNodesState.upstreams = []
+    return
+  }
+  multpieNodesState.hosts = []
+  multpieNodesState.selectHosts = []
+  const hosts = multpieNodesState.upstreams.find(v=>v.key === multpieNodesState.selectUpstream).value.server
+  if(hosts instanceof Array){
+    multpieNodesState.hosts = hosts
+    multpieNodesState.selectHosts = hosts
+  }else{
+    multpieNodesState.hosts = [hosts]
+    multpieNodesState.selectHosts = [hosts]
+  }
+  
+})
 </script>
 
 <template>
@@ -732,6 +825,23 @@ watch(
               </span>
             </el-option>
           </el-select>
+          <br/>
+          <br/>
+          <el-select v-show="state.selectRelease" v-model="multpieNodesState.selectUpstream" placeholder="请选择" style="width: 100%">
+            <el-option
+              v-for="(item,index) in multpieNodesState.upstreams"
+              :key="index"
+              :value="item.key"
+            >
+            <div v-if="item.key == SingleNode" style="color: blue;font-weight: 700;">Release {{ item.key }}</div>
+            <div v-else>{{ item.key }}</div>
+            </el-option>
+          </el-select>
+          <br/>
+          <br/>
+          <el-checkbox-group v-model="multpieNodesState.selectHosts" v-show="state.selectRelease && state.selectRelease != SingleNode">
+            <el-checkbox v-for="item in multpieNodesState.hosts" :label="item" :value="item" :key="item" style="display:block" />
+          </el-checkbox-group>
           <template #footer>
             <div style="display: flex; align-items: center; justify-content: center">
               <el-button type="primary" @click="state.releaseVisible = false">Close</el-button>
@@ -744,6 +854,7 @@ watch(
           :expansion-visible="state.expansionVisible"
           :server-name="state.serverName"
           @close-dialog="() => (state.expansionVisible = false)"
+          @showReleaseDialog="()=>(state.releaseVisible = true)"
         ></expansionComponent>
         <el-footer>
           <el-divider content-position="center">

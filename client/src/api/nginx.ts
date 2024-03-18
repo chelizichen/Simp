@@ -23,3 +23,35 @@ export function nginxExpansionPreview(data) {
     data
   }) as unknown as BasicResp<any>
 }
+
+export function nginxReload(){
+  return HttpReq({
+    url: '/nginxReload',
+    method: 'post',
+  }) as unknown as BasicResp<any>
+}
+
+export function getBackupList(){
+  return HttpReq({
+    url: '/getBackupList',
+    method: 'get',
+  }) as unknown as BasicResp<any>
+}
+
+
+export function getBackupFile(params:any){
+  return HttpReq({
+    url: '/getBackupFile',
+    method: 'get',
+    params
+  }) as unknown as BasicResp<any>
+}
+
+
+export function backupNginx(params:any){
+  return HttpReq({
+    url: '/backup',
+    method: 'get',
+    params
+  }) as unknown as BasicResp<any>
+}

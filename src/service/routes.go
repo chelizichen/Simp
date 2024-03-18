@@ -31,11 +31,11 @@ func TOKEN_VALIDATE(ctx *gin.Context) {
 			ctx.Next()
 			return
 		}
-		if strings.Index(ctx.Request.URL.Path, "static/source") > -1 {
+		if strings.Contains(ctx.Request.URL.Path, "static/source") {
 			ctx.Next()
 			return
 		}
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, handlers.Resp(-2, "Token Error", nil))
+		ctx.Redirect(http.StatusTemporaryRedirect, "/simpserver/web/login")
 		return
 	} else {
 		ctx.Next()
@@ -121,10 +121,12 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		serverName := c.PostForm("serverName")
 		// targetPort 为扩容时指定的端口
 		targetPort := c.DefaultPostForm("targetPort", "")
-		isAlive := utils2.ServantAlives[serverName]
+		ctxName := serverName + targetPort
+		fmt.Println("targetPort | ", targetPort, " | ctxName |", ctxName)
+		isAlive := utils2.ServantAlives[ctxName]
 		if isAlive != 0 {
 			cmd := exec.Command("kill", "-9", strconv.Itoa(isAlive))
-			RegistrhServicesCtx[serverName].cancel()
+			RegistrhServicesCtx[ctxName].cancel()
 			// 执行命令
 			err := cmd.Run()
 			if err != nil {
@@ -140,53 +142,58 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		if err != nil {
 			fmt.Println("Error To GetWd", err.Error())
 		}
-
 		storagePath := filepath.Join(cwd, utils2.PublishPath, serverName, fileName)
 		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "service_go")
 		storageNodePath := filepath.Join(cwd, utils2.PublishPath, serverName, "app.js")
 		storageYmlEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simp.yaml")
 		storageYmlProdPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simpProd.yaml")
+		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
 		sc, err := config.NewConfig(storageYmlEPath)
 		if err != nil {
 			fmt.Println("Error To Get Config")
 		}
 		s := sc.Server.StaticPath
 		storageStaticPath := filepath.Join(cwd, utils2.PublishPath, serverName, s)
-		err = utils2.IFExistThenRemove(storageStaticPath)
-		if err != nil {
-			fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
-		}
-		err = utils2.IFExistThenRemove(storageExEPath)
-		if err != nil {
-			fmt.Println("remove File Error storageExEPath "+storageExEPath, err.Error())
-		}
-		err = utils2.IFExistThenRemove(storageYmlEPath)
-		if err != nil {
-			fmt.Println("remove File Error storageYmlEPath "+storageYmlEPath, err.Error())
-		}
-
-		err = utils2.IFExistThenRemove(storageNodePath)
-		if err != nil {
-			fmt.Println("remove File Error storageNodePath "+storageNodePath, err.Error())
-		}
-
-		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
-
-		err = utils2.Unzip(storagePath, dest)
-		if err != nil {
-			fmt.Println("Error To Unzip", err.Error())
-		}
-		_, err = os.Stat(storageYmlProdPath)
-		if err != nil {
-			fmt.Println("os.Stat ", err.Error())
-		}
-		// 如果没有该文件，则将simp.yaml拷贝一份成simpProd.yaml
-		if os.IsNotExist(err) {
-			err = utils2.CopyFile(storageYmlEPath, storageYmlProdPath)
+		// 判定为普通重启操作条件
+		// 1. targetPort 存在为扩容操作，一般重启服务时 targetPort 是不存在的
+		// 2. 如果需要重启服务，那么会将几个端口一起重启，那么将会传几个targetPort进来
+		// 此时还需要区分主服务和扩容服务,必须先执行完主服务的重启后才能执行扩容服务
+		// 同时 主服务重启时也需要重新执行所有流程
+		if targetPort == "" || targetPort == string(rune(sc.Server.Port)) {
+			err = utils2.IFExistThenRemove(storageStaticPath)
 			if err != nil {
-				fmt.Println("utils.CopyFile ", storageYmlEPath, err.Error())
+				fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
+			}
+			err = utils2.IFExistThenRemove(storageExEPath)
+			if err != nil {
+				fmt.Println("remove File Error storageExEPath "+storageExEPath, err.Error())
+			}
+			err = utils2.IFExistThenRemove(storageYmlEPath)
+			if err != nil {
+				fmt.Println("remove File Error storageYmlEPath "+storageYmlEPath, err.Error())
+			}
+
+			err = utils2.IFExistThenRemove(storageNodePath)
+			if err != nil {
+				fmt.Println("remove File Error storageNodePath "+storageNodePath, err.Error())
+			}
+			err = utils2.Unzip(storagePath, dest)
+			if err != nil {
+				fmt.Println("Error To Unzip", err.Error())
+			}
+			_, err = os.Stat(storageYmlProdPath)
+			if err != nil {
+				fmt.Println("os.Stat ", err.Error())
+			}
+			// 如果没有该文件，则将simp.yaml拷贝一份成simpProd.yaml
+			if os.IsNotExist(err) {
+				err = utils2.CopyFile(storageYmlEPath, storageYmlProdPath)
+				if err != nil {
+					fmt.Println("utils.CopyFile ", storageYmlEPath, err.Error())
+				}
 			}
 		}
+
 		var cmd *exec.Cmd
 		fmt.Println("sc.Server.Type", sc.Server.Type)
 		switch sc.Server.Type {
@@ -223,16 +230,16 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Cmd", cmd.Args)
 		}
 		serverContext, serverCancelFunc := context.WithCancel(context.Background())
-		RegistrhServicesCtx[serverName] = ServerCtx{
+		RegistrhServicesCtx[ctxName] = ServerCtx{
 			context: serverContext,
 			cancel:  serverCancelFunc,
 		}
 		// 启动一个协程，用于读取并打印命令的输出
 		go func() {
 			select {
-			case <-RegistrhServicesCtx[serverName].context.Done():
+			case <-RegistrhServicesCtx[ctxName].context.Done():
 				{
-					fmt.Println("ServerName |", serverName, " is Done")
+					fmt.Println("ServerName |", ctxName, " is Done")
 					return
 				}
 			default:
@@ -296,7 +303,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		fmt.Println("v", v)
 		v["pid"] = cmd.Process.Pid
 		v["status"] = true
-		utils2.ServantAlives[serverName] = cmd.Process.Pid
+		utils2.ServantAlives[ctxName] = cmd.Process.Pid
 
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
 	})

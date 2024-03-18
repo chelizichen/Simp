@@ -68,20 +68,27 @@ export default {
           <el-form-item label="Submit">
             <div style="display: flex; align-items: center; justify-content: center">
               <el-button type="primary" @click="emits('closeDialog')">Close</el-button>
+              <el-button type="success" style="background-color: blue;" @click="reload">Reload</el-button>
               <el-button type="success" @click="releaseExpandConf">Release</el-button>
               <el-button type="danger" @click="uploadExpandConf">Preview</el-button>
             </div>
           </el-form-item>
+          <el-form-item label="Tips">
+            <div style="color: red;">1.reload  重启 nginx服务</div>
+            <div style="color: red;">2.release 覆盖 nginx 并且 test 检测语法</div>
+            <div style="color: red;">3.preview 预览修改后的配置</div>
+          </el-form-item>
         </el-form>
+       
       </div>
     </div>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { getProxyList, nginxExpansion, nginxExpansionPreview } from '@/api/nginx'
+import { getProxyList, nginxExpansion, nginxExpansionPreview, nginxReload } from '@/api/nginx'
 import { CirclePlus, Delete } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { reactive, ref, watch } from 'vue'
 
 // 扩容组件
@@ -91,12 +98,15 @@ const props = defineProps<{
 }>()
 const hosts = ref<string[]>([])
 const host = ref('')
+
 function changeHosts(v: string) {
   const findItem = state.upstreams.find((e) => e.key == v)
+  console.log('findItem',findItem);
   if (findItem.value.server instanceof Array) {
-    return (hosts.value = findItem.value.server)
+    hosts.value = findItem.value.server
+    return 
   }
-  return hosts.value[findItem.value.server]
+  hosts.value = [findItem.value.server]
 }
 function deleteHost(item) {
   hosts.value = hosts.value.filter((v) => v !== item)
@@ -122,14 +132,36 @@ async function releaseExpandConf() {
     return ElMessage.error(`error:${conf.Message}`)
   }
   ElMessage.success("release success")
+  state.logger = conf.Data
 }
+
+async function reload() {
+  ElMessageBox.prompt('Are you sure to reload', 'Confirm', {
+    confirmButtonText: 'OK',
+    cancelButtonText: 'Cancel',
+    inputPlaceholder: 'input password'
+  })
+  .then(async ({ value }) => {
+    if(value != "0504"){
+      return ElMessage.error(`reload error:password`)
+    }
+    const stream = await nginxReload()
+    if(stream.Code){
+      return ElMessage.error(`reload error:${stream.Message}`)
+    }
+    ElMessage.success("reload success")
+    state.logger = stream.Data
+    emits('showReleaseDialog')
+  })
+}
+
 const state = reactive({
   //   httpConf: {},
   logger: '',
   servers: [],
   upstreams: []
 })
-const emits = defineEmits(['closeDialog'])
+const emits = defineEmits(['closeDialog','showReleaseDialog'])
 
 const body = reactive({
   upstreamName: '',
