@@ -68,18 +68,19 @@ export default {
           <el-form-item label="Submit">
             <div style="display: flex; align-items: center; justify-content: center">
               <el-button type="primary" @click="emits('closeDialog')">Close</el-button>
-              <el-button type="success" style="background-color: blue;" @click="reload">Reload</el-button>
+              <el-button type="success" style="background-color: blue" @click="reload"
+                >Reload</el-button
+              >
               <el-button type="success" @click="releaseExpandConf">Release</el-button>
               <el-button type="danger" @click="uploadExpandConf">Preview</el-button>
             </div>
           </el-form-item>
           <el-form-item label="Tips">
-            <div style="color: red;">1.reload  重启 nginx服务</div>
-            <div style="color: red;">2.release 覆盖 nginx 并且 test 检测语法</div>
-            <div style="color: red;">3.preview 预览修改后的配置</div>
+            <div style="color: red">1.reload 重启 nginx服务</div>
+            <div style="color: red">2.release 覆盖 nginx 并且 test 检测语法</div>
+            <div style="color: red">3.preview 预览修改后的配置</div>
           </el-form-item>
         </el-form>
-       
       </div>
     </div>
   </el-dialog>
@@ -88,7 +89,7 @@ export default {
 <script setup lang="ts">
 import { getProxyList, nginxExpansion, nginxExpansionPreview, nginxReload } from '@/api/nginx'
 import { CirclePlus, Delete } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { reactive, ref, watch } from 'vue'
 
 // 扩容组件
@@ -101,10 +102,10 @@ const host = ref('')
 
 function changeHosts(v: string) {
   const findItem = state.upstreams.find((e) => e.key == v)
-  console.log('findItem',findItem);
+  console.log('findItem', findItem)
   if (findItem.value.server instanceof Array) {
     hosts.value = findItem.value.server
-    return 
+    return
   }
   hosts.value = [findItem.value.server]
 }
@@ -112,7 +113,7 @@ function deleteHost(item) {
   hosts.value = hosts.value.filter((v) => v !== item)
 }
 function addHost() {
-  if(host.value == ''){
+  if (host.value == '') {
     return
   }
   hosts.value.push(host.value)
@@ -128,10 +129,10 @@ async function uploadExpandConf() {
 async function releaseExpandConf() {
   body.server = hosts.value
   const conf = await nginxExpansion(body)
-  if(conf.Code){
+  if (conf.Code) {
     return ElMessage.error(`error:${conf.Message}`)
   }
-  ElMessage.success("release success")
+  ElMessage.success('release success')
   state.logger = conf.Data
 }
 
@@ -140,16 +141,15 @@ async function reload() {
     confirmButtonText: 'OK',
     cancelButtonText: 'Cancel',
     inputPlaceholder: 'input password'
-  })
-  .then(async ({ value }) => {
-    if(value != "0504"){
+  }).then(async ({ value }) => {
+    if (value != '0504') {
       return ElMessage.error(`reload error:password`)
     }
     const stream = await nginxReload()
-    if(stream.Code){
+    if (stream.Code) {
       return ElMessage.error(`reload error:${stream.Message}`)
     }
-    ElMessage.success("reload success")
+    ElMessage.success('reload success')
     state.logger = stream.Data
     emits('showReleaseDialog')
   })
@@ -161,7 +161,7 @@ const state = reactive({
   servers: [],
   upstreams: []
 })
-const emits = defineEmits(['closeDialog','showReleaseDialog'])
+const emits = defineEmits(['closeDialog', 'showReleaseDialog'])
 
 const body = reactive({
   upstreamName: '',

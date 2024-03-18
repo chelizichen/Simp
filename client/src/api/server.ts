@@ -115,6 +115,12 @@ const API = {
       url,
       data
     }) as unknown as BasicResp<any>
+  },
+  getChildStats: function (data, url = '/getChildStats') {
+    return HttpReq({
+      url,
+      data
+    })
   }
 }
 

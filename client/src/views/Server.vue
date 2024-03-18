@@ -10,13 +10,13 @@ import API from '../api/server'
 import asideComponent from '@/components/aside.vue'
 import mainLogger from '@/components/mainlogger.vue'
 import { InfoFilled, Remove } from '@element-plus/icons-vue'
-import { reverse } from 'lodash'
+import { cloneDeep, reverse } from 'lodash'
 import expansionComponent from '@/components/expansion.vue'
 import { getProxyList } from '@/api/nginx'
 const state = reactive({
   serverList: [],
   packageList: [],
-  packagePortList:[],
+  packagePortList: [],
   serverName: '',
   uploadVisible: false,
   status: {
@@ -27,6 +27,7 @@ const state = reactive({
   createServerVisible: false,
   createServerName: '',
   releaseVisible: false,
+  shutdownVisible: false,
   selectRelease: '',
   logger: '',
   loggerList: [],
@@ -86,8 +87,6 @@ async function getServerPackageList(serverName: string) {
 }
 
 async function restartServer() {
-
-
   if (!state.selectRelease || !state.serverName) {
     ElMessage({
       type: 'info',
@@ -102,7 +101,7 @@ async function restartServer() {
     background: 'rgba(0, 0, 0, 0.7)'
   })
 
-  if(multpieNodesState.selectUpstream == SingleNode){
+  if (multpieNodesState.selectUpstream == SingleNode) {
     const formData = new FormData()
     formData.append('fileName', state.selectRelease)
     formData.append('serverName', state.serverName)
@@ -126,28 +125,29 @@ async function restartServer() {
       state.releaseVisible = false
     }
     loading.close()
-  }else{
-    console.log('multipie',multpieNodesState.selectHosts);
-    if(!multpieNodesState.selectHosts.length){
-      return ElMessage.error("请选择至少一个节点进行发布")
+  } else {
+    console.log('multipie', multpieNodesState.selectHosts)
+    if (!multpieNodesState.selectHosts.length) {
+      ElMessage.error('请选择至少一个节点进行发布')
+      return loading.close()
     }
-    const portRegex = /:(\d+)/;
-    let ports = multpieNodesState.selectHosts.map((v:string)=>{
+    const portRegex = /:(\d+)/
+    let ports = multpieNodesState.selectHosts.map((v: string) => {
       const port = Number(v.match(portRegex)[1])
       return port
-    })    
+    })
     const formData = new FormData()
     formData.append('serverName', state.serverName)
     const resp = await API.CheckConfig(formData)
     const mainPort = resp.Data.Server.Port
-    console.log('mainPort',mainPort);
-    console.log('ports',ports);
+    console.log('mainPort', mainPort)
+    console.log('ports', ports)
     const hasMainPort = ports.indexOf(mainPort)
-    if(hasMainPort == -1){
+    if (hasMainPort == -1) {
       ElMessage.error('必须包含主控节点')
       return loading.close()
     }
-    ports.splice(hasMainPort,1)
+    ports.splice(hasMainPort, 1)
     {
       const formData = new FormData()
       formData.append('serverName', state.serverName)
@@ -160,21 +160,23 @@ async function restartServer() {
         pid: resp.Data.pid
       }
     }
-    if(!ports.length){
+    if (!ports.length) {
       return loading.close()
     }
     {
-      await Promise.all(ports.map(async targetPort=>{
-        const formData = new FormData()
-        formData.append('serverName', state.serverName)
-        formData.append('fileName', state.selectRelease)
-        formData.append('targetPort', String(targetPort))
-        const resp = await API.RestartServer(formData)
-        return resp
-      }))
+      await Promise.all(
+        ports.map(async (targetPort) => {
+          const formData = new FormData()
+          formData.append('serverName', state.serverName)
+          formData.append('fileName', state.selectRelease)
+          formData.append('targetPort', String(targetPort))
+          const resp = await API.RestartServer(formData)
+          return resp
+        })
+      )
     }
+    state.releaseVisible = false
     loading.close()
-
     // formData.append('targetPort',)
   }
 }
@@ -215,27 +217,78 @@ async function showConfig() {
   state.configVisible = true
 }
 
-async function ShutDownServer() {
-  const pid = state.status.pid
-  console.log('pid', pid)
-  if (pid == 0) {
-    return ElMessage.error('关闭失败！该服务并未启动')
+const childServiceList = ref([])
+const choseServices = ref([])
+const childServiceObj = ref({})
+watch(
+  () => state.shutdownVisible,
+  async function (newVal) {
+    if (!newVal) {
+      return
+    }
+    const formData = new FormData()
+    formData.append('serverName', state.serverName)
+    const list = await API.getChildStats(formData)
+    childServiceObj.value = list.Data
+    const arr = []
+    for (let k in list.Data) {
+      arr.push(k)
+    }
+    childServiceList.value = arr
   }
-  const formData = new FormData()
-  formData.append('serverName', state.serverName)
-  const data = await API.ShutDownServer(formData)
-  if (data.Code) {
-    ElMessage({
-      type: 'error',
-      message: '关闭失败!' + data.Message
-    })
-    return
-  }
-  ElMessage({
-    type: 'success',
-    message: '成功关闭节点!'
+)
+
+async function shutdownServers() {
+  const loading = ElLoading.service({
+    lock: true,
+    text: 'Loading',
+    spinner: 'el-icon-loading',
+    background: 'rgba(0, 0, 0, 0.7)'
   })
-  getServerPackageList(state.serverName)
+  try {
+    const arrs = cloneDeep(choseServices.value).map((v) => {
+      return v.split('|')[0].trim()
+    })
+    if (!arrs.length) {
+      return ElMessage.error(`server is not online`)
+    }
+    await Promise.all(
+      arrs.map(async (v) => {
+        const formData = new FormData()
+        formData.append('serverName', v)
+        const data = await API.ShutDownServer(formData)
+        if (data.Code) {
+          ElMessage({
+            type: 'error',
+            message: '关闭失败!' + data.Message + '| ' + v
+          })
+          return
+        }
+        ElMessage({
+          type: 'success',
+          message: '成功关闭节点!' + '| ' + v
+        })
+        console.log(arrs)
+        state.shutdownVisible = false
+      })
+    )
+  } catch (e) {
+    ElMessage.error(e)
+  } finally {
+    choseServices.value = []
+    getServerPackageList(state.serverName)
+    loading.close()
+  }
+
+  // const pid = state.status.pid
+  // if (pid == 0) {
+  //   return ElMessage.error('关闭失败！该服务并未启动')
+  // }
+}
+
+async function ShutDownServer() {
+  state.shutdownVisible = true
+  return
 }
 
 async function fetchServerList() {
@@ -486,41 +539,48 @@ watch(
 )
 
 const multpieNodesState = reactive({
-  upstreams:[] as any[],
-  selectUpstream:'',
-  hosts:[],
-  selectHosts:[],
+  upstreams: [] as any[],
+  selectUpstream: '',
+  hosts: [],
+  selectHosts: []
 })
 
-const SingleNode = "SingleNode"
-watch(()=>state.selectRelease,async function(newVal){
-  if(!newVal){
-    return
+const SingleNode = 'SingleNode'
+watch(
+  () => state.selectRelease,
+  async function (newVal) {
+    if (!newVal) {
+      return
+    }
+    const data = await getProxyList()
+    console.log('data', data.Data)
+    multpieNodesState.upstreams = [{ key: SingleNode }].concat(data.Data.upstreams)
   }
-  const data = await getProxyList()
-  console.log('data',data.Data);
-  multpieNodesState.upstreams = [{key:SingleNode}].concat(data.Data.upstreams)
-})
-watch(()=>multpieNodesState.selectUpstream,async function(newVal){
-  if(!newVal || newVal == SingleNode){
+)
+watch(
+  () => multpieNodesState.selectUpstream,
+  async function (newVal) {
+    if (!newVal || newVal == SingleNode) {
+      multpieNodesState.hosts = []
+      multpieNodesState.selectHosts = []
+      multpieNodesState.selectUpstream = ''
+      multpieNodesState.upstreams = []
+      return
+    }
     multpieNodesState.hosts = []
     multpieNodesState.selectHosts = []
-    multpieNodesState.selectUpstream = ""
-    multpieNodesState.upstreams = []
-    return
+    const hosts = multpieNodesState.upstreams.find(
+      (v) => v.key === multpieNodesState.selectUpstream
+    ).value.server
+    if (hosts instanceof Array) {
+      multpieNodesState.hosts = hosts
+      multpieNodesState.selectHosts = hosts
+    } else {
+      multpieNodesState.hosts = [hosts]
+      multpieNodesState.selectHosts = [hosts]
+    }
   }
-  multpieNodesState.hosts = []
-  multpieNodesState.selectHosts = []
-  const hosts = multpieNodesState.upstreams.find(v=>v.key === multpieNodesState.selectUpstream).value.server
-  if(hosts instanceof Array){
-    multpieNodesState.hosts = hosts
-    multpieNodesState.selectHosts = hosts
-  }else{
-    multpieNodesState.hosts = [hosts]
-    multpieNodesState.selectHosts = [hosts]
-  }
-  
-})
+)
 </script>
 
 <template>
@@ -825,22 +885,38 @@ watch(()=>multpieNodesState.selectUpstream,async function(newVal){
               </span>
             </el-option>
           </el-select>
-          <br/>
-          <br/>
-          <el-select v-show="state.selectRelease" v-model="multpieNodesState.selectUpstream" placeholder="请选择" style="width: 100%">
+          <br />
+          <br />
+          <el-select
+            v-show="state.selectRelease"
+            v-model="multpieNodesState.selectUpstream"
+            placeholder="请选择"
+            style="width: 100%"
+          >
             <el-option
-              v-for="(item,index) in multpieNodesState.upstreams"
+              v-for="(item, index) in multpieNodesState.upstreams"
               :key="index"
               :value="item.key"
             >
-            <div v-if="item.key == SingleNode" style="color: blue;font-weight: 700;">Release {{ item.key }}</div>
-            <div v-else>{{ item.key }}</div>
+              <div v-if="item.key == SingleNode" style="color: blue; font-weight: 700">
+                Release {{ item.key }}
+              </div>
+              <div v-else>{{ item.key }}</div>
             </el-option>
           </el-select>
-          <br/>
-          <br/>
-          <el-checkbox-group v-model="multpieNodesState.selectHosts" v-show="state.selectRelease && state.selectRelease != SingleNode">
-            <el-checkbox v-for="item in multpieNodesState.hosts" :label="item" :value="item" :key="item" style="display:block" />
+          <br />
+          <br />
+          <el-checkbox-group
+            v-model="multpieNodesState.selectHosts"
+            v-show="state.selectRelease && state.selectRelease != SingleNode"
+          >
+            <el-checkbox
+              v-for="item in multpieNodesState.hosts"
+              :label="item"
+              :value="item"
+              :key="item"
+              style="display: block"
+            />
           </el-checkbox-group>
           <template #footer>
             <div style="display: flex; align-items: center; justify-content: center">
@@ -854,8 +930,21 @@ watch(()=>multpieNodesState.selectUpstream,async function(newVal){
           :expansion-visible="state.expansionVisible"
           :server-name="state.serverName"
           @close-dialog="() => (state.expansionVisible = false)"
-          @showReleaseDialog="()=>(state.releaseVisible = true)"
+          @showReleaseDialog="() => (state.releaseVisible = true)"
         ></expansionComponent>
+        <el-dialog v-model="state.shutdownVisible" title="Shutdown Services">
+          <el-checkbox-group v-model="choseServices">
+            <template v-for="(item, index) in childServiceList" :key="item">
+              <el-checkbox
+                v-if="childServiceObj[item].status"
+                :value="item"
+                :label="item + `  | ` + childServiceObj[item].pid + ` | online`"
+                style="display: block"
+              ></el-checkbox>
+            </template>
+          </el-checkbox-group>
+          <el-button @click="shutdownServers" type="danger">Shutdown</el-button>
+        </el-dialog>
         <el-footer>
           <el-divider content-position="center">
             <div style="color: rgb(207, 15, 124); font-size: 18px">Copyright © 2023-2024</div>

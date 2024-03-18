@@ -557,6 +557,31 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(200, handlers.Resp(0, "ok", nil))
 	})
 
+	GROUP.POST("/getChildStats", func(c *gin.Context) {
+		serverName := c.PostForm("serverName")
+		if serverName == "" {
+			c.AbortWithStatusJSON(200, handlers.Resp(-1, "missing params serverName", nil))
+			return
+		}
+		m := make(map[string]map[string]interface{})
+		for sName, ctx := range utils2.ServantAlives {
+			if strings.HasPrefix(sName, serverName) {
+				pid := ctx
+				name := sName
+				b := utils2.IsPidAlive(pid, sName)
+				v := make(map[string]interface{}, 10)
+				v["status"] = false
+				if b {
+					v["pid"] = pid
+					v["status"] = true
+				}
+
+				m[name] = v
+			}
+		}
+		c.AbortWithStatusJSON(200, handlers.Resp(0, "ok", m))
+	})
+
 	GROUP.POST("/shutdownServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
 		pid := utils2.ServantAlives[serverName]
@@ -569,7 +594,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		// 执行命令
 		err := cmd.Run()
 		if err != nil {
-			fmt.Println("Error killing process:", err)
+			fmt.Println("x:", err)
 			return
 		}
 		utils2.ServantAlives[serverName] = 0
