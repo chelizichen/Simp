@@ -1,7 +1,6 @@
 package http
 
 import (
-	"Simp/src/cache"
 	"Simp/src/config"
 	"Simp/src/utils"
 	"fmt"
@@ -26,7 +25,6 @@ type SimpHttpServerCtx struct {
 	isMain      bool
 	StoragePath string
 	StaticPath  string
-	CacheSvr    cache.ICache
 	Proxy       *[]struct {
 		Server struct {
 			Type string `yaml:"type"`
