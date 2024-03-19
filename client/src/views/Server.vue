@@ -145,10 +145,13 @@ async function restartServer() {
     console.log('ports', ports)
     const hasMainPort = ports.indexOf(mainPort)
     if (hasMainPort == -1) {
-      ElMessage.error('必须包含主控节点')
-      return loading.close()
+      if(!state.status.pid){
+        ElMessage.error('必须包含主控节点')
+        return loading.close()
+      }else{
+        ports.splice(hasMainPort, 1)
+      }
     }
-    ports.splice(hasMainPort, 1)
     {
       const formData = new FormData()
       formData.append('serverName', state.serverName)
@@ -161,7 +164,13 @@ async function restartServer() {
         pid: resp.Data.pid
       }
     }
+    console.log('ports.length',ports.length);
     if (!ports.length) {
+      state.releaseVisible = false
+      ElMessage({
+        type: 'success',
+        message: '发布成功'
+      })
       return loading.close()
     }
     {
@@ -175,6 +184,10 @@ async function restartServer() {
           return resp
         })
       )
+      ElMessage({
+        type: 'success',
+        message: '发布成功'
+      })
     }
     state.releaseVisible = false
     loading.close()
@@ -227,6 +240,7 @@ watch(
     if (!newVal) {
       return
     }
+    state.isShutdownAll = false
     const formData = new FormData()
     formData.append('serverName', state.serverName)
     const list = await API.getChildStats(formData)
@@ -673,7 +687,7 @@ watch(
           >
             <div class="flex-item">
               <div style="font-weight: 700">PackageCounts</div>
-              <div style="color: rgb(207, 15, 124)">{{ state.packageList.length }}</div>
+              <div style="color: rgb(207, 15, 124);cursor:pointer" @click="state.uploadVisible = true">{{ state.packageList.length }}</div>
             </div>
             <div class="flex-item">
               <div style="font-weight: 700">ServerName</div>
@@ -697,14 +711,14 @@ watch(
                 Expansion
               </div>
             </div>
-            <div class="flex-item">
+            <!-- <div class="flex-item">
               <div
                 @click="state.uploadVisible = true"
                 style="color: rgb(207, 15, 124); cursor: pointer"
               >
                 Upload
               </div>
-            </div>
+            </div> -->
             <div class="flex-item">
               <div @click="ShutDownServer()" style="color: rgb(207, 15, 124); cursor: pointer">
                 Shutdown
