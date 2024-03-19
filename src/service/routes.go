@@ -159,7 +159,8 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		// 2. 如果需要重启服务，那么会将几个端口一起重启，那么将会传几个targetPort进来
 		// 此时还需要区分主服务和扩容服务,必须先执行完主服务的重启后才能执行扩容服务
 		// 同时 主服务重启时也需要重新执行所有流程
-		if targetPort == "" || targetPort == string(rune(sc.Server.Port)) {
+		fmt.Println("targetPort == fmt.Sprintf('v', sc.Server.Port)", fmt.Sprintf("%v", sc.Server.Port), " | target |", targetPort, " | ", targetPort == fmt.Sprintf("%v", sc.Server.Port))
+		if targetPort == "" || targetPort == fmt.Sprintf("%v", sc.Server.Port) {
 			err = utils2.IFExistThenRemove(storageStaticPath)
 			if err != nil {
 				fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
@@ -216,9 +217,11 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error Get stderrPipe", err.Error())
 		}
 		// 设置环境变量
-		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest, "SIMP_SERVER_INDEX=1")
-		if targetPort != "" {
+		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
+		if targetPort != "" && targetPort != fmt.Sprintf("%v", sc.Server.Port) {
 			cmd.Env = append(cmd.Env, "SIMP_TARGET_PORT="+targetPort, "SIMP_SERVER_INDEX="+targetPort)
+		} else {
+			cmd.Env = append(cmd.Env, "SIMP_SERVER_INDEX=1", "SIMP_TARGET_PORT="+fmt.Sprintf("%v", sc.Server.Port))
 		}
 		sm, err := utils2.NewSimpMonitor(serverName, "", targetPort)
 		if err != nil {

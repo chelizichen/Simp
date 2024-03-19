@@ -162,7 +162,7 @@ const state = reactive({
   //   httpConf: {},
   logger: '',
   servers: [],
-  upstreams: [],
+  upstreams: []
 })
 const emits = defineEmits(['closeDialog', 'showReleaseDialog'])
 
@@ -171,7 +171,7 @@ const body = reactive({
   server: [''],
   locationName: '',
   serverName: '',
-  proxyPass:'',
+  proxyPass: ''
 })
 
 async function init() {

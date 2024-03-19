@@ -28,6 +28,7 @@ const state = reactive({
   createServerName: '',
   releaseVisible: false,
   shutdownVisible: false,
+  isShutdownAll: false,
   selectRelease: '',
   logger: '',
   loggerList: [],
@@ -237,6 +238,18 @@ watch(
     childServiceList.value = arr
   }
 )
+
+
+watch(()=>state.isShutdownAll,function(newVal){
+  if(!newVal){
+    return choseServices.value = []
+  }
+  choseServices.value = childServiceList.value.map(item=>{
+    return item + `  | ` + childServiceObj.value[item].pid + ` | online`
+  })
+  console.log('choseServices',choseServices.value);
+  
+})
 
 async function shutdownServers() {
   const loading = ElLoading.service({
@@ -552,12 +565,12 @@ watch(
     if (!newVal) {
       return
     }
-    try{
+    try {
       const data = await getProxyList()
       console.log('data', data.Data)
       multpieNodesState.upstreams = [{ key: SingleNode }].concat(data.Data.upstreams)
-    }catch(e){
-      ElMessage.error("Error! ExpansionServer is not active ",)
+    } catch (e) {
+      ElMessage.error('Error! ExpansionServer is not active ')
       multpieNodesState.upstreams = [{ key: SingleNode }]
     }
   }
@@ -902,9 +915,7 @@ watch(
               :key="index"
               :value="item.key"
             >
-              <div v-if="item.key == SingleNode" style="color: blue; font-weight: 700">
-                Release
-              </div>
+              <div v-if="item.key == SingleNode" style="color: blue; font-weight: 700">Release</div>
               <div v-else>{{ item.key }}</div>
             </el-option>
           </el-select>
@@ -937,17 +948,26 @@ watch(
           @showReleaseDialog="() => (state.releaseVisible = true)"
         ></expansionComponent>
         <el-dialog v-model="state.shutdownVisible" title="Shutdown Services">
-          <el-checkbox-group v-model="choseServices">
-            <template v-for="(item, index) in childServiceList" :key="item">
-              <el-checkbox
-                v-if="childServiceObj[item].status"
-                :value="item"
-                :label="item + `  | ` + childServiceObj[item].pid + ` | online`"
-                style="display: block"
-              ></el-checkbox>
-            </template>
-          </el-checkbox-group>
-          <el-button @click="shutdownServers" type="danger">Shutdown</el-button>
+          <el-form label-width="auto" style="max-width: 600px">
+            <el-form-item label="select all">
+              <el-switch v-model="state.isShutdownAll" />
+            </el-form-item>
+            <el-form-item label="nodes">
+              <el-checkbox-group v-model="choseServices">
+                <template v-for="item in childServiceList" :key="item">
+                  <el-checkbox
+                    v-if="childServiceObj[item].status"
+                    :value="item"
+                    :label="item + `  | ` + childServiceObj[item].pid + ` | online`"
+                    style="display: block"
+                  ></el-checkbox>
+                </template>
+              </el-checkbox-group>
+            </el-form-item>
+            <el-form-item label="click">
+              <el-button @click="shutdownServers" type="danger">Shutdown</el-button>
+            </el-form-item>
+          </el-form>
         </el-dialog>
         <el-footer>
           <el-divider content-position="center">
