@@ -53,6 +53,9 @@ export default {
               />
             </el-select>
           </el-form-item>
+          <el-form-item label="ProxyPass">
+            <el-input v-model="body.proxyPass" />
+          </el-form-item>
           <el-form-item label="Hosts" v-if="body.upstreamName">
             <el-input v-model="host">
               <template #append>
@@ -159,7 +162,7 @@ const state = reactive({
   //   httpConf: {},
   logger: '',
   servers: [],
-  upstreams: []
+  upstreams: [],
 })
 const emits = defineEmits(['closeDialog', 'showReleaseDialog'])
 
@@ -167,7 +170,8 @@ const body = reactive({
   upstreamName: '',
   server: [''],
   locationName: '',
-  serverName: ''
+  serverName: '',
+  proxyPass:'',
 })
 
 async function init() {

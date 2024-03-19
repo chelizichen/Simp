@@ -552,9 +552,14 @@ watch(
     if (!newVal) {
       return
     }
-    const data = await getProxyList()
-    console.log('data', data.Data)
-    multpieNodesState.upstreams = [{ key: SingleNode }].concat(data.Data.upstreams)
+    try{
+      const data = await getProxyList()
+      console.log('data', data.Data)
+      multpieNodesState.upstreams = [{ key: SingleNode }].concat(data.Data.upstreams)
+    }catch(e){
+      ElMessage.error("Error! ExpansionServer is not active ",)
+      multpieNodesState.upstreams = [{ key: SingleNode }]
+    }
   }
 )
 watch(
