@@ -151,6 +151,8 @@ async function restartServer() {
       }else{
         ports.splice(hasMainPort, 1)
       }
+    }else{
+      ports.splice(hasMainPort, 1)
     }
     {
       const formData = new FormData()
