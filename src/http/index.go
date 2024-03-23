@@ -25,13 +25,7 @@ type SimpHttpServerCtx struct {
 	isMain      bool
 	StoragePath string
 	StaticPath  string
-	Proxy       *[]struct {
-		Server struct {
-			Type string `yaml:"type"`
-			Name string `yaml:"name"`
-			Port string `yaml:"port"`
-		} `yaml:"server"`
-	} `yaml:"proxy"`
+	MapConf     map[string]interface{}
 }
 
 func Resp(code int, message string, data interface{}) *gin.H {
@@ -169,13 +163,13 @@ func (c *SimpHttpServerCtx) Static(realPath string, args ...string) {
 }
 
 func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
+	var G *gin.Engine
 	conf, err := config.NewConfig(path)
 	if err != nil {
 		fmt.Println("NewConfig Error:", err.Error())
 		panic(err.Error())
 	}
 	fmt.Println("SIMP_PRODUCTION Conf", conf)
-	var G *gin.Engine
 	G = gin.Default()
 	if err != nil {
 		fmt.Println("get Config Error :", err.Error())
@@ -208,7 +202,7 @@ func NewSimpHttpCtx(path string) (ctx *SimpHttpServerCtx) {
 		StoragePath: conf.Server.Storage,
 		StaticPath:  conf.Server.StaticPath,
 		Storage:     ST,
-		Proxy:       &conf.Server.Proxy,
+		MapConf:     conf.Server.MapConf,
 	}
 	return ctx
 }

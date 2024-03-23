@@ -6,12 +6,3 @@ server:
   type: main
   staticPath: static # 静态资源
   storage:  mysql@3306...... # 存储
-  proxy:
-    - server:
-        name: CalcServer
-        port: 8512
-        type: tcp
-    - server:
-        name: PoolServer
-        port: 8513
-        type: tcp

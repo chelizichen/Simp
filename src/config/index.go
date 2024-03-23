@@ -13,20 +13,14 @@ import (
 
 type SimpConfig struct {
 	Server struct {
-		Name       string `yaml:"name" `
-		Host       string `yaml:"host"`
-		Port       int    `yaml:"port" `
-		Type       string `yaml:"type"`
-		StaticPath string `yaml:"staticPath" `
-		Storage    string `yaml:"storage" `
-		Main       bool   `yaml:"main" `
-		Proxy      []struct {
-			Server struct {
-				Type string `yaml:"type"`
-				Name string `yaml:"name"`
-				Port string `yaml:"port"`
-			} `yaml:"server"`
-		} `yaml:"proxy"`
+		Name       string                 `yaml:"name" `
+		Host       string                 `yaml:"host"`
+		Port       int                    `yaml:"port" `
+		Type       string                 `yaml:"type"`
+		StaticPath string                 `yaml:"staticPath" `
+		Storage    string                 `yaml:"storage" `
+		Main       bool                   `yaml:"main" `
+		MapConf    map[string]interface{} `yaml:"mapConf"`
 	} `yaml:"server"`
 }
 

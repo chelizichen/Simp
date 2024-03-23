@@ -10,7 +10,7 @@ import API from '../api/server'
 import asideComponent from '@/components/aside.vue'
 import mainLogger from '@/components/mainlogger.vue'
 import { InfoFilled, Remove } from '@element-plus/icons-vue'
-import { cloneDeep, reverse } from 'lodash'
+import { cloneDeep, omit, reverse, set } from 'lodash'
 import expansionComponent from '@/components/expansion.vue'
 import { getProxyList } from '@/api/nginx'
 const state = reactive({
@@ -53,7 +53,8 @@ const config = ref({
   StaticPath: '',
   Storage: '',
   Proxy: null,
-  Host: ''
+  Host: '',
+  MapConf: <Record<string, string>>{}
 })
 
 const rowList = [50, 100, 500, 1000]
@@ -145,13 +146,13 @@ async function restartServer() {
     console.log('ports', ports)
     const hasMainPort = ports.indexOf(mainPort)
     if (hasMainPort == -1) {
-      if(!state.status.pid){
+      if (!state.status.pid) {
         ElMessage.error('必须包含主控节点')
         return loading.close()
-      }else{
+      } else {
         ports.splice(hasMainPort, 1)
       }
-    }else{
+    } else {
       ports.splice(hasMainPort, 1)
     }
     {
@@ -166,7 +167,7 @@ async function restartServer() {
         pid: resp.Data.pid
       }
     }
-    console.log('ports.length',ports.length);
+    console.log('ports.length', ports.length)
     if (!ports.length) {
       state.releaseVisible = false
       ElMessage({
@@ -255,17 +256,18 @@ watch(
   }
 )
 
-
-watch(()=>state.isShutdownAll,function(newVal){
-  if(!newVal){
-    return choseServices.value = []
+watch(
+  () => state.isShutdownAll,
+  function (newVal) {
+    if (!newVal) {
+      return (choseServices.value = [])
+    }
+    choseServices.value = childServiceList.value.map((item) => {
+      return item + `  | ` + childServiceObj.value[item].pid + ` | online`
+    })
+    console.log('choseServices', choseServices.value)
   }
-  choseServices.value = childServiceList.value.map(item=>{
-    return item + `  | ` + childServiceObj.value[item].pid + ` | online`
-  })
-  console.log('choseServices',choseServices.value);
-  
-})
+)
 
 async function shutdownServers() {
   const loading = ElLoading.service({
@@ -614,6 +616,40 @@ watch(
     }
   }
 )
+
+function addConfItem() {
+  // 弹出对话框让用户输入键和值，或者使用默认方式添加空键值对
+  ElMessageBox.prompt('请输入键', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消'
+  })
+    .then(({ value }) => {
+      if (value) {
+        ElMessageBox.prompt('请输入值', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消'
+        })
+          .then(({ value: val }) => {
+            if(config.value.MapConf == null){
+              config.value.MapConf = {}
+            }
+            set(config.value.MapConf,value,val)
+            console.log('coonfig.value',config.value);
+          })
+          .catch((rea) => {
+          console.log("2",rea);
+            console.log('coonfig.value',config.value);
+          })
+      }
+    })
+    .catch((rea) => {
+      console.log("11",rea);
+            console.log('coonfig.value',config.value);
+    })
+}
+function removeConfItem(key) {
+  config.value.MapConf = omit(config.value.MapConf,key)
+}
 </script>
 
 <template>
@@ -689,7 +725,12 @@ watch(
           >
             <div class="flex-item">
               <div style="font-weight: 700">PackageCounts</div>
-              <div style="color: rgb(207, 15, 124);cursor:pointer" @click="state.uploadVisible = true">{{ state.packageList.length }}</div>
+              <div
+                style="color: rgb(207, 15, 124); cursor: pointer"
+                @click="state.uploadVisible = true"
+              >
+                {{ state.packageList.length }}
+              </div>
             </div>
             <div class="flex-item">
               <div style="font-weight: 700">ServerName</div>
@@ -871,6 +912,18 @@ watch(
             </el-form-item>
             <el-form-item label="Storage">
               <el-input v-model="config.Storage"></el-input>
+            </el-form-item>
+            <!-- 其他字段的配置 -->
+            <el-form-item label="Conf">
+              <div v-for="(value, key) in config.MapConf" :key="key" style="display:flex;width:100%;margin:0 0 10px 0;gap:10px">
+                <el-input style="flex:1" :value="key" disabled></el-input>
+                <el-input  style="flex:2" :value="value" placeholder="Value"></el-input>
+                <el-button style="flex:1" type="danger" @click="removeConfItem(key)">Remove</el-button>
+              </div>
+              <div>
+                <el-button @click="addConfItem" type="primary">Add New Conf Item</el-button>
+              </div>
+              <!-- 添加新键值对的按钮 -->
             </el-form-item>
           </el-form>
           <span slot="footer">

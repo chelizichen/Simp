@@ -1,9 +1,7 @@
 package tcp
 
 import (
-	h "Simp/src/http"
 	"Simp/src/rpc"
-	"fmt"
 	"net"
 	"os"
 	"reflect"
@@ -47,48 +45,4 @@ func SimpTcpWrite(serverName string, buffer []byte, callback func()) {
 	conn.Write(buffer)
 	eid := os.Getuid()
 	InvokeCallback[eid] = callback
-}
-
-// 代理服务端链接
-func ClientListen(ctx *h.SimpHttpServerCtx) {
-	for _, v := range *ctx.Proxy {
-		// 连接到服务器
-		conn, err := net.Dial("tcp", ":"+v.Server.Port)
-		if err != nil {
-			fmt.Println("Error connecting:", err.Error())
-			os.Exit(1)
-		}
-		defer conn.Close()
-		Servants[v.Server.Name] = conn
-	}
-	for serverName, conn := range Servants {
-		// 读取服务器的响应内容
-		// 启动一个 goroutine 读取数据并发送到通道
-		CONN := conn
-		SERVER_NAME := serverName
-		go func() {
-			buffer := make([]byte, 1024)
-			_, err := CONN.Read(buffer)
-			handleBuffer(SERVER_NAME, &buffer)
-			if err != nil {
-				fmt.Println("Error reading response:", err)
-				return
-			}
-		}()
-	}
-}
-
-func handleBuffer(serverName string, buf *[]byte) (err error) {
-	ts := new(TarsusStruct[any])
-	err = readHead[any](ts, buf)
-	err = readRespBody[any](ts, buf)
-	return err
-}
-
-func readHead[T any](tarsus *TarsusStruct[T], buf *[]byte) (err error) {
-	return
-}
-
-func readRespBody[T any](tarsus *TarsusStruct[T], buf *[]byte) (err error) {
-	return
 }
