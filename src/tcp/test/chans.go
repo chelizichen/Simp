@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 )
 
@@ -110,7 +111,7 @@ func (u *User) TestHello(name string) {
 	fmt.Println("TestHello：", name)
 }
 
-func main() {
+func ReflectTest() {
 	if true {
 		u := User{1, "5lmh.com", 20}
 		v := reflect.ValueOf(u)
@@ -133,4 +134,24 @@ func main() {
 		// 调用方法
 		m.Call(args)
 	}
+}
+
+var wg sync.WaitGroup
+var mutes sync.Mutex
+var c int = 0
+
+func LockTest() {
+	mutes.Lock()
+	defer mutes.Unlock()
+	c = c + 1
+	wg.Done()
+}
+
+func main() {
+	for i := 0; i < 1000000; i++ {
+		wg.Add(1)
+		go LockTest()
+	}
+	wg.Wait()
+	fmt.Println("c", c)
 }

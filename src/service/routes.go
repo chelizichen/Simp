@@ -482,7 +482,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		b := utils2.IsPidAlive(P, serverName)
 		v := make(map[string]interface{}, 10)
 		v["status"] = false
-		if b == true {
+		if b {
 			v["pid"] = pid
 			v["status"] = true
 		}
@@ -589,7 +589,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		serverName := c.PostForm("serverName")
 		pid := utils2.ServantAlives[serverName]
 		if pid == 0 {
-			c.JSON(200, handlers.Resp(-1, "暂无PID", nil))
+			c.AbortWithStatusJSON(200, handlers.Resp(-1, "暂无PID", nil))
 			return
 		}
 		fmt.Println("shoutDown server", serverName, "pid is ", pid)
@@ -598,11 +598,15 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		err := cmd.Run()
 		if err != nil {
 			fmt.Println("x:", err)
+			c.AbortWithStatusJSON(200, handlers.Resp(-1, "关闭服务异常", err.Error()))
 			return
 		}
 		utils2.ServantAlives[serverName] = 0
-		RegistrhServicesCtx[serverName].cancel()
-		c.JSON(200, handlers.Resp(0, "ok", nil))
+		fmt.Println("RegistrhServicesCtx[serverName]", serverName, "|", RegistrhServicesCtx[serverName])
+		if ctx, ok := RegistrhServicesCtx[serverName]; ok {
+			ctx.cancel() // 调用 cancel 函数取消对应的 context
+		}
+		c.AbortWithStatusJSON(200, handlers.Resp(0, "ok", nil))
 	})
 
 	// tail -n rows log_file | grep "pattern"
