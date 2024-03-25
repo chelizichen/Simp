@@ -5,7 +5,6 @@ import (
 	handlers "Simp/src/http"
 	utils2 "Simp/src/utils"
 	"bufio"
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -44,8 +44,8 @@ func TOKEN_VALIDATE(ctx *gin.Context) {
 }
 
 type ServerCtx struct {
-	context context.Context
-	cancel  context.CancelFunc
+	ExitSignal *atomic.Bool
+	Cron       *cron.Cron
 }
 
 func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
@@ -126,12 +126,15 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		isAlive := utils2.ServantAlives[ctxName]
 		if isAlive != 0 {
 			cmd := exec.Command("kill", "-9", strconv.Itoa(isAlive))
-			RegistrhServicesCtx[ctxName].cancel()
 			// 执行命令
 			err := cmd.Run()
 			if err != nil {
 				fmt.Println("Error killing process:", err)
 				return
+			}
+			if sc, ok := RegistrhServicesCtx[ctxName]; ok {
+				sc.ExitSignal.Store(true)
+				sc.Cron.Stop()
 			}
 		}
 		isSame := utils2.ConfirmFileName(serverName, fileName)
@@ -232,72 +235,66 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			fmt.Println("Error To EXEC Cmd Start", err.Error())
 			fmt.Println("Cmd", cmd.Args)
 		}
-		serverContext, serverCancelFunc := context.WithCancel(context.Background())
+		var exit atomic.Bool
+		cron := cron.New()
 		RegistrhServicesCtx[ctxName] = ServerCtx{
-			context: serverContext,
-			cancel:  serverCancelFunc,
+			ExitSignal: &exit,
+			Cron:       cron,
 		}
 		// 启动一个协程，用于读取并打印命令的输出
 		go func() {
-			select {
-			case <-RegistrhServicesCtx[ctxName].context.Done():
-				{
-					fmt.Println("ServerName |", ctxName, " is Done")
+			// 4小时执行一次，更换日志文件指定目录
+			spec := "* * */4 * * *"
+			// 添加定时任务
+			err := cron.AddFunc(spec, func() {
+				newSM, err := utils2.NewSimpMonitor(serverName, "", targetPort)
+				if err != nil {
+					fmt.Println("Error To New Monitor", err.Error())
 					return
 				}
-			default:
-				{
-					c := cron.New()
-
-					// 4小时执行一次，更换日志文件指定目录
-					spec := "* * */4 * * *"
-
-					// 添加定时任务
-					err := c.AddFunc(spec, func() {
-						newSM, err := utils2.NewSimpMonitor(serverName, "", targetPort)
-						if err != nil {
-							fmt.Println("Error To New Monitor", err.Error())
-							return
-						}
-						sm = newSM
-					})
-					if err != nil {
-						fmt.Println("AddFuncErr", err)
-					}
-					// 启动Cron调度器
-					go c.Start()
-
-					go func() {
-						for {
-							// 读取输出
-							buf := make([]byte, 1024)
-							s := time.Now().Format(time.TimeOnly)
-							n, err := stdoutPipe.Read(buf)
-							if err != nil {
-								break
-							}
-							// 打印输出
-							content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
-							sm.AppendLogger(content)
-						}
-					}()
-					go func() {
-						for {
-							// 读取输出
-							buf := make([]byte, 1024)
-							s := time.Now().Format(time.TimeOnly)
-							n, err := stderrPipe.Read(buf)
-							if err != nil {
-								break
-							}
-							// 打印输出
-							content := s + "Error : ServerName " + serverName + " || " + string(buf[:n]) + "\n"
-							fmt.Println(content)
-						}
-					}()
-				}
+				sm = newSM
+			})
+			if err != nil {
+				fmt.Println("AddFuncErr", err)
 			}
-
+			// 启动Cron调度器
+			go cron.Start()
+			go func() {
+				for {
+					if exit.Load() {
+						fmt.Println("serverName | ", ctxName, " |StopToReadOutput")
+						return
+					}
+					// 读取输出
+					buf := make([]byte, 1024)
+					s := time.Now().Format(time.TimeOnly)
+					n, err := stdoutPipe.Read(buf)
+					if err != nil {
+						break
+					}
+					// 打印输出
+					content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+					sm.AppendLogger(content)
+				}
+			}()
+			go func() {
+				for {
+					if exit.Load() {
+						fmt.Println("serverName | ", ctxName, " |StopToReadOutput")
+						return
+					}
+					// 读取输出
+					buf := make([]byte, 1024)
+					s := time.Now().Format(time.TimeOnly)
+					n, err := stderrPipe.Read(buf)
+					if err != nil {
+						break
+					}
+					// 打印输出
+					content := s + "Error : ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+					fmt.Println(content)
+				}
+			}()
 		}()
 		if err != nil {
 			fmt.Println("Error To Err", err.Error())
@@ -592,6 +589,13 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			c.AbortWithStatusJSON(200, handlers.Resp(-1, "暂无PID", nil))
 			return
 		}
+		if ctx, ok := RegistrhServicesCtx[serverName]; ok {
+			fmt.Println("exit routine")
+			fmt.Println("RegistrhServicesCtx[serverName]", serverName, "|", RegistrhServicesCtx[serverName])
+			ctx.Cron.Stop()
+			ctx.ExitSignal.Store(true)
+		}
+
 		fmt.Println("shoutDown server", serverName, "pid is ", pid)
 		cmd := exec.Command("kill", "-9", strconv.Itoa(pid))
 		// 执行命令
@@ -602,10 +606,6 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			return
 		}
 		utils2.ServantAlives[serverName] = 0
-		fmt.Println("RegistrhServicesCtx[serverName]", serverName, "|", RegistrhServicesCtx[serverName])
-		if ctx, ok := RegistrhServicesCtx[serverName]; ok {
-			ctx.cancel() // 调用 cancel 函数取消对应的 context
-		}
 		c.AbortWithStatusJSON(200, handlers.Resp(0, "ok", nil))
 	})
 
