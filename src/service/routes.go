@@ -5,6 +5,7 @@ import (
 	handlers "Simp/src/http"
 	utils2 "Simp/src/utils"
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -243,10 +244,12 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		// 启动一个协程，用于读取并打印命令的输出
 		go func() {
-			// 4小时执行一次，更换日志文件指定目录
-			spec := "* * */4 * * *"
+			spec := "0 0 0 * * *"
 			// 添加定时任务
 			err := cron.AddFunc(spec, func() {
+				if !utils2.IsPidAlive(cmd.Process.Pid, ctxName) {
+					cron.Stop()
+				}
 				newSM, err := utils2.NewSimpMonitor(serverName, "", targetPort)
 				if err != nil {
 					fmt.Println("Error To New Monitor", err.Error())
@@ -262,18 +265,18 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			go func() {
 				for {
 					if exit.Load() {
-						fmt.Println("serverName | ", ctxName, " |StopToReadOutput")
+						fmt.Println(" serverName | ", ctxName, " |StopToReadOutput")
 						return
 					}
 					// 读取输出
 					buf := make([]byte, 1024)
-					s := time.Now().Format(time.TimeOnly)
+					s := time.Now().Format(time.DateTime)
 					n, err := stdoutPipe.Read(buf)
 					if err != nil {
 						break
 					}
 					// 打印输出
-					content := s + "ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+					content := s + " ServerName " + serverName + " || " + string(buf[:n]) + "\n"
 					sm.AppendLogger(content)
 				}
 			}()
@@ -285,14 +288,33 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 					}
 					// 读取输出
 					buf := make([]byte, 1024)
-					s := time.Now().Format(time.TimeOnly)
+					s := time.Now().Format(time.DateTime)
 					n, err := stderrPipe.Read(buf)
 					if err != nil {
 						break
 					}
 					// 打印输出
-					content := s + "Error : ServerName " + serverName + " || " + string(buf[:n]) + "\n"
+					content := s + " Error : ServerName " + serverName + " || " + string(buf[:n]) + "\n"
 					fmt.Println(content)
+					sm.AppendLogger(content)
+				}
+			}()
+
+			go func() {
+				for {
+					time.Sleep(time.Second * 15)
+					b := utils2.IsPidAlive(cmd.Process.Pid, ctxName)
+					if !b {
+						return
+					}
+					pInfo := utils2.GetProcessMemoryInfo(cmd.Process.Pid)
+					pInfoContent, err := json.Marshal(*pInfo)
+					if err != nil {
+						break
+					}
+					s := time.Now().Format(time.DateTime)
+					content := s + " ServerName " + serverName + " || " + string(pInfoContent) + "\n"
+					sm.AppendLogger(content)
 				}
 			}()
 		}()

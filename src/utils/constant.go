@@ -23,19 +23,18 @@ func ServantMonitor() {
 			d := time.Now().Format(time.DateTime)
 			for serverName, pid := range ServantAlives {
 				b := IsPidAlive(pid, serverName)
-				if b {
-					mis := GetProcessMemoryInfo(pid)
-					fmt.Println(d, "| IsAlive | ", serverName)
-					if mis != nil {
-						data, err := json.Marshal(mis)
-						if err != nil {
-							fmt.Println("json Marshal Error ", data)
-							return
-						}
-						fmt.Println(d, "| Memoryinfo |", data)
-					}
-				} else {
+				if !b {
 					fmt.Println(d, "| IsNotAlive | ", serverName)
+				}
+				mis := GetProcessMemoryInfo(pid)
+				fmt.Println(d, "| IsAlive | ", serverName)
+				if mis != nil {
+					data, err := json.Marshal(mis)
+					if err != nil {
+						fmt.Println("json Marshal Error ", data)
+						return
+					}
+					fmt.Println(d, "| Memoryinfo |", data)
 				}
 			}
 		})

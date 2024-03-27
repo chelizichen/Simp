@@ -55,7 +55,8 @@ func NewSimpMonitor(serverName string, date string, port string) (s SimpMonitor,
 	// path = static/serverName/log_date.log
 	now := time.Now().Format(time.DateOnly)
 	if date == "" {
-		fmt.Println("Today", now)
+		currentTime := time.Now().Format(time.DateTime)
+		fmt.Println(serverName+" | Today | ", currentTime)
 		date = now
 	} else {
 		t, err2 := time.Parse(time.DateOnly, date)
