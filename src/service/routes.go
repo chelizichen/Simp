@@ -308,7 +308,23 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 						return
 					}
 					pInfo := utils2.GetProcessMemoryInfo(cmd.Process.Pid)
-					pInfoContent, err := json.Marshal(*pInfo)
+					cpuPercent, _ := pInfo.CPUPercent()
+					cpuAffinity, _ := pInfo.CPUAffinity()
+					createTime, _ := pInfo.CreateTime()
+					Status, _ := pInfo.Status()
+					pid := cmd.Process.Pid
+					MemoryPercent, _ := pInfo.MemoryPercent()
+					MemoryInfo, _ := pInfo.MemoryInfo()
+					info := make(map[string]interface{})
+					info["pid"] = pid
+					info["MemoryInfo"] = MemoryInfo
+					info["MemoryPercent"] = MemoryPercent
+					info["CpuPercent"] = cpuPercent
+					info["CpuAffinity"] = cpuAffinity
+					info["CreateTime"] = createTime
+					info["Status"] = Status
+					info["ServerName"] = serverName
+					pInfoContent, err := json.Marshal(info)
 					if err != nil {
 						break
 					}

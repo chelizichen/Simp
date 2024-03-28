@@ -205,18 +205,13 @@ func IsPidAlive(pid int, serverName string) bool {
 	fmt.Printf("Error signaling process: %v\n", err)
 	return false
 }
-func GetProcessMemoryInfo(pid int) *p.MemoryInfoStat {
+func GetProcessMemoryInfo(pid int) *p.Process {
 	process, err := p.NewProcess(int32(pid))
 	if err != nil {
 		fmt.Println("Error creating new process:", err)
 		return nil
 	}
-	memoryInfo, err := process.MemoryInfo()
-	if err != nil {
-		fmt.Println("Error getting memory info:", err)
-		return nil
-	}
-	return memoryInfo
+	return process
 }
 
 func MoveAndRemove(sourcePath, destPath string) error {
