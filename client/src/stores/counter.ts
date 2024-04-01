@@ -10,3 +10,11 @@ export const useCounterStore = defineStore('counter', () => {
 
   return { count, doubleCount, increment }
 })
+
+export const useShellStore = defineStore('shell', () => {
+  const outputStack = ref<string[]>([])
+  function pushStack(message:string){
+    outputStack.value.push(message)
+  }
+  return { outputStack,pushStack }
+})
