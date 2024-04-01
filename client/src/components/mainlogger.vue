@@ -7,6 +7,7 @@ export default {
 import { backupNginx, getBackupFile, getBackupList, nginxReload } from '@/api/nginx'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { reactive, watch } from 'vue'
+import { NewEventSource } from '@/utils/shell'
 
 const props = defineProps<{
   serverList: any[]
@@ -91,6 +92,11 @@ async function backup() {
       <div class="flex-item">
         <div @click="GetMainLogList()" style="color: rgb(207, 15, 124); cursor: pointer">
           CheckLog
+        </div>
+      </div>
+      <div class="flex-item">
+        <div @click="NewEventSource('ls')" style="color: rgb(207, 15, 124); cursor: pointer">
+          Shell
         </div>
       </div>
       <div class="flex-item">
