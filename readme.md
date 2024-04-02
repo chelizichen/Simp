@@ -3,11 +3,13 @@
 <img src="./static/img/main_control.png" />
 
 ***
+- **包括的子服务**
+  - [扩容服务](https://github.com/chelizichen/SimpExpansionServer) 该服务可以对其他业务服务进行水平扩容
+  - [WebShell服务](https://github.com/chelizichen/SimpShellServer)，该服务可以模拟Shell 用来查看文件
 
 **START**
 
 - [介绍](#介绍)
-- [开发目的](#开发目的)
 - [配置文件](#配置文件)
 - [使用](#使用)
 - [发布](#发布)
@@ -15,17 +17,6 @@
 ##### 介绍
 
 Simp是一个快速发布、部署的现代Web平台,类似于[Tars](https://github.com/TarsCloud/Tars),采用[gin](https://github.com/gin-gonic/gin) + [vue](https://github.com/vuejs/vue)进行底层平台的构建。该平台以部署简单，无需MySql,无需安装其他环境,只需要将二进制文件和静态资源部署至云平台即可。同时含有日志系统，日志分为主控和子服务日志，两者可以随时查看。
-
-##### 开发目的
-
-1. 我喜欢TAF Web化的部署方式。
-2. 我喜欢TRPC 简洁的开发模式
-3. TAF太重了，作为使用TAFNode进行日常开发的程序员，也会经常遇到自己不能hold住的问题。
-
-我想让所有事情都简单化。能不能将所有东西都弄简单一点。不想背八股文。
-
-1. 我还是很喜欢TAF的Web化部署方式，重点是，我爱JavaScript！
-2. 部署平台不能过多的涉及业务。TAF平台里所展示的一些东西其实和业务也是有绑定的，这使得开发者得花过多的时间去研究和了解。
 
 ##### 配置文件
 
