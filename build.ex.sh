@@ -1,0 +1,1 @@
+tar -cvf SimpExChangeServer.tar.gz  ./service_go ./dist  
