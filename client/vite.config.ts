@@ -31,6 +31,11 @@ export default defineConfig(({ command, mode })=>{
           target: 'http://localhost:8518/',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/simpexpansionserver/, '/simpexpansionserver/') // 不可以省略rewrite
+        },
+        "/simpshellserver":{
+          target: 'http://localhost:8515/',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/simpshellserver/, '/simpshellserver/') // 不可以省略rewrite
         }
       }
     },

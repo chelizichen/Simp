@@ -1,25 +1,33 @@
 <script lang="ts">
 export default {
-  name: 'aside-component'
-}
+  name: "aside-component",
+};
 </script>
 <script lang="ts" setup>
-import { Search } from '@element-plus/icons-vue'
-import { computed, ref } from 'vue'
+import { Search } from "@element-plus/icons-vue";
+import { computed, ref } from "vue";
 const props = defineProps<{
-  serverList: any[]
-}>()
-const emits = defineEmits(['handleOpen'])
+  serverList: any[];
+}>();
+const emits = defineEmits(["handleOpen"]);
 function handleOpen(item: string) {
-  emits('handleOpen', item)
+  emits("handleOpen", item);
 }
-const keyword = ref('')
+const keyword = ref("");
 const serverList = computed(() => {
-  return props.serverList.filter((v) => v.match(keyword.value))
-})
-
+  return props.serverList
+    .filter((v) => v.match(keyword.value))
+    .reduce((pre: string[], curr: string) => {
+      if (curr.startsWith("Simp")) {
+        pre.unshift(curr);
+      } else {
+        pre.push(curr);
+      }
+      return pre;
+    }, []);
+});
 function toGit() {
-  window.open('https://github.com/chelizichen/Simp')
+  window.open("https://github.com/chelizichen/Simp");
 }
 </script>
 

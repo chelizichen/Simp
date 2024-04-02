@@ -302,7 +302,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 			go func() {
 				for {
-					time.Sleep(time.Second * 15)
+					time.Sleep(time.Minute * 15)
 					b := utils2.IsPidAlive(cmd.Process.Pid, ctxName)
 					if !b {
 						return
