@@ -117,6 +117,11 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 	// serverName SimpTestServer
 	// fileName SimpTestServer_asdh213njonasd.tar.gz
+	// 判定为普通重启操作条件
+	// 1. targetPort 存在为扩容操作，一般重启服务时 targetPort 是不存在的
+	// 2. 如果需要重启服务，那么会将几个端口一起重启，那么将会传几个targetPort进来
+	// 此时还需要区分主服务和扩容服务,必须先执行完主服务的重启后才能执行扩容服务
+	// 同时 主服务重启时也需要重新执行所有流程
 	GROUP.POST("/restartServer", func(c *gin.Context) {
 		fileName := c.PostForm("fileName")
 		serverName := c.PostForm("serverName")
@@ -140,11 +145,17 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		isSame := utils2.ConfirmFileName(serverName, fileName)
 		if !isSame {
-			fmt.Println("Error File!", fileName, "  | ", serverName)
+			msg := "Error File!" + fileName + "  | " + serverName
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusOK, handlers.Resp(-1, msg, nil))
+			return
 		}
 		cwd, err := os.Getwd()
 		if err != nil {
-			fmt.Println("Error To GetWd", err.Error())
+			msg := "Error To GetWd :" + err.Error()
+			fmt.Printf("msg: %v\n", msg)
+			c.AbortWithStatusJSON(http.StatusOK, handlers.Resp(-1, msg, nil))
+			return
 		}
 		storagePath := filepath.Join(cwd, utils2.PublishPath, serverName, fileName)
 		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "service_go")
@@ -152,17 +163,22 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		storageYmlEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simp.yaml")
 		storageYmlProdPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simpProd.yaml")
 		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
+		isFirstPackage := !utils2.IsExist(storageYmlProdPath)
+		isUnzip := false
+		// 初次发布时，没有这些配置文件，需要先解压
+		if isFirstPackage {
+			err = utils2.Unzip(storagePath, dest)
+			if err != nil {
+				fmt.Println("Error To Unzip", err.Error())
+			}
+			isUnzip = true
+		}
 		sc, err := config.NewConfig(storageYmlEPath)
 		if err != nil {
 			fmt.Println("Error To Get Config")
 		}
 		s := sc.Server.StaticPath
 		storageStaticPath := filepath.Join(cwd, utils2.PublishPath, serverName, s)
-		// 判定为普通重启操作条件
-		// 1. targetPort 存在为扩容操作，一般重启服务时 targetPort 是不存在的
-		// 2. 如果需要重启服务，那么会将几个端口一起重启，那么将会传几个targetPort进来
-		// 此时还需要区分主服务和扩容服务,必须先执行完主服务的重启后才能执行扩容服务
-		// 同时 主服务重启时也需要重新执行所有流程
 		fmt.Println("targetPort == fmt.Sprintf('v', sc.Server.Port)", fmt.Sprintf("%v", sc.Server.Port), " | target |", targetPort, " | ", targetPort == fmt.Sprintf("%v", sc.Server.Port))
 		if targetPort == "" || targetPort == fmt.Sprintf("%v", sc.Server.Port) {
 			err = utils2.IFExistThenRemove(storageStaticPath)
@@ -182,10 +198,13 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			if err != nil {
 				fmt.Println("remove File Error storageNodePath "+storageNodePath, err.Error())
 			}
-			err = utils2.Unzip(storagePath, dest)
-			if err != nil {
-				fmt.Println("Error To Unzip", err.Error())
+			if !isUnzip {
+				err = utils2.Unzip(storagePath, dest)
+				if err != nil {
+					fmt.Println("Error To Unzip", err.Error())
+				}
 			}
+
 			_, err = os.Stat(storageYmlProdPath)
 			if err != nil {
 				fmt.Println("os.Stat ", err.Error())
@@ -229,12 +248,17 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		sm, err := utils2.NewSimpMonitor(serverName, "", targetPort)
 		if err != nil {
-			fmt.Println("Error To New Monitor", err.Error())
+			msg := "Error To New Monitor" + err.Error()
+			fmt.Printf("msg: %v\n", msg)
+			c.AbortWithStatusJSON(http.StatusOK, handlers.Resp(-1, msg, nil))
+			return
 		}
 		err = cmd.Start()
 		if err != nil {
-			fmt.Println("Error To EXEC Cmd Start", err.Error())
+			msg := "Error To EXEC Cmd Start ：" + err.Error()
+			fmt.Println(msg)
 			fmt.Println("Cmd", cmd.Args)
+			c.AbortWithStatusJSON(http.StatusOK, handlers.Resp(-1, msg, nil))
 		}
 		var exit atomic.Bool
 		cron := cron.New()
@@ -334,14 +358,11 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 				}
 			}()
 		}()
-		if err != nil {
-			fmt.Println("Error To Err", err.Error())
-		}
-		v := make(map[string]interface{}, 10)
-		fmt.Println("v", v)
-		v["pid"] = cmd.Process.Pid
+		pid := cmd.Process.Pid
+		v := make(map[string]interface{}, 2)
+		v["pid"] = pid
 		v["status"] = true
-		utils2.ServantAlives[ctxName] = cmd.Process.Pid
+		utils2.ServantAlives[ctxName] = pid
 
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
 	})
