@@ -53,7 +53,14 @@ function toGit() {
         :key="index"
         @click="handleOpen(item)"
       >
-        <el-icon class="app-not-show"><Menu /></el-icon>
+        <el-icon class="app-not-show">
+          <template v-if="item.startsWith('Simp')">
+            <TrendCharts />
+          </template>
+          <template v-else>
+            <Menu />
+          </template>
+        </el-icon>
         <template #title>{{ item }}</template>
       </el-menu-item>
     </el-menu>
