@@ -122,7 +122,7 @@ func ResetConfig(yamlContent string, filePath string) error {
 
 func CoverConfig(content string, filePath string) error {
 	// 删除
-	utils.IFExistThenRemove(filePath)
+	utils.IFExistThenRemove(filePath, false)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return err

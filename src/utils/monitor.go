@@ -169,7 +169,7 @@ func CreateAPIFile(c *gin.Engine, serverName string) {
 	}
 	path := path.Join(cwd, PublishPath, serverName, "API.json")
 	fmt.Println("Create JSON at ", path)
-	err = IFExistThenRemove(path)
+	err = IFExistThenRemove(path, false)
 	if err != nil {
 		fmt.Println("IFExistThenRemove Error ", path)
 	}

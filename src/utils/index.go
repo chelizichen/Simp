@@ -164,7 +164,11 @@ func IFNotExistThenCreate(filePath string) (os.File, error) {
 	return *f, err
 }
 
-func IFExistThenRemove(path string) error {
+func IFExistThenRemove(path string, isDir bool) error {
+	if isDir {
+		DeleteDirectory(path)
+		return nil
+	}
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		fmt.Printf("Path %s does not exist.\n", path)

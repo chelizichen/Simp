@@ -164,14 +164,16 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		storageYmlProdPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simpProd.yaml")
 		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
 		isFirstPackage := !utils2.IsExist(storageYmlProdPath)
-		isUnzip := false
-		// 初次发布时，没有这些配置文件，需要先解压
+		// 初次发布时，没有这些配置文件，需要先解压，并且拷贝配置文件
 		if isFirstPackage {
 			err = utils2.Unzip(storagePath, dest)
 			if err != nil {
 				fmt.Println("Error To Unzip", err.Error())
 			}
-			isUnzip = true
+			err = utils2.CopyFile(storageYmlEPath, storageYmlProdPath)
+			if err != nil {
+				fmt.Println("Error To CopyFile", err.Error())
+			}
 		}
 		sc, err := config.NewConfig(storageYmlEPath)
 		if err != nil {
@@ -180,29 +182,27 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		s := sc.Server.StaticPath
 		storageStaticPath := filepath.Join(cwd, utils2.PublishPath, serverName, s)
 		fmt.Println("targetPort == fmt.Sprintf('v', sc.Server.Port)", fmt.Sprintf("%v", sc.Server.Port), " | target |", targetPort, " | ", targetPort == fmt.Sprintf("%v", sc.Server.Port))
-		if targetPort == "" || targetPort == fmt.Sprintf("%v", sc.Server.Port) {
-			err = utils2.IFExistThenRemove(storageStaticPath)
+		if (targetPort == "" || targetPort == fmt.Sprintf("%v", sc.Server.Port)) && !isFirstPackage {
+			err = utils2.IFExistThenRemove(storageStaticPath, true)
 			if err != nil {
 				fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
 			}
-			err = utils2.IFExistThenRemove(storageExEPath)
+			err = utils2.IFExistThenRemove(storageExEPath, false)
 			if err != nil {
 				fmt.Println("remove File Error storageExEPath "+storageExEPath, err.Error())
 			}
-			err = utils2.IFExistThenRemove(storageYmlEPath)
+			err = utils2.IFExistThenRemove(storageYmlEPath, false)
 			if err != nil {
 				fmt.Println("remove File Error storageYmlEPath "+storageYmlEPath, err.Error())
 			}
 
-			err = utils2.IFExistThenRemove(storageNodePath)
+			err = utils2.IFExistThenRemove(storageNodePath, false)
 			if err != nil {
 				fmt.Println("remove File Error storageNodePath "+storageNodePath, err.Error())
 			}
-			if !isUnzip {
-				err = utils2.Unzip(storagePath, dest)
-				if err != nil {
-					fmt.Println("Error To Unzip", err.Error())
-				}
+			err = utils2.Unzip(storagePath, dest)
+			if err != nil {
+				fmt.Println("Error To Unzip", err.Error())
 			}
 
 			_, err = os.Stat(storageYmlProdPath)
