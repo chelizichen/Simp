@@ -176,7 +176,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 				// java -jar your-application.jar -Dspring.config.location=file:/path/to/application.yml,file:/path/to/another-config.yaml
 				runScript = func() *exec.Cmd {
 					storageJavaPath := utils2.GetFilePath(cwd, serverName, utils2.SpringEntry)
-					var cmd *exec.Cmd = exec.Command("java", "-jar", storageJavaPath, "-D", "spring.config.location="+"file:"+storageYmlProdPath)
+					var cmd *exec.Cmd = exec.Command("java", "-jar", storageJavaPath, "-Dspring.config.location="+"file:"+storageYmlProdPath)
 					return cmd
 				}
 			}
@@ -275,7 +275,7 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			} else if svr.Language == utils2.RELEASE_TYPE_JAVA {
 				runScript = func() *exec.Cmd {
 					storageJavaPath := utils2.GetFilePath(cwd, serverName, utils2.SpringEntry)
-					var cmd *exec.Cmd = exec.Command("java", "-jar", storageJavaPath, "-D", "spring.config.location="+"file:"+storageYmlProdPath)
+					var cmd *exec.Cmd = exec.Command("java", "-jar", storageJavaPath, "-Dspring.config.location="+"file:"+storageYmlProdPath)
 					return cmd
 				}
 			}
