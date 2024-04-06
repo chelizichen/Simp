@@ -15,6 +15,7 @@ import (
 const (
 	PublishPath         = "static/publish/"
 	GoEntry             = "service_go"
+	SpringEntry         = "target/SpringServer.jar"
 	NodeJsEntry         = "app.js"
 	DevConfEntry        = "simp.yaml"
 	ProdConfEntry       = "simpProd.yaml"

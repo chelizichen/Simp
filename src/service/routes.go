@@ -112,7 +112,6 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		serverName := c.PostForm("serverName")                                     // 服务名称
 		targetPort := c.PostForm("targetPort")                                     // 集群模式下需要指定端口
 		releaseType := c.DefaultPostForm("releaseType", utils2.RELEASE_SINGLENODE) // 集群模式下需要指定Type 默认普通单节点发布
-		// Language := c.DefaultPostForm("language", utils2.RELEASE_TYPE_GO)          // 指定发布的类型 默认golang
 		isSame := utils2.ConfirmFileName(serverName, fileName)
 		if !isSame {
 			msg := "Error File!" + fileName + "  | " + serverName
@@ -171,6 +170,13 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 				runScript = func() *exec.Cmd {
 					storageExEPath := utils2.GetFilePath(cwd, serverName, utils2.GoEntry)
 					var cmd *exec.Cmd = exec.Command(storageExEPath)
+					return cmd
+				}
+			} else if sc.Server.Type == utils2.RELEASE_TYPE_JAVA {
+				// java -jar your-application.jar -Dspring.config.location=file:/path/to/application.yml,file:/path/to/another-config.yaml
+				runScript = func() *exec.Cmd {
+					storageJavaPath := utils2.GetFilePath(cwd, serverName, utils2.SpringEntry)
+					var cmd *exec.Cmd = exec.Command("java", "-jar", storageJavaPath, "-D", "spring.config.location="+"file:"+storageYmlProdPath)
 					return cmd
 				}
 			}
@@ -232,6 +238,12 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 						fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
 					}
 				}
+				// java -jar your-application.jar -Dspring.config.location=file:/path/to/application.yml,file:/path/to/another-config.yaml
+				runScript = func() *exec.Cmd {
+					storageJavaPath := utils2.GetFilePath(cwd, serverName, utils2.SpringEntry)
+					var cmd *exec.Cmd = exec.Command("java", "-jar", storageJavaPath, "-D", "spring.config.location="+"file:"+storageYmlProdPath)
+					return cmd
+				}
 			}
 			confPort = sc.Server.Port
 			if err != nil {
@@ -255,9 +267,15 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 					return cmd
 				}
 			} else if svr.Language == utils2.RELEASE_TYPE_GO {
-				storageExEPath := utils2.GetFilePath(cwd, serverName, utils2.GoEntry)
 				runScript = func() *exec.Cmd {
+					storageExEPath := utils2.GetFilePath(cwd, serverName, utils2.GoEntry)
 					var cmd *exec.Cmd = exec.Command(storageExEPath)
+					return cmd
+				}
+			} else if svr.Language == utils2.RELEASE_TYPE_JAVA {
+				runScript = func() *exec.Cmd {
+					storageJavaPath := utils2.GetFilePath(cwd, serverName, utils2.SpringEntry)
+					var cmd *exec.Cmd = exec.Command("java", "-jar", storageJavaPath, "-D", "spring.config.location="+"file:"+storageYmlProdPath)
 					return cmd
 				}
 			}
