@@ -5,13 +5,11 @@ import (
 	handlers "Simp/src/http"
 	utils2 "Simp/src/utils"
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -44,16 +42,10 @@ func TOKEN_VALIDATE(ctx *gin.Context) {
 	}
 }
 
-type ServerCtx struct {
-	ExitSignal *atomic.Bool
-	Cron       *cron.Cron
-}
-
 func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 	f := utils2.Join(pre)
 	G := ctx.Engine
-	var RegistrhServicesCtx = make(map[string]ServerCtx)
 
 	// G.GET(f("/web"), func(c *gin.Context) {
 	// 	c.Redirect(http.StatusPermanentRedirect, "/web/login.html")
@@ -115,34 +107,12 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		c.JSON(http.StatusOK, handlers.Resp(0, "上传成功", nil))
 	})
 
-	// serverName SimpTestServer
-	// fileName SimpTestServer_asdh213njonasd.tar.gz
-	// 判定为普通重启操作条件
-	// 1. targetPort 存在为扩容操作，一般重启服务时 targetPort 是不存在的
-	// 2. 如果需要重启服务，那么会将几个端口一起重启，那么将会传几个targetPort进来
-	// 此时还需要区分主服务和扩容服务,必须先执行完主服务的重启后才能执行扩容服务
-	// 同时 主服务重启时也需要重新执行所有流程
 	GROUP.POST("/restartServer", func(c *gin.Context) {
-		fileName := c.PostForm("fileName")
-		serverName := c.PostForm("serverName")
-		// targetPort 为扩容时指定的端口
-		targetPort := c.DefaultPostForm("targetPort", "")
-		ctxName := serverName + targetPort
-		fmt.Println("targetPort | ", targetPort, " | ctxName |", ctxName)
-		isAlive := utils2.ServantAlives[ctxName]
-		if isAlive != 0 {
-			cmd := exec.Command("kill", "-9", strconv.Itoa(isAlive))
-			// 执行命令
-			err := cmd.Run()
-			if err != nil {
-				fmt.Println("Error killing process:", err)
-				return
-			}
-			if sc, ok := RegistrhServicesCtx[ctxName]; ok {
-				sc.ExitSignal.Store(true)
-				sc.Cron.Stop()
-			}
-		}
+		fileName := c.PostForm("fileName")                                         // 文件名称
+		serverName := c.PostForm("serverName")                                     // 服务名称
+		targetPort := c.PostForm("targetPort")                                     // 集群模式下需要指定端口
+		releaseType := c.DefaultPostForm("releaseType", utils2.RELEASE_SINGLENODE) // 集群模式下需要指定Type 默认普通单节点发布
+		// Language := c.DefaultPostForm("language", utils2.RELEASE_TYPE_GO)          // 指定发布的类型 默认golang
 		isSame := utils2.ConfirmFileName(serverName, fileName)
 		if !isSame {
 			msg := "Error File!" + fileName + "  | " + serverName
@@ -150,6 +120,17 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			c.AbortWithStatusJSON(http.StatusOK, handlers.Resp(-1, msg, nil))
 			return
 		}
+
+		svr := utils2.GetServant(serverName, targetPort)
+		// svr.Language = Language
+		err := svr.StopServant()
+		if err != nil {
+			msg := "Error StopServant!" + fileName + "  | " + serverName
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusOK, handlers.Resp(-1, msg, nil))
+			return
+		}
+
 		cwd, err := os.Getwd()
 		if err != nil {
 			msg := "Error To GetWd :" + err.Error()
@@ -157,123 +138,178 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			c.AbortWithStatusJSON(http.StatusOK, handlers.Resp(-1, msg, nil))
 			return
 		}
-		storagePath := filepath.Join(cwd, utils2.PublishPath, serverName, fileName)
-		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "service_go")
-		storageNodePath := filepath.Join(cwd, utils2.PublishPath, serverName, "app.js")
-		storageYmlEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simp.yaml")
-		storageYmlProdPath := filepath.Join(cwd, utils2.PublishPath, serverName, "simpProd.yaml")
+		storageYmlEPath := utils2.GetFilePath(cwd, serverName, utils2.DevConfEntry)
+		storageYmlProdPath := utils2.GetFilePath(cwd, serverName, utils2.ProdConfEntry)
+		storagePath := utils2.GetFilePath(cwd, serverName, fileName)
 		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
-		isFirstPackage := !utils2.IsExist(storageYmlProdPath)
-		// 初次发布时，没有这些配置文件，需要先解压，并且拷贝配置文件
-		if isFirstPackage {
-			err = utils2.Unzip(storagePath, dest)
+
+		isFirstRelease := !utils2.IsExist(storageYmlProdPath)
+		var runScript func() *exec.Cmd
+		var confPort int
+		if isFirstRelease {
+			err = utils2.Unzip(storagePath, dest) // 直接解压
 			if err != nil {
 				fmt.Println("Error To Unzip", err.Error())
 			}
-			err = utils2.CopyFile(storageYmlEPath, storageYmlProdPath)
+			err = utils2.CopyProdYml(storageYmlEPath, storageYmlProdPath) // 拷贝配置文件
 			if err != nil {
-				fmt.Println("Error To CopyFile", err.Error())
+				fmt.Println("Error To CopyProdYml", err.Error())
 			}
-		}
-		sc, err := config.NewConfig(storageYmlEPath)
-		if err != nil {
-			fmt.Println("Error To Get Config")
-		}
-		s := sc.Server.StaticPath
-		storageStaticPath := filepath.Join(cwd, utils2.PublishPath, serverName, s)
-		fmt.Println("targetPort == fmt.Sprintf('v', sc.Server.Port)", fmt.Sprintf("%v", sc.Server.Port), " | target |", targetPort, " | ", targetPort == fmt.Sprintf("%v", sc.Server.Port))
-		if (targetPort == "" || targetPort == fmt.Sprintf("%v", sc.Server.Port)) && !isFirstPackage {
-			err = utils2.IFExistThenRemove(storageStaticPath, true)
+			sc, err := config.NewConfig(storageYmlProdPath) // 引入配置文件
 			if err != nil {
-				fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
+				fmt.Println("Error To NewConfig", err.Error())
 			}
-			err = utils2.IFExistThenRemove(storageExEPath, false)
+			confPort = sc.Server.Port
+			svr.Language = sc.Server.Type
+			if sc.Server.Type == utils2.RELEASE_TYPE_NODEJS {
+				runScript = func() *exec.Cmd {
+					storageNodePath := utils2.GetFilePath(cwd, serverName, utils2.NodeJsEntry)
+					var cmd *exec.Cmd = exec.Command("node", storageNodePath)
+					return cmd
+				}
+			} else if sc.Server.Type == utils2.RELEASE_TYPE_GO {
+				runScript = func() *exec.Cmd {
+					storageExEPath := utils2.GetFilePath(cwd, serverName, utils2.GoEntry)
+					var cmd *exec.Cmd = exec.Command(storageExEPath)
+					return cmd
+				}
+			}
+		} else if releaseType == utils2.RELEASE_SINGLENODE {
+			var clearScript func(sc config.SimpConfig)
+			sc, err := config.NewConfig(storageYmlProdPath)
+			svr.Language = sc.Server.Type
+
+			if svr.Language == utils2.RELEASE_TYPE_NODEJS {
+				storageNodePath := utils2.GetFilePath(cwd, serverName, utils2.NodeJsEntry)
+				clearScript = func(sc config.SimpConfig) {
+					confPort = sc.Server.Port
+					storageStaticPath := utils2.GetFilePath(cwd, serverName, sc.Server.StaticPath)
+					err = utils2.IFExistThenRemove(storageStaticPath, true)
+					if err != nil {
+						fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
+					}
+					err = utils2.IFExistThenRemove(storageNodePath, false)
+					if err != nil {
+						fmt.Println("remove File Error storageNodePath "+storageNodePath, err.Error())
+					}
+					err = utils2.Unzip(storagePath, dest) // 直接解压
+					if err != nil {
+						fmt.Println("Error To Unzip", err.Error())
+					}
+				}
+				runScript = func() *exec.Cmd {
+					var cmd *exec.Cmd = exec.Command("node", storageNodePath)
+					return cmd
+				}
+			} else if svr.Language == utils2.RELEASE_TYPE_GO {
+				storageExEPath := utils2.GetFilePath(cwd, serverName, utils2.GoEntry)
+				clearScript = func(sc config.SimpConfig) {
+					confPort = sc.Server.Port
+					storageStaticPath := utils2.GetFilePath(cwd, serverName, sc.Server.StaticPath)
+					err = utils2.IFExistThenRemove(storageStaticPath, true)
+					if err != nil {
+						fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
+					}
+					err = utils2.IFExistThenRemove(storageExEPath, false)
+					if err != nil {
+						fmt.Println("remove File Error storageExEPath "+storageExEPath, err.Error())
+					}
+					err = utils2.Unzip(storagePath, dest) // 直接解压
+					if err != nil {
+						fmt.Println("Error To Unzip", err.Error())
+					}
+				}
+				runScript = func() *exec.Cmd {
+					var cmd *exec.Cmd = exec.Command(storageExEPath)
+					return cmd
+				}
+			} else if svr.Language == utils2.RELEASE_TYPE_JAVA {
+				clearScript = func(sc config.SimpConfig) {
+					confPort = sc.Server.Port
+					storageStaticPath := utils2.GetFilePath(cwd, serverName, sc.Server.StaticPath)
+					err = utils2.IFExistThenRemove(storageStaticPath, true)
+					if err != nil {
+						fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
+					}
+				}
+			}
+			confPort = sc.Server.Port
 			if err != nil {
-				fmt.Println("remove File Error storageExEPath "+storageExEPath, err.Error())
+				fmt.Println("Error To NewConfig", err.Error())
 			}
 			err = utils2.IFExistThenRemove(storageYmlEPath, false)
 			if err != nil {
 				fmt.Println("remove File Error storageYmlEPath "+storageYmlEPath, err.Error())
 			}
-
-			err = utils2.IFExistThenRemove(storageNodePath, false)
+			clearScript(sc) // 执行清除
+		} else if releaseType == utils2.RELEASE_CLUSTER {
+			sc, err := config.NewConfig(storageYmlProdPath)
 			if err != nil {
-				fmt.Println("remove File Error storageNodePath "+storageNodePath, err.Error())
+				fmt.Println("err NewConfig", err.Error())
 			}
-			err = utils2.Unzip(storagePath, dest)
-			if err != nil {
-				fmt.Println("Error To Unzip", err.Error())
-			}
-
-			_, err = os.Stat(storageYmlProdPath)
-			if err != nil {
-				fmt.Println("os.Stat ", err.Error())
-			}
-			// 如果没有该文件，则将simp.yaml拷贝一份成simpProd.yaml
-			if os.IsNotExist(err) {
-				err = utils2.CopyFile(storageYmlEPath, storageYmlProdPath)
-				if err != nil {
-					fmt.Println("utils.CopyFile ", storageYmlEPath, err.Error())
+			svr.Language = sc.Server.Type
+			if svr.Language == utils2.RELEASE_TYPE_NODEJS {
+				runScript = func() *exec.Cmd {
+					storageNodePath := utils2.GetFilePath(cwd, serverName, utils2.NodeJsEntry)
+					var cmd *exec.Cmd = exec.Command("node", storageNodePath)
+					return cmd
+				}
+			} else if svr.Language == utils2.RELEASE_TYPE_GO {
+				storageExEPath := utils2.GetFilePath(cwd, serverName, utils2.GoEntry)
+				runScript = func() *exec.Cmd {
+					var cmd *exec.Cmd = exec.Command(storageExEPath)
+					return cmd
 				}
 			}
 		}
 
-		var cmd *exec.Cmd
-		fmt.Println("sc.Server.Type", sc.Server.Type)
-		switch sc.Server.Type {
-		case "node-http":
-			{
-				cmd = exec.Command("node", storageNodePath)
-			}
-		default:
-			{
-				cmd = exec.Command(storageExEPath)
-			}
-		}
-
-		stdoutPipe, err := cmd.StdoutPipe()
+		script := runScript()
+		stdoutPipe, err := script.StdoutPipe()
 		if err != nil {
 			fmt.Println("Error Get StdoutPiper", err.Error())
 		}
-		stderrPipe, err := cmd.StderrPipe()
+		stderrPipe, err := script.StderrPipe()
 		if err != nil {
 			fmt.Println("Error Get stderrPipe", err.Error())
 		}
 		// 设置环境变量
-		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
-		if targetPort != "" && targetPort != fmt.Sprintf("%v", sc.Server.Port) {
-			cmd.Env = append(cmd.Env, "SIMP_TARGET_PORT="+targetPort, "SIMP_SERVER_INDEX="+targetPort)
+		script.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
+		if releaseType == utils2.RELEASE_CLUSTER {
+			script.Env = append(script.Env, "SIMP_TARGET_PORT="+targetPort, "SIMP_SERVER_INDEX="+targetPort)
 		} else {
-			cmd.Env = append(cmd.Env, "SIMP_SERVER_INDEX=1", "SIMP_TARGET_PORT="+fmt.Sprintf("%v", sc.Server.Port))
+			script.Env = append(script.Env, "SIMP_SERVER_INDEX=1", fmt.Sprintf("SIMP_TARGET_PORT=%v", confPort))
 		}
-		sm, err := utils2.NewSimpMonitor(serverName, "", targetPort)
 		if err != nil {
 			msg := "Error To New Monitor" + err.Error()
 			fmt.Printf("msg: %v\n", msg)
 			c.AbortWithStatusJSON(http.StatusOK, handlers.Resp(-1, msg, nil))
 			return
 		}
-		err = cmd.Start()
+		err = script.Start()
+
 		if err != nil {
 			msg := "Error To EXEC Cmd Start ：" + err.Error()
 			fmt.Println(msg)
-			fmt.Println("Cmd", cmd.Args)
+			fmt.Println("Cmd", script.Args)
 			c.AbortWithStatusJSON(http.StatusOK, handlers.Resp(-1, msg, nil))
 		}
 		var exit atomic.Bool
-		cron := cron.New()
-		RegistrhServicesCtx[ctxName] = ServerCtx{
-			ExitSignal: &exit,
-			Cron:       cron,
-		}
+		cronSvr := cron.New()
+		svr.Process = script
+		svr.Pid = script.Process.Pid
+		svr.ExitSignal = exit
+		svr.Cron = cronSvr
+
 		// 启动一个协程，用于读取并打印命令的输出
 		go func() {
 			spec := "0 0 0 * * *"
+			sm, err := utils2.NewSimpMonitor(serverName, "", targetPort)
+			if err != nil {
+				fmt.Println("Error To New Monitor", err.Error())
+			}
 			// 添加定时任务
-			err := cron.AddFunc(spec, func() {
-				if !utils2.IsPidAlive(cmd.Process.Pid, ctxName) {
-					cron.Stop()
-				}
+			err = cronSvr.AddFunc(spec, func() {
+
 				newSM, err := utils2.NewSimpMonitor(serverName, "", targetPort)
 				if err != nil {
 					fmt.Println("Error To New Monitor", err.Error())
@@ -284,12 +320,13 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			if err != nil {
 				fmt.Println("AddFuncErr", err)
 			}
+
 			// 启动Cron调度器
-			go cron.Start()
+			go cronSvr.Start()
+
 			go func() {
 				for {
 					if exit.Load() {
-						fmt.Println(" serverName | ", ctxName, " |StopToReadOutput")
 						return
 					}
 					// 读取输出
@@ -307,7 +344,6 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			go func() {
 				for {
 					if exit.Load() {
-						fmt.Println("serverName | ", ctxName, " |StopToReadOutput")
 						return
 					}
 					// 读取输出
@@ -326,44 +362,18 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 			go func() {
 				for {
-					time.Sleep(time.Minute * 15)
-					b := utils2.IsPidAlive(cmd.Process.Pid, ctxName)
-					if !b {
-						return
-					}
-					pInfo := utils2.GetProcessMemoryInfo(cmd.Process.Pid)
-					cpuPercent, _ := pInfo.CPUPercent()
-					cpuAffinity, _ := pInfo.CPUAffinity()
-					createTime, _ := pInfo.CreateTime()
-					Status, _ := pInfo.Status()
-					pid := cmd.Process.Pid
-					MemoryPercent, _ := pInfo.MemoryPercent()
-					MemoryInfo, _ := pInfo.MemoryInfo()
-					info := make(map[string]interface{})
-					info["pid"] = pid
-					info["MemoryInfo"] = MemoryInfo
-					info["MemoryPercent"] = MemoryPercent
-					info["CpuPercent"] = cpuPercent
-					info["CpuAffinity"] = cpuAffinity
-					info["CreateTime"] = createTime
-					info["Status"] = Status
-					info["ServerName"] = serverName
-					pInfoContent, err := json.Marshal(info)
-					if err != nil {
+					content, isAlive := svr.ServantMonitor()
+					if !isAlive {
 						break
 					}
-					s := time.Now().Format(time.DateTime)
-					content := s + " ServerName " + serverName + " || " + string(pInfoContent) + "\n"
 					sm.AppendLogger(content)
 				}
 			}()
 		}()
-		pid := cmd.Process.Pid
 		v := make(map[string]interface{}, 2)
-		v["pid"] = pid
+		v["pid"] = svr.Pid
 		v["status"] = true
-		utils2.ServantAlives[ctxName] = pid
-
+		utils2.SubServants[svr.GetContextName()] = svr
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
 	})
 
@@ -377,7 +387,6 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		storagePath := filepath.Join(cwd, utils2.PublishPath, serverName, fileName)
 		dest := filepath.Join(cwd, utils2.PublishPath, serverName)
 		err = utils2.Unzip(storagePath, dest)
-
 		storageExEPath := filepath.Join(cwd, utils2.PublishPath, serverName, "app.js")
 		cmd := exec.Command("node", storageExEPath)
 		cmd.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
@@ -530,16 +539,13 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 	GROUP.POST("/checkServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
-		pid := c.DefaultPostForm("pid", fmt.Sprint(utils2.ServantAlives[serverName]))
-		P, err := strconv.Atoi(pid)
-		if err != nil {
-			fmt.Println("Error to Atoi", err.Error())
-		}
-		b := utils2.IsPidAlive(P, serverName)
+		port := c.PostForm("port")
+		s := utils2.GetServant(serverName, port)
+		b := utils2.IsPidAlive(s.Pid)
 		v := make(map[string]interface{}, 10)
 		v["status"] = false
 		if b {
-			v["pid"] = pid
+			v["pid"] = s.Pid
 			v["status"] = true
 		}
 		c.JSON(http.StatusOK, handlers.Resp(0, "ok", v))
@@ -623,11 +629,12 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 			return
 		}
 		m := make(map[string]map[string]interface{})
-		for sName, ctx := range utils2.ServantAlives {
+		for sName, ctx := range utils2.SubServants {
+			context := &ctx
 			if strings.HasPrefix(sName, serverName) {
-				pid := ctx
+				pid := context.Pid
 				name := sName
-				b := utils2.IsPidAlive(pid, sName)
+				b := utils2.IsPidAlive(pid)
 				v := make(map[string]interface{}, 10)
 				v["status"] = false
 				if b {
@@ -643,28 +650,20 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 
 	GROUP.POST("/shutdownServer", func(c *gin.Context) {
 		serverName := c.PostForm("serverName")
-		pid := utils2.ServantAlives[serverName]
-		if pid == 0 {
+		port := c.PostForm("port")
+		s := utils2.GetServant(serverName, port)
+
+		if s.Pid == 0 {
 			c.AbortWithStatusJSON(200, handlers.Resp(-1, "暂无PID", nil))
 			return
 		}
-		if ctx, ok := RegistrhServicesCtx[serverName]; ok {
-			fmt.Println("exit routine")
-			fmt.Println("RegistrhServicesCtx[serverName]", serverName, "|", RegistrhServicesCtx[serverName])
-			ctx.Cron.Stop()
-			ctx.ExitSignal.Store(true)
-		}
-
-		fmt.Println("shoutDown server", serverName, "pid is ", pid)
-		cmd := exec.Command("kill", "-9", strconv.Itoa(pid))
-		// 执行命令
-		err := cmd.Run()
+		err := s.StopServant()
 		if err != nil {
 			fmt.Println("x:", err)
 			c.AbortWithStatusJSON(200, handlers.Resp(-1, "关闭服务异常", err.Error()))
 			return
 		}
-		utils2.ServantAlives[serverName] = 0
+		delete(utils2.SubServants, s.GetContextName())
 		c.AbortWithStatusJSON(200, handlers.Resp(0, "ok", nil))
 	})
 

@@ -185,7 +185,7 @@ func IFExistThenRemove(path string, isDir bool) error {
 	return nil
 }
 
-func IsPidAlive(pid int, serverName string) bool {
+func IsPidAlive(pid int) bool {
 
 	process, err := os.FindProcess(pid)
 	if err != nil {
@@ -194,20 +194,16 @@ func IsPidAlive(pid int, serverName string) bool {
 	}
 
 	err = process.Signal(syscall.Signal(0))
-	if err == nil {
-		pid1 := ServantAlives[serverName]
-		// 判断是否为同一个服务
-		if pid == pid1 {
-			return true // 进程存在
-		}
-	}
 
 	if os.IsNotExist(err) || err == os.ErrProcessDone {
 		return false // 进程不存在
 	}
-
+	if err != nil {
+		fmt.Println("err", err.Error())
+		return false
+	}
 	fmt.Printf("Error signaling process: %v\n", err)
-	return false
+	return true
 }
 func GetProcessMemoryInfo(pid int) *p.Process {
 	process, err := p.NewProcess(int32(pid))

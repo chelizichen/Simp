@@ -44,7 +44,6 @@ func (c *SimpHttpServerCtx) Use(callback func(engine *SimpHttpServerCtx, pre str
 
 // 主控服务需要做日志系统与监控
 func (c *SimpHttpServerCtx) DefineMain() {
-	// return
 	cwd, err := os.Getwd()
 	if err != nil {
 		Err_Message := "Error To Get Wd" + err.Error()
@@ -61,13 +60,12 @@ func (c *SimpHttpServerCtx) DefineMain() {
 			panic(Err_Message)
 		}
 	}
-	utils.AutoSetLogWriter()
 	go func() {
 		c := cron.New()
 
 		// 4小时执行一次，更换日志文件指定目录
-		spec := "* * */4 * * *"
-
+		spec := "0 0 0 * * *"
+		utils.AutoSetLogWriter()
 		// 添加定时任务
 		err := c.AddFunc(spec, func() {
 			utils.AutoSetLogWriter()

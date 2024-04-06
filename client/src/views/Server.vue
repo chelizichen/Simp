@@ -1,7 +1,7 @@
 <script lang="ts">
 export default {
-  name: 'server-component'
-}
+  name: "server-component",
+};
 </script>
 <script setup lang="ts">
 import { ElLoading, ElMessage, ElMessageBox, ElPopconfirm, type UploadUserFile } from 'element-plus'
@@ -57,6 +57,8 @@ const config = ref({
   MapConf: <Record<string, string>>{}
 })
 
+const RELEASE_CLUSTER = "RELEASE_CLUSTER";
+const RELEASE_SINGLENODE = "RELEASE_SINGLENODE"
 const rowList = [50, 100, 500, 1000]
 
 async function handleOpen(serverName: string) {
@@ -107,6 +109,7 @@ async function restartServer() {
     const formData = new FormData()
     formData.append('fileName', state.selectRelease)
     formData.append('serverName', state.serverName)
+    formData.append('releaseType', RELEASE_SINGLENODE)
     const resp = await API.RestartServer(formData)
     state.status = {
       status: resp.Data.status
@@ -159,6 +162,7 @@ async function restartServer() {
       const formData = new FormData()
       formData.append('serverName', state.serverName)
       formData.append('fileName', state.selectRelease)
+      formData.append('releaseType', RELEASE_CLUSTER)
       const resp = await API.RestartServer(formData)
       state.status = {
         status: resp.Data.status
@@ -713,7 +717,11 @@ function removeConfItem(key) {
               <div style="color: aliceblue">
                 SimpMainControlLogServer :: {{ state.serverName }} :: created By leeks
               </div>
-              <div style="color: aliceblue; margin: 2px" v-for="item in state.logger" :key="item">
+              <div
+                style="color: aliceblue; margin: 2px"
+                v-for="item in state.logger"
+                :key="item"
+              >
                 {{ item }}
               </div>
             </div>
@@ -721,7 +729,12 @@ function removeConfItem(key) {
         </el-card>
         <el-card shadow="hover" v-if="state.serverName">
           <div
-            style="height: 70px; display: flex; align-items: center; justify-content: space-around"
+            style="
+              height: 70px;
+              display: flex;
+              align-items: center;
+              justify-content: space-around;
+            "
           >
             <div class="flex-item">
               <div style="font-weight: 700">PackageCounts</div>
@@ -734,13 +747,16 @@ function removeConfItem(key) {
             </div>
             <div class="flex-item">
               <div style="font-weight: 700">ServerName</div>
-              <div style="color: rgb(207, 15, 124); cursor: pointer" @click="showConfig()">
-                {{ state.serverName || '--' }}
+              <div
+                style="color: rgb(207, 15, 124); cursor: pointer"
+                @click="showConfig()"
+              >
+                {{ state.serverName || "--" }}
               </div>
             </div>
             <div class="flex-item">
               <div style="font-weight: 700">Pid</div>
-              <div style="color: rgb(207, 15, 124)">{{ state.status.pid || '--' }}</div>
+              <div style="color: rgb(207, 15, 124)">{{ state.status.pid || "--" }}</div>
             </div>
             <div class="flex-item">
               <div style="font-weight: 700">Status</div>
@@ -763,7 +779,10 @@ function removeConfItem(key) {
               </div>
             </div> -->
             <div class="flex-item">
-              <div @click="ShutDownServer()" style="color: rgb(207, 15, 124); cursor: pointer">
+              <div
+                @click="ShutDownServer()"
+                style="color: rgb(207, 15, 124); cursor: pointer"
+              >
                 Shutdown
               </div>
             </div>
@@ -783,7 +802,10 @@ function removeConfItem(key) {
         <el-card shadow="hover" v-if="state.serverName" style="padding: 0">
           <el-tabs v-model="state.activeName">
             <el-tab-pane label="logger" name="logger">
-              <div style="display: flex; height: 700px" v-if="state.activeName == 'logger'">
+              <div
+                style="display: flex; height: 700px"
+                v-if="state.activeName == 'logger'"
+              >
                 <div style="width: 13%; margin-right: 2%">
                   <el-select v-model="state.loggerFile">
                     <el-option
@@ -861,7 +883,12 @@ function removeConfItem(key) {
           </el-tabs>
         </el-card>
         <!-- 文件上传表单 -->
-        <el-dialog append-to-body v-model="state.uploadVisible" width="50%" title="Release">
+        <el-dialog
+          append-to-body
+          v-model="state.uploadVisible"
+          width="50%"
+          title="Release"
+        >
           <el-form :model="uploadForm" label-width="150px">
             <el-form-item label="Server Name" required>
               <el-input v-model="uploadForm.serverName" disabled></el-input>
@@ -883,7 +910,9 @@ function removeConfItem(key) {
           </el-form>
           <span slot="footer">
             <div style="display: flex; align-items: center; justify-content: center">
-              <el-button type="primary" @click="state.uploadVisible = false">Close</el-button>
+              <el-button type="primary" @click="state.uploadVisible = false"
+                >Close</el-button
+              >
               <el-button type="success" @click="uploadFile">Upload</el-button>
             </div>
           </span>
@@ -915,20 +944,30 @@ function removeConfItem(key) {
             </el-form-item>
             <!-- 其他字段的配置 -->
             <el-form-item label="Conf">
-              <div v-for="(value, key) in config.MapConf" :key="key" style="display:flex;width:100%;margin:0 0 10px 0;gap:10px">
-                <el-input style="flex:1" :value="key" disabled></el-input>
-                <el-input  style="flex:2" :value="value" placeholder="Value"></el-input>
-                <el-button style="flex:1" type="danger" @click="removeConfItem(key)">Remove</el-button>
+              <div
+                v-for="(value, key) in config.MapConf"
+                :key="key"
+                style="display: flex; width: 100%; margin: 0 0 10px 0; gap: 10px"
+              >
+                <el-input style="flex: 1" :value="key" disabled></el-input>
+                <el-input style="flex: 2" :value="value" placeholder="Value"></el-input>
+                <el-button style="flex: 1" type="danger" @click="removeConfItem(key)"
+                  >Remove</el-button
+                >
               </div>
               <div>
-                <el-button @click="addConfItem" type="primary">Add New Conf Item</el-button>
+                <el-button @click="addConfItem" type="primary"
+                  >Add New Conf Item</el-button
+                >
               </div>
               <!-- 添加新键值对的按钮 -->
             </el-form-item>
           </el-form>
           <span slot="footer">
             <div style="display: flex; align-items: center; justify-content: center">
-              <el-button type="primary" @click="state.configVisible = false">Close</el-button>
+              <el-button type="primary" @click="state.configVisible = false"
+                >Close</el-button
+              >
               <el-button type="success" @click="previewSubServer()">Preivew</el-button>
               <el-button type="danger" @click="uploadConfig()">Upload</el-button>
             </div>
@@ -948,14 +987,25 @@ function removeConfItem(key) {
           </el-form>
           <span slot="footer">
             <div style="display: flex; align-items: center; justify-content: center">
-              <el-button type="primary" @click="state.createServerVisible = false">Close</el-button>
+              <el-button type="primary" @click="state.createServerVisible = false"
+                >Close</el-button
+              >
               <el-button type="success" @click="createServer()">Create</el-button>
             </div>
           </span>
         </el-dialog>
 
-        <el-dialog append-to-body v-model="state.releaseVisible" title="Release Server" width="60%">
-          <el-select v-model="state.selectRelease" placeholder="请选择" style="width: 100%">
+        <el-dialog
+          append-to-body
+          v-model="state.releaseVisible"
+          title="Release Server"
+          width="60%"
+        >
+          <el-select
+            v-model="state.selectRelease"
+            placeholder="请选择"
+            style="width: 100%"
+          >
             <el-option
               v-for="item in state.packageList"
               :key="item.Hash"
@@ -984,7 +1034,9 @@ function removeConfItem(key) {
               :key="index"
               :value="item.key"
             >
-              <div v-if="item.key == SingleNode" style="color: blue; font-weight: 700">Release</div>
+              <div v-if="item.key == SingleNode" style="color: blue; font-weight: 700">
+                Release
+              </div>
               <div v-else>{{ item.key }}</div>
             </el-option>
           </el-select>
@@ -1004,9 +1056,13 @@ function removeConfItem(key) {
           </el-checkbox-group>
           <template #footer>
             <div style="display: flex; align-items: center; justify-content: center">
-              <el-button type="primary" @click="state.releaseVisible = false">Close</el-button>
+              <el-button type="primary" @click="state.releaseVisible = false"
+                >Close</el-button
+              >
               <el-button type="success" @click="restartServer()">Release</el-button>
-              <el-button type="danger" @click="state.uploadVisible = true">Upload</el-button>
+              <el-button type="danger" @click="state.uploadVisible = true"
+                >Upload</el-button
+              >
             </div>
           </template>
         </el-dialog>
@@ -1040,7 +1096,9 @@ function removeConfItem(key) {
         </el-dialog>
         <el-footer>
           <el-divider content-position="center">
-            <div style="color: rgb(207, 15, 124); font-size: 18px">Copyright © 2023-2024</div>
+            <div style="color: rgb(207, 15, 124); font-size: 18px">
+              Copyright © 2023-2024
+            </div>
           </el-divider>
           <el-divider content-position="center">
             <div style="color: rgb(207, 15, 124); font-size: 18px">
