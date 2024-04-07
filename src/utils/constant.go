@@ -57,7 +57,7 @@ func (s *Servants) GetContextName() string {
 }
 
 func (s *Servants) ServantMonitor() (string, bool) {
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Minute * 5)
 	b := IsPidAlive(s.Pid)
 	if !b {
 		fmt.Println(s.GetContextName(), "isPidAlive ", s.Pid, "|", b)
