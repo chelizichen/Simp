@@ -237,6 +237,10 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 					if err != nil {
 						fmt.Println("remove File Error storageStaticPath "+storageStaticPath, err.Error())
 					}
+					err = utils2.Unzip(storagePath, dest) // 直接解压
+					if err != nil {
+						fmt.Println("Error To Unzip", err.Error())
+					}
 				}
 				// java -jar your-application.jar -Dspring.config.location=file:/path/to/application.yml,file:/path/to/another-config.yaml
 				runScript = func() *exec.Cmd {
@@ -292,6 +296,9 @@ func Registry(ctx *handlers.SimpHttpServerCtx, pre string) {
 		}
 		// 设置环境变量
 		script.Env = append(os.Environ(), "SIMP_PRODUCTION=Yes", "SIMP_SERVER_PATH="+dest)
+		if svr.Language == utils2.RELEASE_TYPE_JAVA {
+			script.Env = append(script.Env, "SIMP_PROD_YAML="+storageYmlProdPath)
+		}
 		if releaseType == utils2.RELEASE_CLUSTER {
 			script.Env = append(script.Env, "SIMP_TARGET_PORT="+targetPort, "SIMP_SERVER_INDEX="+targetPort)
 		} else {
